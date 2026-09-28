@@ -2,6 +2,15 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import { ref } from 'vue';
+import {
+    Edit,
+    KeyRound,
+    Plus,
+    Search,
+    ShieldCheck,
+    Trash2,
+} from 'lucide-vue-next';
+
 import admin from '@/routes/admin';
 
 interface Permission {
@@ -35,7 +44,7 @@ const props = defineProps<{
 
 const search = ref(props.filters?.search ?? '');
 
-const submitSearch = () => {
+const submitSearch = (): void => {
     router.get(
         admin.permissions.index().url,
         {
@@ -44,12 +53,14 @@ const submitSearch = () => {
         {
             preserveState: true,
             replace: true,
-        }
+        },
     );
 };
 
-const deletePermission = (permission: Permission) => {
-    Swal.fire({
+const deletePermission = async (
+    permission: Permission,
+): Promise<void> => {
+    const result = await Swal.fire({
         title: '¿Eliminar permiso?',
         text: `Se eliminará el permiso "${permission.name}". Esta acción no se puede deshacer.`,
         icon: 'warning',
@@ -57,232 +68,374 @@ const deletePermission = (permission: Permission) => {
         confirmButtonText: 'Sí, eliminar',
         cancelButtonText: 'Cancelar',
         reverseButtons: true,
-    }).then((result) => {
-        if (result.isConfirmed) {
-            router.delete(
-                admin.permissions.destroy(permission.id).url,
-                {
-                    preserveScroll: true,
-                }
-            );
-        }
+        focusCancel: true,
     });
+
+    if (!result.isConfirmed) {
+        return;
+    }
+
+    router.delete(
+        admin.permissions.destroy(permission.id).url,
+        {
+            preserveScroll: true,
+
+            onSuccess: () => {
+                Swal.fire({
+                    title: 'Eliminado',
+                    text: 'El permiso se eliminó correctamente.',
+                    icon: 'success',
+                    timer: 1800,
+                    showConfirmButton: false,
+                });
+            },
+
+            onError: () => {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'No se pudo eliminar el permiso.',
+                    icon: 'error',
+                    confirmButtonText: 'Aceptar',
+                });
+            },
+        },
+    );
 };
 
-const moduleOf = (name: string) => {
+const moduleOf = (name: string): string => {
     return name.split('.')[0] ?? name;
 };
 
-const actionOf = (name: string) => {
+const actionOf = (name: string): string => {
     return name.split('.')[1] ?? '';
 };
+
+defineOptions({
+    layout: {
+        breadcrumbs: [
+            {
+                title: 'Panel',
+                href: admin.dashboard(),
+            },
+            {
+                title: 'Permisos',
+                href: admin.permissions.index(),
+            },
+        ],
+    },
+});
 </script>
 
 <template>
     <Head title="Permisos" />
 
-    <div
-        class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
-    >
-        <!-- Encabezado -->
-        <div
-            class="relative rounded-xl border border-sidebar-border/70 p-6 dark:border-sidebar-border"
-        >
-            <div
-                class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
-            >
-                <div>
-                    <h1 class="text-2xl font-semibold">
-                        Permisos
-                    </h1>
+    <div class="admin-page">
+        <!-- =================================================
+             HEADER
+        ================================================== -->
 
-                    <p class="mt-1 text-sm text-muted-foreground">
-                        Administra los permisos disponibles en el sistema.
-                    </p>
-                </div>
+        <header class="admin-page-header">
+            <div>
+                <p class="admin-page-eyebrow">
+                    Configuración
+                </p>
 
+                <h1 class="admin-page-title">
+                    Permisos
+                </h1>
+
+                <p class="admin-page-subtitle">
+                    Administra los permisos disponibles en el sistema.
+                </p>
+            </div>
+
+            <div class="admin-page-header-actions">
                 <Link
                     :href="admin.permissions.create().url"
-                    class="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+                    class="admin-btn admin-btn-primary"
                 >
+                    <span class="admin-btn-icon">
+                        <Plus
+                            :size="14"
+                            :stroke-width="2.2"
+                        />
+                    </span>
+
                     Nuevo permiso
                 </Link>
             </div>
-        </div>
+        </header>
 
-        <!-- Tabla -->
-        <div
-            class="relative flex-1 overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
-        >
-            <!-- Buscador -->
-            <div
-                class="flex flex-col gap-3 border-b border-sidebar-border/70 p-4 md:flex-row md:items-center md:justify-between dark:border-sidebar-border"
-            >
+        <!-- =================================================
+             MAIN CARD
+        ================================================== -->
+
+        <section class="admin-table-card">
+            <!-- TOOLBAR -->
+
+            <div class="admin-table-toolbar">
                 <form
+                    class="admin-search-form"
                     @submit.prevent="submitSearch"
-                    class="flex w-full gap-2 md:max-w-md"
                 >
-                    <input
-                        v-model="search"
-                        type="search"
-                        placeholder="Buscar permiso..."
-                        class="w-full rounded-lg border border-sidebar-border bg-background px-4 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    />
+                    <div class="admin-search-wrapper">
+                        <Search
+                            class="admin-search-icon"
+                            :size="16"
+                            :stroke-width="2"
+                        />
+
+                        <input
+                            v-model="search"
+                            type="search"
+                            placeholder="Buscar permiso..."
+                            class="admin-search-input"
+                        />
+                    </div>
 
                     <button
                         type="submit"
-                        class="rounded-lg border border-sidebar-border px-4 py-2 text-sm font-medium transition hover:bg-accent"
+                        class="admin-btn admin-btn-search"
                     >
+                        <Search
+                            :size="14"
+                            :stroke-width="2"
+                        />
+
                         Buscar
                     </button>
                 </form>
 
-                <div class="text-sm text-muted-foreground">
-                    {{ permissions.total }} permisos
+                <div class="admin-table-counter">
+                    <strong>
+                        {{ permissions.total }}
+                    </strong>
+
+                    <span>
+                        permisos
+                    </span>
                 </div>
             </div>
 
-            <!-- Tabla -->
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                    <thead
-                        class="border-b border-sidebar-border/70 bg-muted/40 dark:border-sidebar-border"
-                    >
+            <!-- TABLE -->
+
+            <div class="admin-table-wrapper">
+                <table class="admin-table">
+                    <thead>
                         <tr>
-                            <th class="px-6 py-4 font-semibold">
+                            <th>
                                 Permiso
                             </th>
 
-                            <th class="px-6 py-4 font-semibold">
+                            <th>
                                 Módulo
                             </th>
 
-                            <th class="px-6 py-4 font-semibold">
+                            <th>
                                 Acción
                             </th>
 
-                            <th class="px-6 py-4 font-semibold">
+                            <th>
                                 Guard
                             </th>
 
-                            <th class="px-6 py-4 text-right font-semibold">
+                            <th class="text-right">
                                 Acciones
                             </th>
                         </tr>
                     </thead>
 
-                    <tbody
-                        class="divide-y divide-sidebar-border/70 dark:divide-sidebar-border"
-                    >
+                    <tbody>
                         <tr
                             v-for="permission in permissions.data"
                             :key="permission.id"
-                            class="transition hover:bg-muted/30"
                         >
-                            <!-- Permiso -->
-                            <td class="px-6 py-4">
-                                <div class="font-medium">
-                                    {{ permission.name }}
-                                </div>
+                            <!-- PERMISO -->
 
-                                <div class="text-xs text-muted-foreground">
-                                    ID: {{ permission.id }}
+                            <td>
+                                <div class="payment-method-cell">
+                                    <div class="payment-method-icon">
+                                        <KeyRound
+                                            :size="17"
+                                            :stroke-width="2"
+                                        />
+                                    </div>
+
+                                    <div class="payment-method-info">
+                                        <strong>
+                                            {{ permission.name }}
+                                        </strong>
+
+                                        <span>
+                                            ID: {{ permission.id }}
+                                        </span>
+                                    </div>
                                 </div>
                             </td>
 
-                            <!-- Módulo -->
-                            <td class="px-6 py-4">
-                                <span
-                                    class="rounded-full border border-sidebar-border px-2.5 py-1 text-xs font-medium"
-                                >
+                            <!-- MÓDULO -->
+
+                            <td>
+                                <span class="order-badge">
                                     {{ moduleOf(permission.name) }}
                                 </span>
                             </td>
 
-                            <!-- Acción -->
-                            <td class="px-6 py-4">
-                                <span class="text-muted-foreground">
+                            <!-- ACCIÓN -->
+
+                            <td>
+                                <div
+                                    v-if="actionOf(permission.name)"
+                                    class="payment-description"
+                                >
                                     {{ actionOf(permission.name) }}
-                                </span>
+                                </div>
+
+                                <div
+                                    v-else
+                                    class="payment-description empty"
+                                >
+                                    Sin acción
+                                </div>
                             </td>
 
-                            <!-- Guard -->
-                            <td class="px-6 py-4">
-                                <span
-                                    class="rounded-full border border-sidebar-border px-2.5 py-1 text-xs"
-                                >
+                            <!-- GUARD -->
+
+                            <td>
+                                <span class="status-badge status-active">
+                                    <span class="status-dot"></span>
+
                                     {{ permission.guard_name }}
                                 </span>
                             </td>
 
-                            <!-- Acciones -->
-                            <td class="px-6 py-4">
-                                <div class="flex justify-end gap-2">
+                            <!-- ACCIONES -->
+
+                            <td>
+                                <div class="table-actions">
                                     <Link
                                         :href="
                                             admin.permissions.edit(
-                                                permission.id
+                                                permission.id,
                                             ).url
                                         "
-                                        class="rounded-lg border border-sidebar-border px-3 py-2 text-xs font-medium transition hover:bg-accent"
+                                        class="action-btn action-btn-edit"
+                                        title="Editar permiso"
+                                        aria-label="Editar permiso"
                                     >
+                                        <Edit
+                                            :size="14"
+                                            :stroke-width="2"
+                                        />
+
                                         Editar
                                     </Link>
 
                                     <button
                                         type="button"
-                                        class="rounded-lg border border-red-500/30 px-3 py-2 text-xs font-medium text-red-500 transition hover:bg-red-500/10"
+                                        class="action-btn action-btn-delete"
+                                        title="Eliminar permiso"
+                                        aria-label="Eliminar permiso"
                                         @click="
-                                            deletePermission(permission)
+                                            deletePermission(
+                                                permission,
+                                            )
                                         "
                                     >
+                                        <Trash2
+                                            :size="14"
+                                            :stroke-width="2"
+                                        />
+
                                         Eliminar
                                     </button>
                                 </div>
                             </td>
                         </tr>
 
-                        <!-- Sin resultados -->
-                        <tr v-if="permissions.data.length === 0">
+                        <!-- EMPTY -->
+
+                        <tr
+                            v-if="
+                                permissions.data.length === 0
+                            "
+                        >
                             <td
                                 colspan="5"
-                                class="px-6 py-12 text-center text-sm text-muted-foreground"
+                                class="admin-table-empty"
                             >
-                                No se encontraron permisos.
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">
+                                        <ShieldCheck
+                                            :size="20"
+                                            :stroke-width="2"
+                                        />
+                                    </div>
+
+                                    <strong>
+                                        No se encontraron permisos
+                                    </strong>
+
+                                    <span>
+                                        Intenta cambiar el término
+                                        de búsqueda.
+                                    </span>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- Paginación -->
+            <!-- PAGINATION -->
+
             <div
                 v-if="permissions.last_page > 1"
-                class="flex flex-wrap items-center justify-center gap-1 border-t border-sidebar-border/70 p-4 dark:border-sidebar-border"
+                class="admin-pagination-wrapper"
             >
-                <template
-                    v-for="(link, index) in permissions.links"
-                    :key="index"
-                >
-                    <Link
-                        v-if="link.url"
-                        :href="link.url"
-                        class="rounded-lg border px-3 py-2 text-sm transition"
-                        :class="
-                            link.active
-                                ? 'border-primary bg-primary text-primary-foreground'
-                                : 'border-sidebar-border hover:bg-accent'
-                        "
-                        v-html="link.label"
-                    />
+                <div class="admin-pagination-info">
+                    Mostrando
 
-                    <span
-                        v-else
-                        class="rounded-lg border border-sidebar-border px-3 py-2 text-sm opacity-50"
-                        v-html="link.label"
-                    />
-                </template>
+                    <strong>
+                        {{ permissions.from ?? 0 }}
+                    </strong>
+
+                    a
+
+                    <strong>
+                        {{ permissions.to ?? 0 }}
+                    </strong>
+
+                    de
+
+                    <strong>
+                        {{ permissions.total }}
+                    </strong>
+                </div>
+
+                <nav class="admin-pagination">
+                    <template
+                        v-for="(link, index) in permissions.links"
+                        :key="index"
+                    >
+                        <Link
+                            v-if="link.url"
+                            :href="link.url"
+                            class="pagination-btn"
+                            :class="{
+                                active: link.active,
+                            }"
+                            v-html="link.label"
+                        />
+
+                        <span
+                            v-else
+                            class="pagination-btn disabled"
+                            v-html="link.label"
+                        />
+                    </template>
+                </nav>
             </div>
-        </div>
+        </section>
     </div>
 </template>

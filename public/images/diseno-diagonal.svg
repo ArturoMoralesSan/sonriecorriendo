@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="2000"
+    height="2000"
+    viewBox="0 0 2000 2000"
+    fill="none"
+>
+
+    <defs>
+
+        <linearGradient
+            id="gradient-diagonal"
+            x1="250"
+            y1="250"
+            x2="1750"
+            y2="1750"
+            gradientUnits="userSpaceOnUse"
+        >
+            <stop offset="0%" stop-color="#652284"/>
+            <stop offset="20%" stop-color="#6D2482"/>
+            <stop offset="40%" stop-color="#7A257D"/>
+            <stop offset="60%" stop-color="#8D276F"/>
+            <stop offset="80%" stop-color="#A32961"/>
+            <stop offset="100%" stop-color="#B02758"/>
+        </linearGradient>
+
+    </defs>
+
+
+    <!-- =====================================================
+         DISEÑO DIAGONAL 2000 × 2000
+         ===================================================== -->
+
+    <g transform="rotate(-45 1000 1000)">
+
+        <!-- Línea superior izquierda -->
+        <rect
+            x="80"
+            y="620"
+            width="600"
+            height="105"
+            rx="52.5"
+            fill="url(#gradient-diagonal)"
+        />
+
+        <!-- Línea superior derecha -->
+        <rect
+            x="800"
+            y="620"
+            width="1250"
+            height="105"
+            rx="52.5"
+            fill="url(#gradient-diagonal)"
+        />
+
+        <!-- Línea inferior izquierda -->
+        <rect
+            x="400"
+            y="820"
+            width="390"
+            height="105"
+            rx="52.5"
+            fill="url(#gradient-diagonal)"
+        />
+
+        <!-- Línea inferior derecha -->
+        <rect
+            x="880"
+            y="820"
+            width="1170"
+            height="105"
+            rx="52.5"
+            fill="url(#gradient-diagonal)"
+        />
+
+    </g>
+
+</svg>

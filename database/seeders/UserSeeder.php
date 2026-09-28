@@ -45,12 +45,12 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Super Administrador',
+                'username' => 'ramon.morales',
                 'password' => Hash::make('12345678'),
             ]
         );
 
         $this->ensureQrToken($adminUser);
-
         $adminUser->syncRoles([$superadmin]);
 
         /*
@@ -65,12 +65,12 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Personal carrera',
+                'username' => 'staff',
                 'password' => Hash::make('Staff12345'),
             ]
         );
 
         $this->ensureQrToken($staffUser);
-
         $staffUser->syncRoles([$staff]);
 
         /*
@@ -85,12 +85,12 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'customer',
+                'username' => 'customer',
                 'password' => Hash::make('customer12345'),
             ]
         );
 
         $this->ensureQrToken($visitorUser);
-
         $visitorUser->syncRoles([$visitor]);
     }
 

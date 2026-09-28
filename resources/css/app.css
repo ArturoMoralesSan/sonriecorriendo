@@ -3,6 +3,9 @@
 @import './admin/sidebar.css';
 @import './admin/dashboard.css';
 @import './admin/pages.css';
+@import './admin/forms.css';
+@import './auth/auth.css';
+@import './landing.css';
 @import 'tw-animate-css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import AppLogo from '@/components/AppLogo.vue';
 import {
     Card,
     CardContent,
@@ -17,30 +17,28 @@ defineProps<{
 </script>
 
 <template>
-    <div
-        class="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10"
-    >
+    <div class="auth-page">
         <div class="flex w-full max-w-md flex-col gap-6">
             <Link
                 :href="home()"
-                class="flex items-center gap-2 self-center font-medium"
+                class="auth-logo"
             >
-                <div class="flex h-9 w-9 items-center justify-center">
-                    <AppLogoIcon
-                        class="size-9 fill-current text-black dark:text-white"
-                    />
-                </div>
+                <AppLogo />
             </Link>
 
             <div class="flex flex-col gap-6">
-                <Card class="rounded-xl">
-                    <CardHeader class="px-10 pt-8 pb-0 text-center">
-                        <CardTitle class="text-xl">{{ title }}</CardTitle>
-                        <CardDescription>
+                <Card class="auth-card">
+                    <CardHeader class="auth-card-header">
+                        <CardTitle class="auth-card-title">
+                            {{ title }}
+                        </CardTitle>
+
+                        <CardDescription class="auth-card-description">
                             {{ description }}
                         </CardDescription>
                     </CardHeader>
-                    <CardContent class="px-10 py-8">
+
+                    <CardContent class="auth-card-content">
                         <slot />
                     </CardContent>
                 </Card>

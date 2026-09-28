@@ -32,6 +32,7 @@ class User extends Authenticatable implements PasskeyUser
     TwoFactorAuthenticatable;
 
     protected $fillable = [
+        'username',
         'name',
         'email',
         'password',

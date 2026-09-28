@@ -13,7 +13,11 @@ class PermissionController extends Controller
     {
         $permissions = Permission::where('guard_name', 'web')
             ->when($request->search, function ($query, $search) {
-                $query->where('name', 'like', "%{$search}%");
+                $query->where(
+                    'name',
+                    'like',
+                    "%{$search}%"
+                );
             })
             ->orderBy('name')
             ->paginate(15)
@@ -48,20 +52,30 @@ class PermissionController extends Controller
             'guard_name' => 'web',
         ]);
 
-        return redirect()
-            ->route('admin.permissions.index')
-            ->with('success', 'Permiso creado correctamente.');
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Permiso creado correctamente.',
+        ]);
+
+        return to_route(
+            'admin.permissions.index'
+        );
     }
 
     public function edit(Permission $permission)
     {
-        return Inertia::render('admin/permissions/Edit', [
-            'permission' => $permission,
-        ]);
+        return Inertia::render(
+            'admin/permissions/Edit',
+            [
+                'permission' => $permission,
+            ]
+        );
     }
 
-    public function update(Request $request, Permission $permission)
-    {
+    public function update(
+        Request $request,
+        Permission $permission
+    ) {
         $validated = $request->validate([
             'name' => [
                 'required',
@@ -75,17 +89,27 @@ class PermissionController extends Controller
             'name' => $validated['name'],
         ]);
 
-        return redirect()
-            ->route('admin.permissions.index')
-            ->with('success', 'Permiso actualizado correctamente.');
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Permiso actualizado correctamente.',
+        ]);
+
+        return to_route(
+            'admin.permissions.index'
+        );
     }
 
     public function destroy(Permission $permission)
     {
         $permission->delete();
 
-        return redirect()
-            ->route('admin.permissions.index')
-            ->with('success', 'Permiso eliminado correctamente.');
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Permiso eliminado correctamente.',
+        ]);
+
+        return to_route(
+            'admin.permissions.index'
+        );
     }
 }

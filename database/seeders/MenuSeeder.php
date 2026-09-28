@@ -29,11 +29,53 @@ class MenuSeeder extends Seeder
 
         /*
         |--------------------------------------------------------------------------
-        | Zoológico
+        | Carreras
         |--------------------------------------------------------------------------
         */
 
-       
+        $races = Menu::updateOrCreate(
+            ['name' => 'Carreras'],
+            [
+                'icon' => 'Trophy',
+                'order' => 2,
+                'route' => null,
+                'is_submenu' => true,
+            ]
+        );
+
+        $this->link(
+            $races,
+            'Listado de carreras',
+            'CalendarDays',
+            1,
+            'admin.races.index',
+            'races.view'
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Patrocinadores
+        |--------------------------------------------------------------------------
+        */
+
+        $sponsors = Menu::updateOrCreate(
+            ['name' => 'Patrocinadores'],
+            [
+                'icon' => 'Handshake',
+                'order' => 3,
+                'route' => null,
+                'is_submenu' => true,
+            ]
+        );
+
+        $this->link(
+            $sponsors,
+            'Listado de patrocinadores',
+            'Building2',
+            1,
+            'admin.sponsors.index',
+            'sponsors.view'
+        );
 
         /*
         |--------------------------------------------------------------------------
@@ -45,24 +87,20 @@ class MenuSeeder extends Seeder
             ['name' => 'Venta'],
             [
                 'icon' => 'Ticket',
-                'order' => 3,
+                'order' => 4,
                 'route' => null,
                 'is_submenu' => true,
             ]
         );
 
-
         $this->link(
             $ticketOffice,
             'Métodos de pago',
             'CreditCard',
-            2,
+            1,
             'admin.payment-methods.index',
             'payment-methods.view'
         );
-
-        
-        
 
         /*
         |--------------------------------------------------------------------------
@@ -74,7 +112,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Administración'],
             [
                 'icon' => 'Settings',
-                'order' => 6,
+                'order' => 5,
                 'route' => null,
                 'is_submenu' => true,
             ]
@@ -126,10 +164,7 @@ class MenuSeeder extends Seeder
             'name',
             $permission
         )
-            ->where(
-                'guard_name',
-                'web'
-            )
+            ->where('guard_name', 'web')
             ->first();
 
         Link::updateOrCreate(

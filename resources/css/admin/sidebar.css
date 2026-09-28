@@ -13,15 +13,15 @@
 
     --sc-purple: #6753b7;
 
-    --sc-text: #1760a8;
+    --sc-text: #172b4d;
     --sc-text-dark: #123d72;
-    --sc-text-muted: #7d9ab5;
+    --sc-text-muted: #94a3b8;
 
-    --sc-border: #e2edf6;
-    --sc-border-soft: #edf3f8;
+    --sc-border: #e5eaf0;
+    --sc-border-soft: #f0f3f6;
 
     --sc-sidebar-bg: #f7fbfe;
-    --sc-hover: #f0f8fd;
+    --sc-hover: #fbfdff;
 
     --sc-active-blue: #e2f4fd;
     --sc-active-pink: #fdebf3;
@@ -29,56 +29,61 @@
     --sc-radius: 11px;
 }
 
-
 /* =========================================================
    SIDEBAR GENERAL
    ========================================================= */
 
 [data-sidebar="sidebar"] {
-    background: var(--sc-sidebar-bg) !important;
+    position: relative;
+    overflow: hidden;
+    background-color: var(--sc-sidebar-bg) !important;
     border-color: var(--sc-border) !important;
     box-shadow: none !important;
 }
 
-
-/* =========================================================
-   FONDO DEL SIDEBAR
-   ========================================================= */
+[data-sidebar="sidebar"]::after {
+    position: absolute;
+    right: 11px;
+    bottom: -61%;
+    z-index: 0;
+    width: 300px;
+    height: 100%;
+    background-image: url(/images/diseno-vertical.svg);
+    background-position: bottom;
+    background-repeat: no-repeat;
+    background-size: cover;
+    opacity: 0.20;
+    pointer-events: none;
+    content: "";
+}
 
 [data-sidebar="sidebar"] [data-sidebar="header"],
 [data-sidebar="sidebar"] [data-sidebar="content"],
 [data-sidebar="sidebar"] [data-sidebar="footer"] {
-    background: var(--sc-sidebar-bg) !important;
+    position: relative;
+    z-index: 1;
+    background: transparent !important;
 }
-
 
 /* =========================================================
    HEADER / LOGO
    ========================================================= */
 
-
-
 [data-sidebar="header"] [data-sidebar="menu-button"] {
     width: 100% !important;
     height: auto !important;
     min-height: 90px;
-
     padding: 8px 5px !important;
-
     justify-content: center !important;
-
     border-radius: 12px !important;
-
     background: transparent !important;
     color: inherit !important;
-
     box-shadow: none !important;
 }
 
 [data-sidebar="header"] [data-sidebar="menu-button"]:hover {
     background: transparent !important;
 }
-
 
 /* =========================================================
    CONTENT
@@ -102,7 +107,6 @@
     border-radius: 10px;
 }
 
-
 /* =========================================================
    GROUP
    ========================================================= */
@@ -111,25 +115,21 @@
     padding: 0 !important;
 }
 
-
 /* =========================================================
    SEARCH EXPANDIDO
    ========================================================= */
 
 [data-sidebar="content"] input {
+    width: 100% !important;
     height: 40px !important;
-
-    border: 1px solid #e2edf6 !important;
+    padding: 0 13px !important;
+    border: 1px solid var(--sc-border) !important;
     border-radius: 10px !important;
-
-    background: #f7fbfe !important;
-
-    color: var(--sc-text-dark) !important;
-
-    font-size: 13px !important;
-
+    background: #fbfcfd !important;
+    color: var(--sc-text) !important;
+    font-size: 12px !important;
+    outline: none !important;
     box-shadow: none !important;
-
     transition:
         border-color 0.2s ease,
         background-color 0.2s ease,
@@ -137,7 +137,7 @@
 }
 
 [data-sidebar="content"] input::placeholder {
-    color: #8ba5bb !important;
+    color: #9aabba !important;
 }
 
 [data-sidebar="content"] input:hover {
@@ -145,18 +145,15 @@
 }
 
 [data-sidebar="content"] input:focus {
-    border-color: #9ed7f5 !important;
-
+    border-color: #a9d9f2 !important;
     background: #ffffff !important;
-
     box-shadow:
         0 0 0 3px rgba(36, 158, 219, 0.08) !important;
 }
 
 [data-sidebar="content"] .text-muted-foreground {
-    color: #7ea1bd !important;
+    color: var(--sc-text-muted) !important;
 }
-
 
 /* =========================================================
    MAIN MENU
@@ -166,36 +163,27 @@
     gap: 7px !important;
 }
 
-
 /* =========================================================
    MENU BUTTON
    ========================================================= */
 
 [data-sidebar="menu-button"] {
     position: relative;
-
     width: 100% !important;
-    height: 45px !important;
-
+    height: 44px !important;
     padding: 0 13px !important;
-
-    border-radius: 11px !important;
-
-    color: var(--sc-text) !important;
+    border-radius: 10px !important;
+    color: #527b9f !important;
     background: transparent !important;
-
-    font-size: 14px !important;
-    font-weight: 500 !important;
-
+    font-size: 13px !important;
+    font-weight: 550 !important;
     letter-spacing: 0 !important;
-
     transition:
-        background 0.2s ease,
+        background-color 0.2s ease,
         color 0.2s ease,
         box-shadow 0.2s ease,
         transform 0.2s ease;
 }
-
 
 /* =========================================================
    ICONOS PRINCIPALES
@@ -204,18 +192,13 @@
 [data-sidebar="menu-button"] svg {
     width: 19px !important;
     height: 19px !important;
-
     flex-shrink: 0;
-
-    color: #2878bd !important;
-
+    color: #4e88b7 !important;
     stroke-width: 1.9 !important;
-
     transition:
         color 0.2s ease,
         transform 0.2s ease;
 }
-
 
 /* =========================================================
    HOVER
@@ -223,13 +206,12 @@
 
 [data-sidebar="menu-button"]:hover {
     background: var(--sc-hover) !important;
-    color: #1769a8 !important;
+    color: var(--sc-blue-dark) !important;
 }
 
 [data-sidebar="menu-button"]:hover svg {
     color: var(--sc-blue) !important;
 }
-
 
 /* =========================================================
    ACTIVE
@@ -242,16 +224,15 @@
         #e9f5fc 45%,
         #fdebf3 100%
     ) !important;
-
     color: #0876c8 !important;
-
-    font-weight: 600 !important;
-
+    font-size: 13px !important;
+    font-weight: 650 !important;
     box-shadow: none !important;
 }
 
 [data-sidebar="menu-button"][data-active="true"]::before {
     display: none !important;
+    width: 0 !important;
     content: none !important;
 }
 
@@ -267,10 +248,8 @@
         #e7f4fc 45%,
         #fce8f1 100%
     ) !important;
-
     color: #0876c8 !important;
 }
-
 
 /* =========================================================
    SUBMENUS
@@ -279,14 +258,10 @@
 [data-sidebar="menu-sub"] {
     margin-top: 5px !important;
     margin-bottom: 6px !important;
-
     margin-left: 17px !important;
-
     padding-left: 11px !important;
-
     border-left: 1px solid #dfeaf3 !important;
 }
-
 
 /* =========================================================
    SUBMENU BUTTON
@@ -294,20 +269,14 @@
 
 [data-sidebar="menu-sub-button"] {
     position: relative;
-
     width: 100% !important;
     height: 37px !important;
-
     padding: 0 11px !important;
-
     border-radius: 8px !important;
-
-    color: #527b9f !important;
+    color: #647f98 !important;
     background: transparent !important;
-
-    font-size: 12.5px !important;
+    font-size: 12px !important;
     font-weight: 500 !important;
-
     transition:
         background-color 0.2s ease,
         color 0.2s ease;
@@ -316,14 +285,12 @@
 [data-sidebar="menu-sub-button"] svg {
     width: 16px !important;
     height: 16px !important;
-
-    color: #4e88b7 !important;
-
+    color: #5d8bb2 !important;
     stroke-width: 1.8 !important;
 }
 
 [data-sidebar="menu-sub-button"]:hover {
-    background: #f5faff !important;
+    background: #f4f9fc !important;
     color: #1877bd !important;
 }
 
@@ -337,9 +304,7 @@
         #eaf7ff 0%,
         #f5faff 100%
     ) !important;
-
     color: #1685ce !important;
-
     font-weight: 600 !important;
 }
 
@@ -352,18 +317,15 @@
     color: #168ee0 !important;
 }
 
-
 /* =========================================================
    CHEVRON
    ========================================================= */
 
 [data-sidebar="menu-button"] .ml-auto {
-    color: #5790bb !important;
-
     width: 16px;
     height: 16px;
+    color: #6b96b7 !important;
 }
-
 
 /* =========================================================
    FOOTER
@@ -371,25 +333,20 @@
 
 [data-sidebar="footer"] {
     padding: 14px !important;
-
     border-top: 1px solid var(--sc-border-soft);
 }
 
 [data-sidebar="footer"] [data-sidebar="menu-button"] {
     min-height: 54px;
-
-    border: 1px solid #e2edf6 !important;
-
+    border: 1px solid var(--sc-border) !important;
+    border-radius: 11px !important;
     background: #ffffff !important;
-
-    border-radius: 12px !important;
 }
 
 [data-sidebar="footer"] [data-sidebar="menu-button"]:hover {
-    background: #f7fbfe !important;
     border-color: #d5e7f3 !important;
+    background: #f7fbfe !important;
 }
-
 
 /* =========================================================
    SIDEBAR COLLAPSED
@@ -425,42 +382,22 @@
     ) !important;
 }
 
-
 /* =========================================================
-   =========================================================
    DROPDOWNS DEL SIDEBAR
-   =========================================================
    ========================================================= */
-
-
-/*
- * Reka UI utiliza DropdownMenuPortal, por lo que los
- * dropdowns se renderizan fuera del sidebar.
- *
- * Usamos data-slot="dropdown-menu-content", que viene
- * directamente de tu DropdownMenuContent.vue.
- */
 
 [data-slot="dropdown-menu-content"] {
     z-index: 100 !important;
-
     min-width: 224px !important;
-
     padding: 7px !important;
-
-    border: 1px solid #e2edf6 !important;
-
-    border-radius: 13px !important;
-
+    border: 1px solid var(--sc-border) !important;
+    border-radius: 11px !important;
     background: #ffffff !important;
-
     color: var(--sc-text) !important;
-
     box-shadow:
-        0 14px 35px rgba(23, 61, 98, 0.12),
-        0 4px 12px rgba(23, 61, 98, 0.06) !important;
+        0 14px 35px rgba(23, 61, 98, 0.10),
+        0 4px 12px rgba(23, 61, 98, 0.05) !important;
 }
-
 
 /* =========================================================
    DROPDOWN - ITEMS
@@ -469,27 +406,18 @@
 [data-slot="dropdown-menu-content"]
 [data-slot="dropdown-menu-item"] {
     min-height: 38px !important;
-
     margin: 2px 0 !important;
-
     padding: 0 11px !important;
-
-    border-radius: 9px !important;
-
-    color: #527b9f !important;
-
+    border-radius: 8px !important;
+    color: #647f98 !important;
     background: transparent !important;
-
     font-size: 12px !important;
     font-weight: 500 !important;
-
     outline: none !important;
-
     transition:
         background-color 0.18s ease,
         color 0.18s ease;
 }
-
 
 /* =========================================================
    DROPDOWN - HOVER / FOCUS
@@ -497,16 +425,12 @@
 
 [data-slot="dropdown-menu-content"]
 [data-slot="dropdown-menu-item"]:hover,
-
 [data-slot="dropdown-menu-content"]
 [data-slot="dropdown-menu-item"]:focus {
-    background: #eaf6fc !important;
-
+    background: var(--sc-blue-light) !important;
     color: #1685ce !important;
-
     outline: none !important;
 }
-
 
 /* =========================================================
    DROPDOWN - ICONOS
@@ -516,24 +440,18 @@
 [data-slot="dropdown-menu-item"] svg {
     width: 17px !important;
     height: 17px !important;
-
     flex-shrink: 0;
-
-    color: #4e88b7 !important;
-
+    color: #5d8bb2 !important;
     stroke-width: 1.9 !important;
-
     transition: color 0.18s ease;
 }
 
 [data-slot="dropdown-menu-content"]
 [data-slot="dropdown-menu-item"]:hover svg,
-
 [data-slot="dropdown-menu-content"]
 [data-slot="dropdown-menu-item"]:focus svg {
-    color: #249edb !important;
+    color: var(--sc-blue) !important;
 }
-
 
 /* =========================================================
    DROPDOWN - ITEM ACTIVO
@@ -541,7 +459,6 @@
 
 [data-slot="dropdown-menu-content"]
 [data-slot="dropdown-menu-item"].bg-accent,
-
 [data-slot="dropdown-menu-content"]
 [data-slot="dropdown-menu-item"][data-highlighted] {
     background: linear-gradient(
@@ -550,20 +467,16 @@
         #e9f5fc 48%,
         #fdebf3 100%
     ) !important;
-
     color: #0876c8 !important;
-
     font-weight: 600 !important;
 }
 
 [data-slot="dropdown-menu-content"]
 [data-slot="dropdown-menu-item"].bg-accent svg,
-
 [data-slot="dropdown-menu-content"]
 [data-slot="dropdown-menu-item"][data-highlighted] svg {
     color: #168ee0 !important;
 }
-
 
 /* =========================================================
    DROPDOWN - LABEL
@@ -572,16 +485,11 @@
 [data-slot="dropdown-menu-content"]
 [data-slot="dropdown-menu-label"] {
     padding: 7px 11px !important;
-
     color: #1760a8 !important;
-
     font-size: 11px !important;
-
     font-weight: 700 !important;
-
     line-height: 1.4 !important;
 }
-
 
 /* =========================================================
    DROPDOWN - SEPARATOR
@@ -590,21 +498,13 @@
 [data-slot="dropdown-menu-content"]
 [data-slot="dropdown-menu-separator"] {
     height: 1px !important;
-
     margin: 6px 4px !important;
-
-    background: #edf3f8 !important;
+    background: var(--sc-border-soft) !important;
 }
-
 
 /* =========================================================
    DROPDOWN - USER INFO
    ========================================================= */
-
-/*
- * El contenido de UserMenuContent utiliza UserInfo.
- * Estas reglas afectan únicamente el panel del dropdown.
- */
 
 [data-slot="dropdown-menu-content"] .font-medium {
     color: var(--sc-text-dark) !important;
@@ -615,7 +515,6 @@
     color: var(--sc-text-muted) !important;
 }
 
-
 /* =========================================================
    DROPDOWN - LINKS
    ========================================================= */
@@ -624,7 +523,6 @@
     color: inherit;
     text-decoration: none;
 }
-
 
 /* =========================================================
    DROPDOWN - LOGOUT
@@ -640,7 +538,6 @@
 [data-slot="dropdown-menu-content"]
 [data-test="logout-button"]:focus {
     background: #fff0f1 !important;
-
     color: #e83e4d !important;
 }
 
@@ -649,37 +546,21 @@
     color: #e83e4d !important;
 }
 
-
 /* =========================================================
    BUSCADOR COLAPSADO
    ========================================================= */
 
-/*
- * Este dropdown corresponde específicamente al buscador
- * que aparece cuando el sidebar está colapsado.
- */
-
 [data-slot="dropdown-menu-content"] input {
     width: 100% !important;
-
     height: 38px !important;
-
     padding: 0 34px 0 37px !important;
-
-    border: 1px solid #e2edf6 !important;
-
+    border: 1px solid var(--sc-border) !important;
     border-radius: 9px !important;
-
-    background: #f8fbfd !important;
-
-    color: var(--sc-text-dark) !important;
-
+    background: #fbfcfd !important;
+    color: var(--sc-text) !important;
     font-size: 12px !important;
-
     outline: none !important;
-
     box-shadow: none !important;
-
     transition:
         border-color 0.2s ease,
         background-color 0.2s ease,
@@ -687,7 +568,7 @@
 }
 
 [data-slot="dropdown-menu-content"] input::placeholder {
-    color: #8ba5bb !important;
+    color: #9aabba !important;
 }
 
 [data-slot="dropdown-menu-content"] input:hover {
@@ -695,29 +576,23 @@
 }
 
 [data-slot="dropdown-menu-content"] input:focus {
-    border-color: #9ed7f5 !important;
-
+    border-color: #a9d9f2 !important;
     background: #ffffff !important;
-
     box-shadow:
         0 0 0 3px rgba(36, 158, 219, 0.08) !important;
 }
-
 
 /* =========================================================
    BUSCADOR - TITULO
    ========================================================= */
 
-[data-slot="dropdown-menu-content"] > .mb-2.text-sm.font-semibold {
+[data-slot="dropdown-menu-content"]
+> .mb-2.text-sm.font-semibold {
     padding: 3px 4px 8px !important;
-
     color: #1760a8 !important;
-
     font-size: 12px !important;
-
     font-weight: 700 !important;
 }
-
 
 /* =========================================================
    BUSCADOR - RESULTADOS
@@ -725,41 +600,31 @@
 
 [data-slot="dropdown-menu-content"] a.flex {
     min-height: 36px;
-
     margin: 2px 0;
-
     padding: 0 10px !important;
-
     border-radius: 8px !important;
-
-    color: #527b9f !important;
-
+    color: #647f98 !important;
     font-size: 12px !important;
-
     transition:
         background-color 0.18s ease,
         color 0.18s ease;
 }
 
 [data-slot="dropdown-menu-content"] a.flex:hover {
-    background: #eaf6fc !important;
-
+    background: var(--sc-blue-light) !important;
     color: #1685ce !important;
 }
 
 [data-slot="dropdown-menu-content"] a.flex svg {
     width: 16px !important;
     height: 16px !important;
-
-    color: #4e88b7 !important;
-
+    color: #5d8bb2 !important;
     stroke-width: 1.9 !important;
 }
 
 [data-slot="dropdown-menu-content"] a.flex:hover svg {
-    color: #249edb !important;
+    color: var(--sc-blue) !important;
 }
-
 
 /* =========================================================
    BUSCADOR - RESULTADO ACTIVO
@@ -773,9 +638,7 @@ a.flex.bg-accent {
         #e9f5fc 48%,
         #fdebf3 100%
     ) !important;
-
     color: #0876c8 !important;
-
     font-weight: 600 !important;
 }
 
@@ -784,7 +647,6 @@ a.flex.bg-accent svg {
     color: #168ee0 !important;
 }
 
-
 /* =========================================================
    BUSCADOR - GRUPOS
    ========================================================= */
@@ -792,18 +654,12 @@ a.flex.bg-accent svg {
 [data-slot="dropdown-menu-content"]
 .text-xs.font-semibold {
     padding: 9px 10px 4px !important;
-
     color: #8aa5ba !important;
-
-    font-size: 9px !important;
-
+    font-size: 10px !important;
     font-weight: 700 !important;
-
     letter-spacing: 0.04em !important;
-
     text-transform: uppercase;
 }
-
 
 /* =========================================================
    BUSCADOR - SIN RESULTADOS
@@ -812,12 +668,9 @@ a.flex.bg-accent svg {
 [data-slot="dropdown-menu-content"]
 .text-center.text-sm.text-muted-foreground {
     padding: 28px 10px !important;
-
     color: #94aabd !important;
-
     font-size: 11px !important;
 }
-
 
 /* =========================================================
    BUSCADOR - SCROLL
@@ -826,7 +679,6 @@ a.flex.bg-accent svg {
 [data-slot="dropdown-menu-content"]
 .max-h-80 {
     scrollbar-width: thin;
-
     scrollbar-color:
         #dce8f2
         transparent;
@@ -845,71 +697,49 @@ a.flex.bg-accent svg {
 [data-slot="dropdown-menu-content"]
 .max-h-80::-webkit-scrollbar-thumb {
     background: #dce8f2;
-
     border-radius: 10px;
 }
-
 
 /* =========================================================
    SUBMENÚS COLAPSADOS
    ========================================================= */
 
-/*
- * Cuando haces click en un módulo como Venta,
- * Administración, etc., este es el mismo
- * DropdownMenuContent, pero con una estructura
- * diferente.
- */
-
-
-/* Título del submenu */
-
 [data-slot="dropdown-menu-content"]
 .px-2.py-1\.5.text-sm.font-semibold {
     padding: 7px 10px !important;
-
     color: #1760a8 !important;
-
     font-size: 12px !important;
-
     font-weight: 700 !important;
 }
 
-
-/* Separador del submenu */
+/* =========================================================
+   SEPARADOR DEL SUBMENU
+   ========================================================= */
 
 [data-slot="dropdown-menu-content"]
 .my-1.h-px.bg-border {
     height: 1px !important;
-
     margin: 5px 4px !important;
-
-    background: #edf3f8 !important;
+    background: var(--sc-border-soft) !important;
 }
-
 
 /* =========================================================
    SUBMENÚS COLAPSADOS - LINKS
    ========================================================= */
 
-[data-slot="dropdown-menu-content"] a.flex.items-center.gap-2 {
+[data-slot="dropdown-menu-content"]
+a.flex.items-center.gap-2 {
     min-height: 37px !important;
-
     padding: 0 10px !important;
-
     border-radius: 8px !important;
-
-    color: #527b9f !important;
-
+    color: #647f98 !important;
     font-size: 12px !important;
-
     font-weight: 500 !important;
 }
 
 [data-slot="dropdown-menu-content"]
 a.flex.items-center.gap-2:hover {
-    background: #eaf6fc !important;
-
+    background: var(--sc-blue-light) !important;
     color: #1685ce !important;
 }
 
@@ -917,17 +747,14 @@ a.flex.items-center.gap-2:hover {
 a.flex.items-center.gap-2 svg {
     width: 16px !important;
     height: 16px !important;
-
-    color: #4e88b7 !important;
-
+    color: #5d8bb2 !important;
     stroke-width: 1.9 !important;
 }
 
 [data-slot="dropdown-menu-content"]
 a.flex.items-center.gap-2:hover svg {
-    color: #249edb !important;
+    color: var(--sc-blue) !important;
 }
-
 
 /* =========================================================
    SUBMENÚS COLAPSADOS - ACTIVO
@@ -941,9 +768,7 @@ a.flex.items-center.gap-2.bg-accent {
         #e9f5fc 48%,
         #fdebf3 100%
     ) !important;
-
     color: #0876c8 !important;
-
     font-weight: 600 !important;
 }
 
@@ -951,7 +776,6 @@ a.flex.items-center.gap-2.bg-accent {
 a.flex.items-center.gap-2.bg-accent svg {
     color: #168ee0 !important;
 }
-
 
 /* =========================================================
    FOCUS GENERAL
@@ -962,29 +786,25 @@ a:focus-visible,
 [data-slot="dropdown-menu-content"]
 button:focus-visible {
     outline: none !important;
-
     box-shadow:
-        0 0 0 2px rgba(36, 158, 219, 0.12) !important;
+        0 0 0 3px rgba(36, 158, 219, 0.10) !important;
 }
-
 
 /* =========================================================
    RESPONSIVE
    ========================================================= */
 
 @media (max-width: 768px) {
-
     [data-sidebar="content"] {
         padding: 18px 12px !important;
     }
 
     [data-sidebar="menu-button"] {
-        height: 46px !important;
+        height: 44px !important;
     }
 
     [data-slot="dropdown-menu-content"] {
         min-width: 210px !important;
-
-        border-radius: 12px !important;
+        border-radius: 10px !important;
     }
 }

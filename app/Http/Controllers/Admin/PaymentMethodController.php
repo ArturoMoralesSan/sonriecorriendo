@@ -89,16 +89,19 @@ class PaymentMethodController extends Controller
 
         PaymentMethod::create($validated);
 
-        return redirect()
-            ->route('admin.payment-methods.index')
-            ->with(
-                'success',
-                'Método de pago creado correctamente.'
-            );
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Método de pago creado correctamente.',
+        ]);
+
+        return to_route(
+            'admin.payment-methods.index'
+        );
     }
 
-    public function edit(PaymentMethod $paymentMethod): Response
-    {
+    public function edit(
+        PaymentMethod $paymentMethod
+    ): Response {
         return Inertia::render(
             'admin/payment-methods/Edit',
             [
@@ -141,31 +144,37 @@ class PaymentMethodController extends Controller
 
         $paymentMethod->update($validated);
 
-        return redirect()
-            ->route('admin.payment-methods.index')
-            ->with(
-                'success',
-                'Método de pago actualizado correctamente.'
-            );
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Método de pago actualizado correctamente.',
+        ]);
+
+        return to_route(
+            'admin.payment-methods.index'
+        );
     }
 
     public function destroy(
         PaymentMethod $paymentMethod
     ): RedirectResponse {
         if ($paymentMethod->ticketOrders()->exists()) {
-            return back()->with(
-                'error',
-                'No se puede eliminar este método de pago porque tiene órdenes asociadas.'
-            );
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => 'No se puede eliminar este método de pago porque tiene órdenes asociadas.',
+            ]);
+
+            return back();
         }
 
         $paymentMethod->delete();
 
-        return redirect()
-            ->route('admin.payment-methods.index')
-            ->with(
-                'success',
-                'Método de pago eliminado correctamente.'
-            );
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Método de pago eliminado correctamente.',
+        ]);
+
+        return to_route(
+            'admin.payment-methods.index'
+        );
     }
 }

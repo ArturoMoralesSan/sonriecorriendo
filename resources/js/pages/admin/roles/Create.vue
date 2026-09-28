@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import {
+    ArrowLeft,
+    Check,
+    KeyRound,
+    Save,
+    ShieldCheck,
+} from 'lucide-vue-next';
 
 import admin from '@/routes/admin';
 
@@ -76,115 +83,131 @@ const submit = () => {
 <template>
     <Head title="Nuevo rol" />
 
-    <div
-        class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
-    >
-        <!-- Encabezado -->
-        <div
-            class="relative rounded-xl border border-sidebar-border/70 p-6 dark:border-sidebar-border"
-        >
-            <div
-                class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
-            >
-                <div>
-                    <h1 class="text-2xl font-semibold">
-                        Nuevo rol
-                    </h1>
+    <div class="admin-page">
+        <!-- =================================================
+             HEADER
+        ================================================== -->
 
-                    <p
-                        class="mt-1 text-sm text-muted-foreground"
-                    >
-                        Crea un rol y selecciona los permisos que tendrá.
-                    </p>
-                </div>
+        <header class="admin-page-header">
+            <div>
+                <p class="admin-page-eyebrow">
+                    Roles
+                </p>
 
+                <h1 class="admin-page-title">
+                    Nuevo rol
+                </h1>
+
+                <p class="admin-page-subtitle">
+                    Crea un rol y selecciona los permisos que tendrá.
+                </p>
+            </div>
+
+            <div class="admin-page-header-actions">
                 <Link
-                    :href="
-                        admin.roles.index().url
-                    "
-                    class="inline-flex items-center justify-center rounded-lg border border-sidebar-border px-4 py-2.5 text-sm font-medium transition hover:bg-accent"
+                    :href="admin.roles.index().url"
+                    class="admin-btn admin-btn-secondary"
                 >
+                    <ArrowLeft
+                        :size="14"
+                        :stroke-width="2"
+                    />
+
                     Regresar
                 </Link>
             </div>
-        </div>
+        </header>
 
-        <!-- Formulario -->
-        <div
-            class="relative rounded-xl border border-sidebar-border/70 p-6 dark:border-sidebar-border"
-        >
+        <!-- =================================================
+             FORM CARD
+        ================================================== -->
+
+        <div class="admin-form-card">
             <form
-                class="space-y-6"
+                class="admin-form"
                 @submit.prevent="submit"
             >
-                <!-- Nombre -->
-                <div class="space-y-2">
+                <!-- NAME -->
+
+                <div class="admin-form-group">
                     <label
                         for="name"
-                        class="text-sm font-medium"
+                        class="admin-form-label"
                     >
                         Nombre del rol
                     </label>
 
-                    <input
-                        id="name"
-                        v-model="form.name"
-                        type="text"
-                        placeholder="Ejemplo: editor"
-                        class="w-full rounded-lg border border-sidebar-border bg-background px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    />
+                    <div class="admin-form-input-wrapper">
+                        <input
+                            id="name"
+                            v-model="form.name"
+                            type="text"
+                            placeholder="Ejemplo: editor"
+                            class="admin-form-input"
+                            :class="{
+                                'has-error': form.errors.name,
+                            }"
+                        />
+                    </div>
 
-                    <p class="text-xs text-muted-foreground">
+                    <p class="admin-form-help">
                         Ejemplos: admin, staff, editor.
                     </p>
 
                     <p
                         v-if="form.errors.name"
-                        class="text-sm text-red-500"
+                        class="admin-form-error"
                     >
                         {{ form.errors.name }}
                     </p>
                 </div>
 
-                <!-- Permisos -->
-                <div>
-                    <div class="mb-4">
-                        <h2 class="text-lg font-semibold">
+                <!-- PERMISSIONS -->
+
+                <div class="admin-form-group">
+                    <div class="mb-5">
+                        <p class="admin-page-eyebrow">
+                            Accesos
+                        </p>
+
+                        <h2 class="admin-page-title text-xl">
                             Permisos
                         </h2>
 
-                        <p
-                            class="mt-1 text-sm text-muted-foreground"
-                        >
+                        <p class="admin-form-help">
                             Selecciona las acciones que podrá realizar este
                             rol.
                         </p>
                     </div>
 
-                    <div
-                        class="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
-                    >
+                    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         <div
                             v-for="(
                                 permissions,
                                 module
                             ) in groupedPermissions()"
                             :key="module"
-                            class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border"
+                            class="admin-permission-group"
                         >
-                            <!-- Encabezado módulo -->
-                            <div
-                                class="mb-4 flex items-center justify-between border-b border-sidebar-border/70 pb-3 dark:border-sidebar-border"
-                            >
-                                <h3
-                                    class="font-semibold capitalize"
-                                >
-                                    {{ module }}
-                                </h3>
+                            <!-- MODULE HEADER -->
+
+                            <div class="admin-permission-group-header">
+                                <div class="admin-permission-group-title">
+                                    <div class="admin-permission-group-icon">
+                                        <ShieldCheck
+                                            :size="16"
+                                            :stroke-width="2"
+                                        />
+                                    </div>
+
+                                    <h3>
+                                        {{ module }}
+                                    </h3>
+                                </div>
 
                                 <button
                                     type="button"
-                                    class="text-xs text-primary hover:underline"
+                                    class="admin-permission-select"
                                     @click="
                                         toggleGroup(
                                             permissions,
@@ -195,12 +218,13 @@ const submit = () => {
                                 </button>
                             </div>
 
-                            <!-- Permisos -->
-                            <div class="space-y-3">
+                            <!-- PERMISSIONS -->
+
+                            <div class="admin-permission-list">
                                 <label
                                     v-for="permission in permissions"
                                     :key="permission.id"
-                                    class="flex cursor-pointer items-center gap-3"
+                                    class="admin-permission-item"
                                 >
                                     <input
                                         type="checkbox"
@@ -209,7 +233,7 @@ const submit = () => {
                                                 permission.name,
                                             )
                                         "
-                                        class="h-4 w-4 rounded border-sidebar-border"
+                                        class="admin-permission-checkbox"
                                         @change="
                                             togglePermission(
                                                 permission.name,
@@ -217,7 +241,14 @@ const submit = () => {
                                         "
                                     />
 
-                                    <span class="text-sm">
+                                    <span class="admin-permission-check">
+                                        <Check
+                                            :size="12"
+                                            :stroke-width="3"
+                                        />
+                                    </span>
+
+                                    <span class="admin-permission-name">
                                         {{ permission.name }}
                                     </span>
                                 </label>
@@ -227,30 +258,67 @@ const submit = () => {
 
                     <p
                         v-if="form.errors.permissions"
-                        class="mt-3 text-sm text-red-500"
+                        class="admin-form-error mt-3"
                     >
                         {{ form.errors.permissions }}
                     </p>
                 </div>
 
-                <!-- Acciones -->
-                <div
-                    class="flex flex-col-reverse gap-3 border-t border-sidebar-border/70 pt-6 dark:border-sidebar-border sm:flex-row sm:justify-end"
-                >
+                <!-- INFO -->
+
+                <div class="admin-form-status">
+                    <div class="admin-form-status-content">
+                        <div class="admin-form-status-icon">
+                            <KeyRound
+                                :size="16"
+                                :stroke-width="2"
+                            />
+                        </div>
+
+                        <div>
+                            <p class="admin-form-status-title">
+                                Permisos del rol
+                            </p>
+
+                            <p class="admin-form-status-description">
+                                Los permisos determinan las acciones que podrá
+                                realizar este rol dentro del sistema.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACTIONS -->
+
+                <div class="admin-form-actions">
                     <Link
-                        :href="
-                            admin.roles.index().url
-                        "
-                        class="inline-flex items-center justify-center rounded-lg border border-sidebar-border px-4 py-2.5 text-sm font-medium transition hover:bg-accent"
+                        :href="admin.roles.index().url"
+                        class="admin-btn admin-btn-secondary"
                     >
+                        <ArrowLeft
+                            :size="14"
+                            :stroke-width="2"
+                        />
+
                         Cancelar
                     </Link>
 
                     <button
                         type="submit"
                         :disabled="form.processing"
-                        class="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                        class="admin-btn admin-btn-primary"
                     >
+                        <span
+                            v-if="form.processing"
+                            class="admin-btn-loader"
+                        ></span>
+
+                        <Save
+                            v-else
+                            :size="14"
+                            :stroke-width="2"
+                        />
+
                         {{
                             form.processing
                                 ? 'Creando...'

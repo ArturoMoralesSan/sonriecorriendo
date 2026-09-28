@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import Heading from '@/components/Heading.vue';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+
+import {
+    Palette,
+    ShieldCheck,
+    UserRound,
+} from 'lucide-vue-next';
+
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
@@ -19,53 +23,85 @@ const sidebarNavItems: NavItem[] = [
         title: 'Seguridad',
         href: editSecurity(),
     },
-    {
-        title: 'Apariencia',
-        href: editAppearance(),
-    },
 ];
 
 const { isCurrentOrParentUrl } = useCurrentUrl();
+
+const icons = {
+    Perfil: UserRound,
+    Seguridad: ShieldCheck,
+    Apariencia: Palette,
+};
 </script>
 
 <template>
-    <div class="px-4 py-6">
-        <Heading
-            title="Configuración"
-            description="Administra tu perfil y la configuración de tu cuenta"
-        />
+    <div
+        class="min-h-full bg-[var(--sc-page-background)] px-4 py-6"
+    >
+        <!-- Encabezado -->
 
-        <div class="flex flex-col lg:flex-row lg:space-x-12">
-            <aside class="w-full max-w-xl lg:w-48">
+        <div class="mb-8">
+            <p class="admin-page-eyebrow">
+                Configuración
+            </p>
+
+            <h1 class="admin-page-title">
+                Configuración
+            </h1>
+
+            <p class="admin-page-subtitle">
+                Administra tu perfil y la configuración de tu cuenta.
+            </p>
+        </div>
+
+        <!-- Contenido -->
+
+        <div
+            class="flex flex-col gap-8 lg:flex-row"
+        >
+            <!-- Navegación -->
+
+            <aside
+                class="w-full shrink-0 lg:w-56"
+            >
                 <nav
-                    class="flex flex-col space-y-1 space-x-0"
+                    class="rounded-2xl border border-[var(--sc-page-border)] bg-white p-2 shadow-sm"
                     aria-label="Configuración"
                 >
-                    <Button
+                    <Link
                         v-for="item in sidebarNavItems"
                         :key="toUrl(item.href)"
-                        variant="ghost"
+                        :href="item.href"
                         :class="[
-                            'w-full justify-start',
-                            { 'bg-muted': isCurrentOrParentUrl(item.href) },
+                            'flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors',
+                            isCurrentOrParentUrl(item.href)
+                                ? 'bg-[var(--sc-page-blue-light)] text-[var(--sc-page-blue)]'
+                                : 'text-[var(--sc-page-text-secondary)] hover:bg-[var(--sc-page-background)] hover:text-[var(--sc-page-text)]',
                         ]"
-                        as-child
                     >
-                        <Link :href="item.href">
-                            <component :is="item.icon" class="h-4 w-4" />
+                        <component
+                            :is="
+                                icons[
+                                    item.title as keyof typeof icons
+                                ]
+                            "
+                            class="h-4 w-4 shrink-0"
+                        />
+
+                        <span>
                             {{ item.title }}
-                        </Link>
-                    </Button>
+                        </span>
+                    </Link>
                 </nav>
             </aside>
 
-            <Separator class="my-6 lg:hidden" />
+            <!-- Página -->
 
-            <div class="flex-1 md:max-w-2xl">
-                <section class="max-w-xl space-y-12">
+            <main class="min-w-0 flex-1">
+                <div class="w-full">
                     <slot />
-                </section>
-            </div>
+                </div>
+            </main>
         </div>
     </div>
 </template>

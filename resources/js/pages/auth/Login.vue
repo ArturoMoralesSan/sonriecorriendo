@@ -17,7 +17,7 @@ defineOptions({
     layout: {
         title: 'Inicia sesión en tu cuenta',
         description:
-            'Ingresa tu correo electrónico y contraseña para iniciar sesión',
+            'Ingresa tu nombre de usuario y contraseña para iniciar sesión',
     },
 });
 
@@ -47,20 +47,20 @@ defineProps<{
     >
         <div class="grid gap-6">
             <div class="grid gap-2">
-                <Label for="email">Correo electrónico</Label>
+                <Label for="username">Nombre de usuario</Label>
 
                 <Input
-                    id="email"
-                    type="email"
-                    name="email"
+                    id="username"
+                    type="text"
+                    name="username"
                     required
                     autofocus
                     :tabindex="1"
-                    autocomplete="email"
-                    placeholder="correo@ejemplo.com"
+                    autocomplete="username"
+                    placeholder="Nombre de usuario"
                 />
 
-                <InputError :message="errors.email" />
+                <InputError :message="errors.username" />
             </div>
 
             <div class="grid gap-2">
@@ -110,7 +110,8 @@ defineProps<{
 
         <div class="text-center text-sm text-muted-foreground">
             ¿No tienes una cuenta?
-            <TextLink :href="register()" :tabindex="5">
+
+            <TextLink :href="register()" :tabindex="6">
                 Regístrate
             </TextLink>
         </div>

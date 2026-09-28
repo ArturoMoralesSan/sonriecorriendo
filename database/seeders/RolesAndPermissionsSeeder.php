@@ -5,11 +5,15 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class RolesAndPermissionsSeeder extends Seeder
 {
     public function run(): void
     {
+        // Limpiar caché de permisos
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+
         /*
         |--------------------------------------------------------------------------
         | Roles
@@ -43,7 +47,6 @@ class RolesAndPermissionsSeeder extends Seeder
         */
 
         $permissions = [
-
             // Dashboard
             'dashboard.view',
 
@@ -71,6 +74,17 @@ class RolesAndPermissionsSeeder extends Seeder
             'payment-methods.edit',
             'payment-methods.delete',
 
+            // Carreras
+            'races.view',
+            'races.create',
+            'races.edit',
+            'races.delete',
+
+            // Patrocinadores
+            'sponsors.view',
+            'sponsors.create',
+            'sponsors.edit',
+            'sponsors.delete',
         ];
 
         /*
@@ -91,9 +105,7 @@ class RolesAndPermissionsSeeder extends Seeder
         | SuperAdmin
         |--------------------------------------------------------------------------
         |
-        | SuperAdmin NO necesita permisos.
-        |
-        | Su acceso total se obtiene mediante Gate::before().
+        | SuperAdmin obtiene acceso total mediante Gate::before().
         |
         */
 
@@ -104,7 +116,7 @@ class RolesAndPermissionsSeeder extends Seeder
         | Admin
         |--------------------------------------------------------------------------
         |
-        | Admin tiene acceso completo a los módulos administrativos.
+        | Acceso completo a todos los módulos administrativos.
         |
         */
 
@@ -115,23 +127,42 @@ class RolesAndPermissionsSeeder extends Seeder
         | Staff
         |--------------------------------------------------------------------------
         |
-        | Staff puede operar las funciones principales de la carrera,
-        | pero no administrar usuarios, roles ni permisos.
+        | Puede consultar y operar carreras, checklist, egresos
+        | y patrocinadores.
+        |
+        | Checklist y egresos utilizan races.view y races.edit.
+        | Las operaciones de patrocinadores utilizan sponsors.view
+        | y sponsors.edit.
         |
         */
 
-        $staff->syncPermissions([]);
+        $staffPermissions = [
+            // Consultar dashboard
+            'dashboard.view',
+
+            // Carreras y operaciones relacionadas
+            'races.view',
+            'races.edit',
+
+            // Patrocinadores y operaciones relacionadas
+            'sponsors.view',
+            'sponsors.edit',
+        ];
+
+        $staff->syncPermissions($staffPermissions);
 
         /*
         |--------------------------------------------------------------------------
-        | Visitor
+        | Customer
         |--------------------------------------------------------------------------
         |
-        | El visitante no tiene permisos administrativos.
-        | Sus funciones pertenecen a la aplicación pública.
+        | No tiene permisos administrativos.
         |
         */
 
         $visitor->syncPermissions([]);
+
+        // Limpiar caché nuevamente
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
     }
 }

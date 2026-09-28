@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="251"
+    height="576"
+    viewBox="0 0 251 576"
+    fill="none"
+>
+    <defs>
+        <linearGradient
+            id="gradient-vertical"
+            x1="0"
+            y1="25"
+            x2="0"
+            y2="547"
+            gradientUnits="userSpaceOnUse"
+        >
+            <stop offset="0%" stop-color="#652284"/>
+            <stop offset="20%" stop-color="#6D2482"/>
+            <stop offset="40%" stop-color="#7A257D"/>
+            <stop offset="60%" stop-color="#8D276F"/>
+            <stop offset="80%" stop-color="#A32961"/>
+            <stop offset="100%" stop-color="#B02758"/>
+        </linearGradient>
+    </defs>
+
+    <!-- Barra superior izquierda -->
+    <rect
+        x="110"
+        y="25"
+        width="26"
+        height="100"
+        rx="13"
+        fill="url(#gradient-vertical)"
+    />
+
+    <!-- Barra superior derecha -->
+    <rect
+        x="110"
+        y="162"
+        width="26"
+        height="385"
+        rx="13"
+        fill="url(#gradient-vertical)"
+    />
+
+    <!-- Barra inferior izquierda -->
+    <rect
+        x="159"
+        y="112"
+        width="26"
+        height="74"
+        rx="13"
+        fill="url(#gradient-vertical)"
+    />
+
+    <!-- Barra inferior derecha -->
+    <rect
+        x="159"
+        y="212"
+        width="26"
+        height="295"
+        rx="13"
+        fill="url(#gradient-vertical)"
+    />
+</svg>

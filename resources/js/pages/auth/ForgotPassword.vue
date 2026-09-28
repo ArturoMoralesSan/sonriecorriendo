@@ -12,7 +12,8 @@ import { email } from '@/routes/password';
 defineOptions({
     layout: {
         title: 'Recuperar contraseña',
-        description: 'Ingresa tu correo electrónico para recibir un enlace para restablecer tu contraseña',
+        description:
+            'Ingresa tu correo electrónico para recibir un enlace para restablecer tu contraseña',
     },
 });
 
@@ -31,10 +32,16 @@ defineProps<{
         {{ status }}
     </div>
 
-    <div class="space-y-6">
-        <Form v-bind="email.form()" v-slot="{ errors, processing }">
+    <div class="flex flex-col gap-6">
+        <Form
+            v-bind="email.form()"
+            v-slot="{ errors, processing }"
+            class="flex flex-col gap-6"
+        >
             <div class="grid gap-2">
-                <Label for="email">Correo electrónico</Label>
+                <Label for="email">
+                    Correo electrónico
+                </Label>
 
                 <Input
                     id="email"
@@ -48,21 +55,23 @@ defineProps<{
                 <InputError :message="errors.email" />
             </div>
 
-            <div class="my-6 flex items-center justify-start">
-                <Button
-                    class="w-full"
-                    :disabled="processing"
-                    data-test="email-password-reset-link-button"
-                >
-                    <Spinner v-if="processing" />
-                    Enviar enlace para restablecer contraseña
-                </Button>
-            </div>
+            <Button
+                type="submit"
+                class="w-full"
+                :disabled="processing"
+                data-test="email-password-reset-link-button"
+            >
+                <Spinner v-if="processing" />
+                Enviar enlace para restablecer contraseña
+            </Button>
         </Form>
 
-        <div class="space-x-1 text-center text-sm text-muted-foreground">
-            <span>O regresar a</span>
-            <TextLink :href="login()">iniciar sesión</TextLink>
+        <div class="text-center text-sm text-muted-foreground">
+            <span>O regresar a </span>
+
+            <TextLink :href="login()">
+                iniciar sesión
+            </TextLink>
         </div>
     </div>
 </template>

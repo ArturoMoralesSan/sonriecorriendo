@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import {
+    ArrowLeft,
+    Save,
+} from 'lucide-vue-next';
+
 import admin from '@/routes/admin';
 
 interface PaymentMethod {
@@ -54,45 +59,49 @@ defineOptions({
 <template>
     <Head title="Editar método de pago" />
 
-    <div
-        class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
-    >
-        <div
-            class="relative rounded-xl border border-sidebar-border/70 p-6 dark:border-sidebar-border"
-        >
-            <div
-                class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
-            >
-                <div>
-                    <h1 class="text-2xl font-semibold">
-                        Editar método de pago
-                    </h1>
+    <div class="admin-page">
+        <!-- HEADER -->
+        <div class="admin-page-header">
+            <div>
+                <p class="admin-page-eyebrow">
+                    Métodos de pago
+                </p>
 
-                    <p class="mt-1 text-sm text-muted-foreground">
-                        Actualiza la información del método de pago.
-                    </p>
-                </div>
+                <h1 class="admin-page-title">
+                    Editar método de pago
+                </h1>
 
+                <p class="admin-page-subtitle">
+                    Actualiza la información del método de pago.
+                </p>
+            </div>
+
+            <div class="admin-page-header-actions">
                 <Link
                     :href="admin.paymentMethods.index().url"
-                    class="inline-flex items-center justify-center rounded-lg border border-sidebar-border px-4 py-2.5 text-sm font-medium transition hover:bg-accent"
+                    class="admin-btn admin-btn-secondary"
                 >
+                    <ArrowLeft
+                        :size="14"
+                        :stroke-width="2"
+                    />
+
                     Regresar
                 </Link>
             </div>
         </div>
 
-        <div
-            class="relative rounded-xl border border-sidebar-border/70 p-6 dark:border-sidebar-border"
-        >
+        <!-- FORM CARD -->
+        <div class="admin-form-card">
             <form
-                class="space-y-6"
+                class="admin-form"
                 @submit.prevent="submit"
             >
-                <div class="space-y-2">
+                <!-- NAME -->
+                <div class="admin-form-group">
                     <label
                         for="name"
-                        class="text-sm font-medium"
+                        class="admin-form-label"
                     >
                         Nombre
                     </label>
@@ -101,21 +110,23 @@ defineOptions({
                         id="name"
                         v-model="form.name"
                         type="text"
-                        class="w-full rounded-lg border border-sidebar-border bg-background px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        class="admin-form-input"
+                        :class="{ 'has-error': form.errors.name }"
                     />
 
                     <p
                         v-if="form.errors.name"
-                        class="text-sm text-red-500"
+                        class="admin-form-error"
                     >
                         {{ form.errors.name }}
                     </p>
                 </div>
 
-                <div class="space-y-2">
+                <!-- CODE -->
+                <div class="admin-form-group">
                     <label
                         for="code"
-                        class="text-sm font-medium"
+                        class="admin-form-label"
                     >
                         Código
                     </label>
@@ -124,26 +135,28 @@ defineOptions({
                         id="code"
                         v-model="form.code"
                         type="text"
-                        class="w-full rounded-lg border border-sidebar-border bg-background px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        class="admin-form-input"
+                        :class="{ 'has-error': form.errors.code }"
                     />
 
-                    <p class="text-xs text-muted-foreground">
+                    <p class="admin-form-help">
                         El código debe ser único y solo puede contener letras,
                         números, guiones y guiones bajos.
                     </p>
 
                     <p
                         v-if="form.errors.code"
-                        class="text-sm text-red-500"
+                        class="admin-form-error"
                     >
                         {{ form.errors.code }}
                     </p>
                 </div>
 
-                <div class="space-y-2">
+                <!-- DESCRIPTION -->
+                <div class="admin-form-group">
                     <label
                         for="description"
-                        class="text-sm font-medium"
+                        class="admin-form-label"
                     >
                         Descripción
                     </label>
@@ -152,21 +165,23 @@ defineOptions({
                         id="description"
                         v-model="form.description"
                         rows="4"
-                        class="w-full resize-none rounded-lg border border-sidebar-border bg-background px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        class="admin-form-input admin-form-textarea"
+                        :class="{ 'has-error': form.errors.description }"
                     />
 
                     <p
                         v-if="form.errors.description"
-                        class="text-sm text-red-500"
+                        class="admin-form-error"
                     >
                         {{ form.errors.description }}
                     </p>
                 </div>
 
-                <div class="space-y-2">
+                <!-- ORDER -->
+                <div class="admin-form-group admin-form-group-small">
                     <label
                         for="sort_order"
-                        class="text-sm font-medium"
+                        class="admin-form-label"
                     >
                         Orden
                     </label>
@@ -176,60 +191,88 @@ defineOptions({
                         v-model.number="form.sort_order"
                         type="number"
                         min="0"
-                        class="w-full rounded-lg border border-sidebar-border bg-background px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        class="admin-form-input"
+                        :class="{ 'has-error': form.errors.sort_order }"
                     />
+
+                    <p class="admin-form-help">
+                        Define el orden en que aparecerá el método de pago.
+                    </p>
 
                     <p
                         v-if="form.errors.sort_order"
-                        class="text-sm text-red-500"
+                        class="admin-form-error"
                     >
                         {{ form.errors.sort_order }}
                     </p>
                 </div>
 
-                <div
-                    class="flex items-center justify-between rounded-lg border border-sidebar-border p-4"
-                >
-                    <div>
-                        <p class="text-sm font-medium">
-                            Método activo
-                        </p>
+                <!-- STATUS -->
+                <div class="admin-form-status">
+                    <div class="admin-form-status-content">
+                        <div class="admin-form-status-icon">
+                            <span></span>
+                        </div>
 
-                        <p class="text-xs text-muted-foreground">
-                            Los métodos inactivos no estarán disponibles para
-                            nuevas órdenes.
-                        </p>
+                        <div>
+                            <p class="admin-form-status-title">
+                                Método activo
+                            </p>
+
+                            <p class="admin-form-status-description">
+                                Los métodos inactivos no estarán disponibles
+                                para nuevas órdenes.
+                            </p>
+                        </div>
                     </div>
 
-                    <input
-                        v-model="form.is_active"
-                        type="checkbox"
-                        class="h-4 w-4 rounded border-sidebar-border"
-                    />
+                    <label class="admin-switch">
+                        <input
+                            v-model="form.is_active"
+                            type="checkbox"
+                        />
+
+                        <span class="admin-switch-slider"></span>
+                    </label>
                 </div>
 
                 <p
                     v-if="form.errors.is_active"
-                    class="text-sm text-red-500"
+                    class="admin-form-error"
                 >
                     {{ form.errors.is_active }}
                 </p>
 
-                <div
-                    class="flex flex-col-reverse gap-3 border-t border-sidebar-border/70 pt-6 dark:border-sidebar-border sm:flex-row sm:justify-end"
-                >
+                <!-- ACTIONS -->
+                <div class="admin-form-actions">
                     <Link
                         :href="admin.paymentMethods.index().url"
-                        class="inline-flex items-center justify-center rounded-lg border border-sidebar-border px-4 py-2.5 text-sm font-medium transition hover:bg-accent"
+                        class="admin-btn admin-btn-secondary"
                     >
+                        <ArrowLeft
+                            :size="14"
+                            :stroke-width="2"
+                        />
+
                         Cancelar
                     </Link>
 
                     <button
                         type="submit"
                         :disabled="form.processing"
-                        class="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                        class="admin-btn admin-btn-primary"
                     >
+                        <span
+                            v-if="form.processing"
+                            class="admin-btn-loader"
+                        ></span>
+
+                        <Save
+                            v-else
+                            :size="14"
+                            :stroke-width="2"
+                        />
+
                         {{
                             form.processing
                                 ? 'Guardando...'

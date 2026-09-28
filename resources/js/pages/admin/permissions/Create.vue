@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import {
+    ArrowLeft,
+    KeyRound,
+    Save,
+} from 'lucide-vue-next';
 
 import admin from '@/routes/admin';
 import permissions from '@/routes/admin/permissions';
@@ -8,7 +13,7 @@ const form = useForm({
     name: '',
 });
 
-const submit = () => {
+const submit = (): void => {
     form.post(
         permissions.store().url,
     );
@@ -37,97 +42,144 @@ defineOptions({
 <template>
     <Head title="Nuevo permiso" />
 
-    <div
-        class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
-    >
-        <!-- Encabezado -->
-        <div
-            class="relative rounded-xl border border-sidebar-border/70 p-6 dark:border-sidebar-border"
-        >
-            <div
-                class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
-            >
-                <div>
-                    <h1 class="text-2xl font-semibold">
-                        Nuevo permiso
-                    </h1>
+    <div class="admin-page">
+        <!-- =================================================
+             HEADER
+        ================================================== -->
 
-                    <p
-                        class="mt-1 text-sm text-muted-foreground"
-                    >
-                        Crea un nuevo permiso para asignarlo posteriormente a
-                        un rol.
-                    </p>
-                </div>
+        <header class="admin-page-header">
+            <div>
+                <p class="admin-page-eyebrow">
+                    Permisos
+                </p>
 
+                <h1 class="admin-page-title">
+                    Nuevo permiso
+                </h1>
+
+                <p class="admin-page-subtitle">
+                    Crea un nuevo permiso para asignarlo posteriormente
+                    a un rol.
+                </p>
+            </div>
+
+            <div class="admin-page-header-actions">
                 <Link
-                    :href="
-                        permissions.index()
-                    "
-                    class="inline-flex items-center justify-center rounded-lg border border-sidebar-border px-4 py-2.5 text-sm font-medium transition hover:bg-accent"
+                    :href="permissions.index().url"
+                    class="admin-btn admin-btn-secondary"
                 >
+                    <ArrowLeft
+                        :size="14"
+                        :stroke-width="2"
+                    />
+
                     Regresar
                 </Link>
             </div>
-        </div>
+        </header>
 
-        <!-- Formulario -->
-        <div
-            class="relative rounded-xl border border-sidebar-border/70 p-6 dark:border-sidebar-border"
-        >
+        <!-- =================================================
+             FORM CARD
+        ================================================== -->
+
+        <div class="admin-form-card">
             <form
-                class="space-y-6"
+                class="admin-form"
                 @submit.prevent="submit"
             >
-                <!-- Nombre -->
-                <div class="space-y-2">
+                <!-- NAME -->
+
+                <div class="admin-form-group">
                     <label
                         for="name"
-                        class="text-sm font-medium"
+                        class="admin-form-label"
                     >
                         Nombre del permiso
                     </label>
 
-                    <input
-                        id="name"
-                        v-model="form.name"
-                        type="text"
-                        placeholder="Ejemplo: users.view"
-                        class="w-full rounded-lg border border-sidebar-border bg-background px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    />
+                    <div class="admin-form-input-wrapper">
+                        <input
+                            id="name"
+                            v-model="form.name"
+                            type="text"
+                            class="admin-form-input"
+                            :class="{
+                                'has-error': form.errors.name,
+                            }"
+                            placeholder="Ej. users.view"
+                        />
+                    </div>
 
-                    <p
-                        class="text-xs text-muted-foreground"
-                    >
-                        Recomendado: modulo.accion
+                    <p class="admin-form-help">
+                        Utiliza el formato
+                        <strong>modulo.accion</strong>.
+                        Por ejemplo: users.view, users.create o
+                        users.delete.
                     </p>
 
                     <p
                         v-if="form.errors.name"
-                        class="text-sm text-red-500"
+                        class="admin-form-error"
                     >
                         {{ form.errors.name }}
                     </p>
                 </div>
 
-                <!-- Acciones -->
-                <div
-                    class="flex flex-col-reverse gap-3 border-t border-sidebar-border/70 pt-6 dark:border-sidebar-border sm:flex-row sm:justify-end"
-                >
+                <!-- INFO -->
+
+                <div class="admin-form-status">
+                    <div class="admin-form-status-content">
+                        <div class="admin-form-status-icon">
+                            <KeyRound
+                                :size="16"
+                                :stroke-width="2"
+                            />
+                        </div>
+
+                        <div>
+                            <p class="admin-form-status-title">
+                                Identificador del permiso
+                            </p>
+
+                            <p class="admin-form-status-description">
+                                El nombre debe ser único y seguirá el formato
+                                módulo.acción para facilitar su organización.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACTIONS -->
+
+                <div class="admin-form-actions">
                     <Link
-                        :href="
-                            permissions.index()
-                        "
-                        class="inline-flex items-center justify-center rounded-lg border border-sidebar-border px-4 py-2.5 text-sm font-medium transition hover:bg-accent"
+                        :href="permissions.index().url"
+                        class="admin-btn admin-btn-secondary"
                     >
+                        <ArrowLeft
+                            :size="14"
+                            :stroke-width="2"
+                        />
+
                         Cancelar
                     </Link>
 
                     <button
                         type="submit"
                         :disabled="form.processing"
-                        class="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                        class="admin-btn admin-btn-primary"
                     >
+                        <span
+                            v-if="form.processing"
+                            class="admin-btn-loader"
+                        ></span>
+
+                        <Save
+                            v-else
+                            :size="14"
+                            :stroke-width="2"
+                        />
+
                         {{
                             form.processing
                                 ? 'Guardando...'

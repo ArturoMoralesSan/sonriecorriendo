@@ -8,19 +8,14 @@ import {
 
 import QRCode from 'qrcode';
 import {
-    onMounted,
     computed,
+    onMounted,
     ref,
 } from 'vue';
 
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/DeleteUser.vue';
-import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
-
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
@@ -45,6 +40,7 @@ defineOptions({
 interface User {
     id: number;
     name: string;
+    username: string;
     email: string;
     email_verified_at: string | null;
     qr_token: string | null;
@@ -161,99 +157,96 @@ const handleAvatarChange = (
         Configuración del perfil
     </h1>
 
-    <div class="flex flex-col space-y-6">
+    <div class="flex flex-col gap-6">
 
-        <!-- Encabezado -->
+        <!-- Código QR -->
 
-        <Heading
-            variant="small"
-            title="Perfil"
-            description="Actualiza tu información personal"
-        />
+        <div class="admin-form-card">
+            <div class="admin-form">
 
-        <!-- Código QR personal -->
-
-        <div
-            class="rounded-xl border border-sidebar-border/70 p-6 dark:border-sidebar-border"
-        >
-            <div
-                class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between"
-            >
-
-                <!-- Información -->
-
-                <div class="flex-1">
-                    <h2
-                        class="text-lg font-semibold"
-                    >
-                        Mi código QR
-                    </h2>
-
-                    <p
-                        class="mt-1 max-w-xl text-sm text-muted-foreground"
-                    >
-                        Presenta este código en
-                        venta para identificar tu
-                        usuario y
-                        asociar tus compras.
+                <div>
+                    <p class="admin-page-eyebrow">
+                        Identificación
                     </p>
 
-                    <div
-                        class="mt-4 rounded-lg border border-sidebar-border/70 bg-muted/30 p-4 dark:border-sidebar-border"
+                    <h3
+                        class="mt-1 text-xl font-semibold text-[var(--sc-page-text)]"
                     >
-                        <p
-                            class="text-sm font-medium"
-                        >
-                            Código personal
-                        </p>
+                        Mi código QR
+                    </h3>
 
-                        <p
-                            class="mt-1 text-xs text-muted-foreground"
-                        >
-                            Este código QR es único y
-                            permanente para tu cuenta.
-                        </p>
-                    </div>
+                    <p
+                        class="mt-2 max-w-xl text-sm leading-6 text-[var(--sc-page-text-secondary)]"
+                    >
+                        Presenta este código en venta para
+                        identificar tu usuario y asociar tus
+                        compras.
+                    </p>
                 </div>
 
-                <!-- QR -->
-
                 <div
-                    class="flex justify-center md:justify-end"
+                    class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between"
                 >
-                    <div
-                        v-if="userQrCode"
-                        class="rounded-xl border border-sidebar-border bg-white p-4 shadow-sm"
-                    >
-                        <img
-                            :src="userQrCode"
-                            alt="Código QR personal"
-                            class="h-56 w-56"
-                        />
+                    <!-- Información -->
+
+                    <div class="flex-1">
+                        <div
+                            class="rounded-xl border border-[var(--sc-page-border-soft)] bg-[var(--sc-page-background)] p-4"
+                        >
+                            <p
+                                class="text-sm font-semibold text-[var(--sc-page-text)]"
+                            >
+                                Código personal
+                            </p>
+
+                            <p
+                                class="mt-1 text-xs leading-5 text-[var(--sc-page-text-secondary)]"
+                            >
+                                Este código QR es único y
+                                permanente para tu cuenta.
+                            </p>
+                        </div>
                     </div>
 
-                    <div
-                        v-else-if="user.qr_token"
-                        class="flex h-56 w-56 items-center justify-center rounded-xl border border-dashed border-sidebar-border"
-                    >
-                        <span
-                            class="text-sm text-muted-foreground"
-                        >
-                            Generando QR...
-                        </span>
-                    </div>
+                    <!-- QR -->
 
                     <div
-                        v-else
-                        class="flex h-56 w-56 items-center justify-center rounded-xl border border-dashed border-sidebar-border p-6 text-center"
+                        class="flex shrink-0 justify-center md:justify-end"
                     >
-                        <span
-                            class="text-sm text-muted-foreground"
+                        <div
+                            v-if="userQrCode"
+                            class="rounded-2xl border border-[var(--sc-page-border)] bg-white p-4 shadow-sm"
                         >
-                            No hay un código QR
-                            disponible para esta
-                            cuenta.
-                        </span>
+                            <img
+                                :src="userQrCode"
+                                alt="Código QR personal"
+                                class="h-56 w-56"
+                            />
+                        </div>
+
+                        <div
+                            v-else-if="user.qr_token"
+                            class="flex h-56 w-56 items-center justify-center rounded-2xl border border-dashed border-[var(--sc-page-border)] bg-[var(--sc-page-background)]"
+                        >
+                            <span
+                                class="text-sm text-[var(--sc-page-text-secondary)]"
+                            >
+                                Generando QR...
+                            </span>
+                        </div>
+
+                        <div
+                            v-else
+                            class="flex h-56 w-56 items-center justify-center rounded-2xl border border-dashed border-[var(--sc-page-border)] bg-[var(--sc-page-background)] p-6 text-center"
+                        >
+                            <span
+                                class="text-sm leading-5 text-[var(--sc-page-text-secondary)]"
+                            >
+                                No hay un código QR
+                                disponible para esta
+                                cuenta.
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -267,286 +260,371 @@ const handleAvatarChange = (
                 forceFormData: true,
             }"
             enctype="multipart/form-data"
-            class="space-y-6"
+            class="admin-form-card"
             v-slot="{
                 errors,
                 processing,
             }"
         >
+            <div class="admin-form">
 
-            <!-- Avatar -->
+                <!-- Información personal -->
 
-            <div class="grid gap-4">
-                <Label for="avatar">
-                    Foto de perfil
-                </Label>
+                <div>
+                    <p class="admin-page-eyebrow">
+                        Información personal
+                    </p>
 
-                <div
-                    class="flex items-center gap-5"
-                >
+                    <h3
+                        class="mt-1 text-xl font-semibold text-[var(--sc-page-text)]"
+                    >
+                        Datos del perfil
+                    </h3>
 
-                    <!-- Vista previa -->
+                    <p
+                        class="mt-2 text-sm text-[var(--sc-page-text-secondary)]"
+                    >
+                        Mantén actualizada la información de
+                        tu cuenta.
+                    </p>
+                </div>
+
+                <!-- Avatar -->
+
+                <div class="admin-form-group">
+                    <label
+                        for="avatar"
+                        class="admin-form-label"
+                    >
+                        Foto de perfil
+                    </label>
 
                     <div
-                        class="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted"
+                        class="flex flex-col gap-5 sm:flex-row sm:items-center"
                     >
-                        <img
-                            v-if="avatarPreview"
-                            :src="avatarPreview"
-                            alt="Vista previa del avatar"
-                            class="h-full w-full object-cover"
-                        />
+                        <!-- Vista previa -->
 
-                        <img
-                            v-else-if="profile?.avatar"
-                            :src="`/storage/${profile.avatar}`"
-                            alt="Avatar actual"
-                            class="h-full w-full object-cover"
-                        />
-
-                        <span
-                            v-else
-                            class="text-xs text-muted-foreground"
+                        <div
+                            class="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[var(--sc-page-border)] bg-[var(--sc-page-background)]"
                         >
-                            Sin foto
-                        </span>
+                            <img
+                                v-if="avatarPreview"
+                                :src="avatarPreview"
+                                alt="Vista previa del avatar"
+                                class="h-full w-full object-cover"
+                            />
+
+                            <img
+                                v-else-if="profile?.avatar"
+                                :src="`/storage/${profile.avatar}`"
+                                alt="Avatar actual"
+                                class="h-full w-full object-cover"
+                            />
+
+                            <span
+                                v-else
+                                class="text-xs text-[var(--sc-page-muted)]"
+                            >
+                                Sin foto
+                            </span>
+                        </div>
+
+                        <!-- Selector -->
+
+                        <div class="flex-1">
+                            <input
+                                id="avatar"
+                                type="file"
+                                name="avatar"
+                                accept="image/jpeg,image/png,image/webp"
+                                class="admin-form-input"
+                                @change="
+                                    handleAvatarChange
+                                "
+                            />
+
+                            <p class="admin-form-help">
+                                JPG, PNG o WebP. Máximo 2 MB.
+                            </p>
+
+                            <InputError
+                                class="admin-form-error"
+                                :message="errors.avatar"
+                            />
+                        </div>
                     </div>
+                </div>
 
-                    <!-- Selector -->
+                <!-- Nombre -->
 
-                    <div class="flex-1">
-                        <Input
-                            id="avatar"
-                            type="file"
-                            name="avatar"
-                            accept="image/jpeg,image/png,image/webp"
-                            @change="
-                                handleAvatarChange
-                            "
-                        />
+                <div class="admin-form-group">
+                    <label
+                        for="name"
+                        class="admin-form-label"
+                    >
+                        Nombre
+                    </label>
 
-                        <p
-                            class="mt-2 text-xs text-muted-foreground"
+                    <input
+                        id="name"
+                        class="admin-form-input"
+                        name="name"
+                        :value="user.name"
+                        required
+                        autocomplete="name"
+                        placeholder="Nombre completo"
+                    />
+
+                    <InputError
+                        class="admin-form-error"
+                        :message="errors.name"
+                    />
+                </div>
+
+                <!-- Nombre de usuario -->
+
+                <div class="admin-form-group">
+                    <label
+                        for="username"
+                        class="admin-form-label"
+                    >
+                        Nombre de usuario
+                    </label>
+
+                    <input
+                        id="username"
+                        type="text"
+                        class="admin-form-input"
+                        :value="user.username"
+                        readonly
+                        disabled
+                        autocomplete="username"
+                    />
+
+                    <p class="admin-form-help">
+                        El nombre de usuario se utiliza para iniciar sesión
+                        y no puede modificarse desde el perfil.
+                    </p>
+                </div>
+
+                <!-- Correo -->
+
+                <div class="admin-form-group">
+                    <label
+                        for="email"
+                        class="admin-form-label"
+                    >
+                        Correo electrónico
+                    </label>
+
+                    <input
+                        id="email"
+                        type="email"
+                        class="admin-form-input"
+                        name="email"
+                        :value="user.email"
+                        required
+                        autocomplete="email"
+                        placeholder="Correo electrónico"
+                    />
+
+                    <InputError
+                        class="admin-form-error"
+                        :message="errors.email"
+                    />
+                </div>
+
+                <!-- Teléfono -->
+
+                <div class="admin-form-group">
+                    <label
+                        for="phone"
+                        class="admin-form-label"
+                    >
+                        Teléfono
+                    </label>
+
+                    <input
+                        id="phone"
+                        type="tel"
+                        class="admin-form-input"
+                        name="phone"
+                        :value="
+                            profile?.phone ?? ''
+                        "
+                        autocomplete="tel"
+                        placeholder="Número de teléfono"
+                    />
+
+                    <InputError
+                        class="admin-form-error"
+                        :message="errors.phone"
+                    />
+                </div>
+
+                <!-- Fecha de nacimiento -->
+
+                <div class="admin-form-group">
+                    <label
+                        for="birth_date"
+                        class="admin-form-label"
+                    >
+                        Fecha de nacimiento
+                    </label>
+
+                    <input
+                        id="birth_date"
+                        type="date"
+                        class="admin-form-input"
+                        name="birth_date"
+                        :value="
+                            profile?.birth_date ?? ''
+                        "
+                        autocomplete="bday"
+                    />
+
+                    <InputError
+                        class="admin-form-error"
+                        :message="errors.birth_date"
+                    />
+                </div>
+
+                <!-- Ciudad y país -->
+
+                <div
+                    class="grid gap-6 md:grid-cols-2"
+                >
+                    <!-- Ciudad -->
+
+                    <div class="admin-form-group">
+                        <label
+                            for="city"
+                            class="admin-form-label"
                         >
-                            JPG, PNG o WebP. Máximo 2 MB.
-                        </p>
+                            Ciudad
+                        </label>
+
+                        <input
+                            id="city"
+                            type="text"
+                            class="admin-form-input"
+                            name="city"
+                            :value="
+                                profile?.city ?? ''
+                            "
+                            autocomplete="address-level2"
+                            placeholder="Ciudad"
+                        />
 
                         <InputError
-                            class="mt-2"
-                            :message="errors.avatar"
+                            class="admin-form-error"
+                            :message="errors.city"
+                        />
+                    </div>
+
+                    <!-- País -->
+
+                    <div class="admin-form-group">
+                        <label
+                            for="country"
+                            class="admin-form-label"
+                        >
+                            País
+                        </label>
+
+                        <input
+                            id="country"
+                            type="text"
+                            class="admin-form-input"
+                            name="country"
+                            :value="
+                                profile?.country ?? ''
+                            "
+                            autocomplete="country-name"
+                            placeholder="País"
+                        />
+
+                        <InputError
+                            class="admin-form-error"
+                            :message="errors.country"
                         />
                     </div>
                 </div>
-            </div>
 
-            <!-- Nombre -->
-
-            <div class="grid gap-2">
-                <Label for="name">
-                    Nombre
-                </Label>
-
-                <Input
-                    id="name"
-                    class="mt-1 block w-full"
-                    name="name"
-                    :default-value="user.name"
-                    required
-                    autocomplete="name"
-                    placeholder="Nombre completo"
-                />
-
-                <InputError
-                    class="mt-2"
-                    :message="errors.name"
-                />
-            </div>
-
-            <!-- Correo -->
-
-            <div class="grid gap-2">
-                <Label for="email">
-                    Correo electrónico
-                </Label>
-
-                <Input
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    name="email"
-                    :default-value="user.email"
-                    required
-                    autocomplete="username"
-                    placeholder="Correo electrónico"
-                />
-
-                <InputError
-                    class="mt-2"
-                    :message="errors.email"
-                />
-            </div>
-
-            <!-- Teléfono -->
-
-            <div class="grid gap-2">
-                <Label for="phone">
-                    Teléfono
-                </Label>
-
-                <Input
-                    id="phone"
-                    type="tel"
-                    class="mt-1 block w-full"
-                    name="phone"
-                    :default-value="
-                        profile?.phone ?? ''
-                    "
-                    autocomplete="tel"
-                    placeholder="Número de teléfono"
-                />
-
-                <InputError
-                    class="mt-2"
-                    :message="errors.phone"
-                />
-            </div>
-
-            <!-- Fecha de nacimiento -->
-
-            <div class="grid gap-2">
-                <Label for="birth_date">
-                    Fecha de nacimiento
-                </Label>
-
-                <Input
-                    id="birth_date"
-                    type="date"
-                    class="mt-1 block w-full"
-                    name="birth_date"
-                    :default-value="
-                        profile?.birth_date ?? ''
-                    "
-                    autocomplete="bday"
-                />
-
-                <InputError
-                    class="mt-2"
-                    :message="errors.birth_date"
-                />
-            </div>
-
-            <!-- Ciudad y país -->
-
-            <div
-                class="grid gap-6 md:grid-cols-2"
-            >
-
-                <!-- Ciudad -->
-
-                <div class="grid gap-2">
-                    <Label for="city">
-                        Ciudad
-                    </Label>
-
-                    <Input
-                        id="city"
-                        type="text"
-                        class="mt-1 block w-full"
-                        name="city"
-                        :default-value="
-                            profile?.city ?? ''
-                        "
-                        autocomplete="address-level2"
-                        placeholder="Ciudad"
-                    />
-
-                    <InputError
-                        class="mt-2"
-                        :message="errors.city"
-                    />
-                </div>
-
-                <!-- País -->
-
-                <div class="grid gap-2">
-                    <Label for="country">
-                        País
-                    </Label>
-
-                    <Input
-                        id="country"
-                        type="text"
-                        class="mt-1 block w-full"
-                        name="country"
-                        :default-value="
-                            profile?.country ?? ''
-                        "
-                        autocomplete="country-name"
-                        placeholder="País"
-                    />
-
-                    <InputError
-                        class="mt-2"
-                        :message="errors.country"
-                    />
-                </div>
-            </div>
-
-            <!-- Verificación de correo -->
-
-            <div
-                v-if="
-                    page.props.mustVerifyEmail &&
-                    !user.email_verified_at
-                "
-            >
-                <p
-                    class="-mt-4 text-sm text-muted-foreground"
-                >
-                    Tu dirección de correo electrónico
-                    no está verificada.
-
-                    <Link
-                        :href="send()"
-                        as="button"
-                        class="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
-                    >
-                        Haz clic aquí para volver a enviar
-                        el correo de verificación.
-                    </Link>
-                </p>
+                <!-- Verificación de correo -->
 
                 <div
                     v-if="
-                        page.props.status ===
-                        'verification-link-sent'
+                        page.props.mustVerifyEmail &&
+                        !user.email_verified_at
                     "
-                    class="mt-2 text-sm font-medium text-green-600"
+                    class="admin-form-status"
                 >
-                    Se ha enviado un nuevo enlace de
-                    verificación a tu dirección de correo
-                    electrónico.
+                    <div class="admin-form-status-content">
+                        <div>
+                            <p
+                                class="admin-form-status-title"
+                            >
+                                Correo electrónico no verificado
+                            </p>
+
+                            <p
+                                class="admin-form-status-description"
+                            >
+                                Tu dirección de correo electrónico
+                                no está verificada.
+                            </p>
+
+                            <Link
+                                :href="send()"
+                                as="button"
+                                class="mt-2 text-sm font-medium text-[var(--sc-page-blue)] underline underline-offset-4 transition-colors hover:text-[var(--sc-page-blue-dark)]"
+                            >
+                                Haz clic aquí para volver a
+                                enviar el correo de verificación.
+                            </Link>
+                        </div>
+                    </div>
+
+                    <div
+                        v-if="
+                            page.props.status ===
+                            'verification-link-sent'
+                        "
+                        class="mt-3 text-sm font-medium text-[var(--sc-page-green)]"
+                    >
+                        Se ha enviado un nuevo enlace de
+                        verificación a tu dirección de correo
+                        electrónico.
+                    </div>
+                </div>
+
+                <!-- Guardar -->
+
+                <div class="admin-form-actions">
+                    <button
+                        type="submit"
+                        class="admin-btn admin-btn-primary"
+                        :disabled="processing"
+                        data-test="update-profile-button"
+                    >
+                        <span
+                            v-if="processing"
+                            class="admin-btn-loader"
+                        ></span>
+
+                        {{
+                            processing
+                                ? 'Guardando...'
+                                : 'Guardar'
+                        }}
+                    </button>
                 </div>
             </div>
-
-            <!-- Guardar -->
-
-            <div
-                class="flex items-center gap-4"
-            >
-                <Button
-                    :disabled="processing"
-                    data-test="update-profile-button"
-                >
-                    {{
-                        processing
-                            ? 'Guardando...'
-                            : 'Guardar'
-                    }}
-                </Button>
-            </div>
         </Form>
-    </div>
 
-    <DeleteUser />
+        <!-- Eliminar cuenta -->
+
+        <DeleteUser />
+    </div>
 </template>

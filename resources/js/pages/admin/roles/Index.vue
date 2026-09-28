@@ -2,6 +2,15 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import { ref } from 'vue';
+import {
+    Edit,
+    Plus,
+    Search,
+    ShieldCheck,
+    Trash2,
+    Users,
+} from 'lucide-vue-next';
+
 import admin from '@/routes/admin';
 
 interface Role {
@@ -70,135 +79,173 @@ const deleteRole = (role: Role) => {
 <template>
     <Head title="Roles" />
 
-    <div
-        class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
-    >
-        <!-- Encabezado -->
-        <div
-            class="relative rounded-xl border border-sidebar-border/70 p-6 dark:border-sidebar-border"
-        >
-            <div
-                class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
-            >
-                <div>
-                    <h1 class="text-2xl font-semibold">
-                        Roles
-                    </h1>
+    <div class="admin-page">
+        <!-- =================================================
+             HEADER
+        ================================================== -->
 
-                    <p class="mt-1 text-sm text-muted-foreground">
-                        Administra los roles y sus permisos.
-                    </p>
-                </div>
+        <header class="admin-page-header">
+            <div>
+                <p class="admin-page-eyebrow">
+                    Configuración
+                </p>
 
+                <h1 class="admin-page-title">
+                    Roles
+                </h1>
+
+                <p class="admin-page-subtitle">
+                    Administra los roles y sus permisos.
+                </p>
+            </div>
+
+            <div class="admin-page-header-actions">
                 <Link
                     :href="admin.roles.create().url"
-                    class="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+                    class="admin-btn admin-btn-primary"
                 >
+                    <Plus
+                        :size="14"
+                        :stroke-width="2"
+                    />
+
                     Nuevo rol
                 </Link>
             </div>
-        </div>
+        </header>
 
-        <!-- Tabla -->
-        <div
-            class="relative flex-1 overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
-        >
-            <!-- Buscador -->
-            <div
-                class="flex flex-col gap-3 border-b border-sidebar-border/70 p-4 md:flex-row md:items-center md:justify-between dark:border-sidebar-border"
-            >
+        <!-- =================================================
+             TABLE CARD
+        ================================================== -->
+
+        <div class="admin-table-card">
+            <!-- TOOLBAR -->
+
+            <div class="admin-table-toolbar">
                 <form
+                    class="admin-search-form"
                     @submit.prevent="submitSearch"
-                    class="flex w-full gap-2 md:max-w-md"
                 >
-                    <input
-                        v-model="search"
-                        type="search"
-                        placeholder="Buscar rol..."
-                        class="w-full rounded-lg border border-sidebar-border bg-background px-4 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    />
+                    <div class="admin-search-wrapper">
+                        <Search
+                            class="admin-search-icon"
+                            :size="16"
+                            :stroke-width="2"
+                        />
+
+                        <input
+                            v-model="search"
+                            type="search"
+                            placeholder="Buscar rol..."
+                            class="admin-search-input"
+                        />
+                    </div>
 
                     <button
                         type="submit"
-                        class="rounded-lg border border-sidebar-border px-4 py-2 text-sm font-medium transition hover:bg-accent"
+                        class="admin-btn admin-btn-search"
                     >
+                        <Search
+                            :size="14"
+                            :stroke-width="2"
+                        />
                         Buscar
                     </button>
                 </form>
 
-                <div class="text-sm text-muted-foreground">
+                <div class="admin-table-counter">
                     {{ roles.total }} roles
                 </div>
             </div>
 
-            <!-- Tabla -->
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                    <thead
-                        class="border-b border-sidebar-border/70 bg-muted/40 dark:border-sidebar-border"
-                    >
+            <!-- TABLE -->
+
+            <div class="admin-table-wrapper">
+                <table class="admin-table">
+                    <thead>
                         <tr>
-                            <th class="px-6 py-4 font-semibold">
+                            <th>
                                 Rol
                             </th>
 
-                            <th class="px-6 py-4 font-semibold">
+                            <th>
                                 Usuarios
                             </th>
 
-                            <th class="px-6 py-4 text-right font-semibold">
+                            <th class="text-right">
                                 Acciones
                             </th>
                         </tr>
                     </thead>
 
-                    <tbody
-                        class="divide-y divide-sidebar-border/70 dark:divide-sidebar-border"
-                    >
+                    <tbody>
                         <tr
                             v-for="role in roles.data"
                             :key="role.id"
-                            class="transition hover:bg-muted/30"
                         >
-                            <td class="px-6 py-4">
-                                <div class="font-medium">
-                                    {{ role.name }}
-                                </div>
+                            <td>
+                                <div class="payment-method-cell">
+                                    <div class="payment-method-icon">
+                                        <ShieldCheck
+                                            :size="18"
+                                            :stroke-width="2"
+                                        />
+                                    </div>
 
-                                <div class="text-xs text-muted-foreground">
-                                    ID: {{ role.id }}
+                                    <div class="payment-method-info">
+                                        <div class="font-medium">
+                                            {{ role.name }}
+                                        </div>
+
+                                        <div class="payment-description">
+                                            ID: {{ role.id }}
+                                        </div>
+                                    </div>
                                 </div>
                             </td>
 
-                            <td class="px-6 py-4">
-                                <span
-                                    class="rounded-full border border-sidebar-border px-2.5 py-1 text-xs font-medium"
-                                >
+                            <td>
+                                <span class="order-badge">
+                                    <Users
+                                        :size="13"
+                                        :stroke-width="2"
+                                    />
+
                                     {{ role.users_count }}
                                 </span>
                             </td>
 
-                            <td class="px-6 py-4">
-                                <div class="flex justify-end gap-2">
+                            <td>
+                                <div class="table-actions">
                                     <Link
                                         :href="admin.roles.edit(role.id).url"
-                                        class="rounded-lg border border-sidebar-border px-3 py-2 text-xs font-medium transition hover:bg-accent"
+                                        class="action-btn action-btn-edit"
                                     >
+                                        <Edit
+                                            :size="14"
+                                            :stroke-width="2"
+                                        />
+
                                         Editar
                                     </Link>
 
                                     <button
                                         v-if="role.name !== 'admin'"
                                         type="button"
-                                        class="rounded-lg border border-red-500/30 px-3 py-2 text-xs font-medium text-red-500 transition hover:bg-red-500/10"
+                                        class="action-btn action-btn-delete"
                                         @click="deleteRole(role)"
                                     >
+                                        <Trash2
+                                            :size="14"
+                                            :stroke-width="2"
+                                        />
+
                                         Eliminar
                                     </button>
 
                                     <span
                                         v-else
-                                        class="rounded-lg border border-sidebar-border px-3 py-2 text-xs text-muted-foreground"
+                                        class="status-badge status-inactive"
                                     >
                                         Protegido
                                     </span>
@@ -206,46 +253,76 @@ const deleteRole = (role: Role) => {
                             </td>
                         </tr>
 
-                        <!-- Sin resultados -->
+                        <!-- SIN RESULTADOS -->
+
                         <tr v-if="roles.data.length === 0">
                             <td
                                 colspan="3"
-                                class="px-6 py-12 text-center text-sm text-muted-foreground"
+                                class="admin-table-empty"
                             >
-                                No se encontraron roles.
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">
+                                        <ShieldCheck
+                                            :size="22"
+                                            :stroke-width="1.8"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <p>
+                                            No se encontraron roles.
+                                        </p>
+
+                                        <span>
+                                            Intenta realizar una búsqueda
+                                            diferente.
+                                        </span>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- Paginación -->
+            <!-- PAGINATION -->
+
             <div
                 v-if="roles.last_page > 1"
-                class="flex flex-wrap items-center justify-center gap-1 border-t border-sidebar-border/70 p-4 dark:border-sidebar-border"
+                class="admin-pagination-wrapper"
             >
-                <template
-                    v-for="(link, index) in roles.links"
-                    :key="index"
-                >
-                    <Link
-                        v-if="link.url"
-                        :href="link.url"
-                        class="rounded-lg border px-3 py-2 text-sm transition"
-                        :class="
-                            link.active
-                                ? 'border-primary bg-primary text-primary-foreground'
-                                : 'border-sidebar-border hover:bg-accent'
-                        "
-                        v-html="link.label"
-                    />
+                <div class="admin-pagination-info">
+                    Mostrando
+                    <strong>{{ roles.from ?? 0 }}</strong>
+                    a
+                    <strong>{{ roles.to ?? 0 }}</strong>
+                    de
+                    <strong>{{ roles.total }}</strong>
+                    roles
+                </div>
 
-                    <span
-                        v-else
-                        class="rounded-lg border border-sidebar-border px-3 py-2 text-sm opacity-50"
-                        v-html="link.label"
-                    />
-                </template>
+                <div class="admin-pagination">
+                    <template
+                        v-for="(link, index) in roles.links"
+                        :key="index"
+                    >
+                        <Link
+                            v-if="link.url"
+                            :href="link.url"
+                            class="pagination-btn"
+                            :class="{
+                                active: link.active,
+                            }"
+                            v-html="link.label"
+                        />
+
+                        <span
+                            v-else
+                            class="pagination-btn disabled"
+                            v-html="link.label"
+                        />
+                    </template>
+                </div>
             </div>
         </div>
     </div>

@@ -3,8 +3,15 @@
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PaymentMethodController;
 use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\RaceChecklistController;
+use App\Http\Controllers\Admin\RaceController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\SponsorController;
+use App\Http\Controllers\Admin\SponsorPaymentController;
+use App\Http\Controllers\Admin\SponsorRaceController;
+use App\Http\Controllers\Admin\RaceExpenseController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\RaceGalleryController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -30,7 +37,12 @@ Route::middleware(['auth', 'verified'])
             ->name('dashboard')
             ->middleware('permission:dashboard.view');
 
-        // Usuarios
+        /*
+        |--------------------------------------------------------------------------
+        | Usuarios
+        |--------------------------------------------------------------------------
+        */
+
         Route::resource('users', UserController::class)
             ->middleware([
                 'index' => 'permission:users.view',
@@ -41,7 +53,12 @@ Route::middleware(['auth', 'verified'])
                 'destroy' => 'permission:users.delete',
             ]);
 
-        // Roles
+        /*
+        |--------------------------------------------------------------------------
+        | Roles
+        |--------------------------------------------------------------------------
+        */
+
         Route::resource('roles', RoleController::class)
             ->middleware([
                 'index' => 'permission:roles.view',
@@ -52,7 +69,12 @@ Route::middleware(['auth', 'verified'])
                 'destroy' => 'permission:roles.delete',
             ]);
 
-        // Permisos
+        /*
+        |--------------------------------------------------------------------------
+        | Permisos
+        |--------------------------------------------------------------------------
+        */
+
         Route::resource('permissions', PermissionController::class)
             ->middleware([
                 'index' => 'permission:permissions.view',
@@ -63,8 +85,12 @@ Route::middleware(['auth', 'verified'])
                 'destroy' => 'permission:permissions.delete',
             ]);
 
-        
-        //Métodos de pago   
+        /*
+        |--------------------------------------------------------------------------
+        | Métodos de pago
+        |--------------------------------------------------------------------------
+        */
+
         Route::resource('payment-methods', PaymentMethodController::class)
             ->except(['show'])
             ->middleware([
@@ -75,6 +101,188 @@ Route::middleware(['auth', 'verified'])
                 'update' => 'permission:payment-methods.edit',
                 'destroy' => 'permission:payment-methods.delete',
             ]);
-      });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Carreras
+        |--------------------------------------------------------------------------
+        */
+
+        Route::resource('races', RaceController::class)
+            ->middleware([
+                'index' => 'permission:races.view',
+                'create' => 'permission:races.create',
+                'store' => 'permission:races.create',
+                'show' => 'permission:races.view',
+                'edit' => 'permission:races.edit',
+                'update' => 'permission:races.edit',
+                'destroy' => 'permission:races.delete',
+            ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sponsors
+        |--------------------------------------------------------------------------
+        */
+
+        Route::resource('sponsors', SponsorController::class)
+            ->middleware([
+                'index' => 'permission:sponsors.view',
+                'create' => 'permission:sponsors.create',
+                'store' => 'permission:sponsors.create',
+                'show' => 'permission:sponsors.view',
+                'edit' => 'permission:sponsors.edit',
+                'update' => 'permission:sponsors.edit',
+                'destroy' => 'permission:sponsors.delete',
+            ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sponsor - Carreras
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            'sponsors/{sponsor}/races/create',
+            [SponsorRaceController::class, 'create']
+        )
+            ->name('sponsors.races.create')
+            ->middleware('permission:sponsors.edit');
+
+        Route::post(
+            'sponsors/{sponsor}/races',
+            [SponsorRaceController::class, 'store']
+        )
+            ->name('sponsors.races.store')
+            ->middleware('permission:sponsors.edit');
+
+        Route::get(
+            'sponsors/{sponsor}/races/{raceSponsor}',
+            [SponsorRaceController::class, 'show']
+        )
+            ->name('sponsors.races.show')
+            ->middleware('permission:sponsors.view');
+
+        Route::delete(
+            'sponsors/{sponsor}/races/{raceSponsor}',
+            [SponsorRaceController::class, 'destroy']
+        )
+            ->name('sponsors.races.destroy')
+            ->middleware('permission:sponsors.edit');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sponsor - Pagos
+        |--------------------------------------------------------------------------
+        */
+
+        Route::post(
+            'race-sponsors/{raceSponsor}/payments',
+            [SponsorPaymentController::class, 'store']
+        )
+            ->name('race-sponsors.payments.store')
+            ->middleware('permission:sponsors.edit');
+
+        Route::delete(
+            'race-sponsors/{raceSponsor}/payments/{payment}',
+            [SponsorPaymentController::class, 'destroy']
+        )
+            ->name('race-sponsors.payments.destroy')
+            ->middleware('permission:sponsors.edit');
+
+       /* --------------------------------------------------------------------------
+        | Checklist de carreras
+        | -------------------------------------------------------------------------- */
+
+        Route::resource(
+            'races.checklist',
+            RaceChecklistController::class
+        )
+            ->only([
+                'index',
+                'store',
+                'update',
+                'destroy',
+            ])
+            ->parameters([
+                'checklist' => 'checklistItem',
+            ])
+            ->middleware([
+                'index' => 'permission:races.view',
+                'store' => 'permission:races.edit',
+                'update' => 'permission:races.edit',
+                'destroy' => 'permission:races.edit',
+            ]);
+
+        /* --------------------------------------------------------------------------
+        | Checklist - Cambiar estado
+        | -------------------------------------------------------------------------- */
+
+        Route::patch(
+            'races/{race}/checklist/{checklistItem}/status',
+            [RaceChecklistController::class, 'updateStatus']
+        )
+            ->name('races.checklist.status')
+            ->middleware('permission:races.edit');
+
+        /* --------------------------------------------------------------------------
+        | Checklist - Aplicar plantilla
+        | -------------------------------------------------------------------------- */
+
+        Route::post(
+            'races/{race}/checklist/apply-template',
+            [RaceChecklistController::class, 'applyTemplate']
+        )
+            ->name('races.checklist.apply-template')
+            ->middleware('permission:races.edit');
+
+        
+        /* --------------------------------------------------------------------------
+        | Egresos de carreras
+        | -------------------------------------------------------------------------- */
+
+        Route::resource(
+            'races.expenses',
+            RaceExpenseController::class
+        )
+            ->only([
+                'index',
+                'store',
+                'update',
+                'destroy',
+            ])
+            ->parameters([
+                'expenses' => 'expense',
+            ])
+            ->middleware([
+                'index' => 'permission:races.view',
+                'store' => 'permission:races.edit',
+                'update' => 'permission:races.edit',
+                'destroy' => 'permission:races.edit',
+            ]);
+
+
+            Route::resource(
+                'races.gallery',
+                RaceGalleryController::class
+            )
+                ->only([
+                    'index',
+                    'store',
+                    'update',
+                    'destroy',
+                ])
+                ->parameters([
+                    'gallery' => 'gallery',
+                ])
+                ->middleware([
+                    'index' => 'permission:races.view',
+                    'store' => 'permission:races.edit',
+                    'update' => 'permission:races.edit',
+                    'destroy' => 'permission:races.edit',
+                ]);
+
+
+    });
 
 require __DIR__.'/settings.php';

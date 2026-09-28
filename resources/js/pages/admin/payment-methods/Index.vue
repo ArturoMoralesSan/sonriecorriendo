@@ -2,6 +2,14 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import { ref } from 'vue';
+import {
+    CreditCard,
+    Edit,
+    Plus,
+    Search,
+    Trash2,
+    WalletCards,
+} from 'lucide-vue-next';
 
 import admin from '@/routes/admin';
 
@@ -142,7 +150,9 @@ defineOptions({
                     :href="admin.paymentMethods.create().url"
                     class="admin-btn admin-btn-primary"
                 >
-                    <span class="admin-btn-icon">+</span>
+                    <span class="admin-btn-icon">
+                        <Plus :size="14" :stroke-width="2.2" />
+                    </span>
 
                     Nuevo método de pago
                 </Link>
@@ -162,23 +172,11 @@ defineOptions({
                     @submit.prevent="submitSearch"
                 >
                     <div class="admin-search-wrapper">
-                        <svg
+                        <Search
                             class="admin-search-icon"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                        >
-                            <circle
-                                cx="11"
-                                cy="11"
-                                r="7"
-                            />
-
-                            <path
-                                d="m20 20-4-4"
-                            />
-                        </svg>
+                            :size="16"
+                            :stroke-width="2"
+                        />
 
                         <input
                             v-model="search"
@@ -192,6 +190,8 @@ defineOptions({
                         type="submit"
                         class="admin-btn admin-btn-search"
                     >
+                        <Search :size="14" :stroke-width="2" />
+
                         Buscar
                     </button>
                 </form>
@@ -249,7 +249,10 @@ defineOptions({
                             <td>
                                 <div class="payment-method-cell">
                                     <div class="payment-method-icon">
-                                        $
+                                        <WalletCards
+                                            :size="17"
+                                            :stroke-width="2"
+                                        />
                                     </div>
 
                                     <div class="payment-method-info">
@@ -331,19 +334,33 @@ defineOptions({
                                             ).url
                                         "
                                         class="action-btn action-btn-edit"
+                                        title="Editar método de pago"
+                                        aria-label="Editar método de pago"
                                     >
+                                        <Edit
+                                            :size="14"
+                                            :stroke-width="2"
+                                        />
+                                        
                                         Editar
                                     </Link>
 
                                     <button
                                         type="button"
                                         class="action-btn action-btn-delete"
+                                        title="Eliminar método de pago"
+                                        aria-label="Eliminar método de pago"
                                         @click="
                                             deletePaymentMethod(
                                                 paymentMethod,
                                             )
                                         "
                                     >
+                                        <Trash2
+                                            :size="14"
+                                            :stroke-width="2"
+                                        />
+
                                         Eliminar
                                     </button>
                                 </div>
@@ -363,7 +380,10 @@ defineOptions({
                             >
                                 <div class="empty-state">
                                     <div class="empty-state-icon">
-                                        $
+                                        <CreditCard
+                                            :size="20"
+                                            :stroke-width="2"
+                                        />
                                     </div>
 
                                     <strong>

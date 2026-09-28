@@ -32,10 +32,14 @@ defineProps<{
 
     <Form
         v-bind="send.form()"
-        class="space-y-6 text-center"
+        class="flex flex-col gap-6 text-center"
         v-slot="{ processing }"
     >
-        <Button :disabled="processing" variant="secondary">
+        <Button
+            type="submit"
+            class="w-full"
+            :disabled="processing"
+        >
             <Spinner v-if="processing" />
             Reenviar correo de verificación
         </Button>
@@ -43,7 +47,7 @@ defineProps<{
         <TextLink
             :href="logout()"
             as="button"
-            class="mx-auto block text-sm"
+            class="auth-logout-link"
         >
             Cerrar sesión
         </TextLink>

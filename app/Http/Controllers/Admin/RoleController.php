@@ -14,7 +14,11 @@ class RoleController extends Controller
     {
         $roles = Role::withCount('users')
             ->when($request->search, function ($query, $search) {
-                $query->where('name', 'like', "%{$search}%");
+                $query->where(
+                    'name',
+                    'like',
+                    "%{$search}%"
+                );
             })
             ->where('guard_name', 'web')
             ->orderBy('name')
@@ -31,11 +35,17 @@ class RoleController extends Controller
 
     public function create()
     {
-        return Inertia::render('admin/roles/Create', [
-            'permissions' => Permission::where('guard_name', 'web')
-                ->orderBy('name')
-                ->get(),
-        ]);
+        return Inertia::render(
+            'admin/roles/Create',
+            [
+                'permissions' => Permission::where(
+                    'guard_name',
+                    'web'
+                )
+                    ->orderBy('name')
+                    ->get(),
+            ]
+        );
     }
 
     public function store(Request $request)
@@ -47,8 +57,13 @@ class RoleController extends Controller
                 'max:255',
                 'unique:roles,name',
             ],
-            'permissions' => ['nullable', 'array'],
-            'permissions.*' => ['exists:permissions,name'],
+            'permissions' => [
+                'nullable',
+                'array',
+            ],
+            'permissions.*' => [
+                'exists:permissions,name',
+            ],
         ]);
 
         $role = Role::create([
@@ -56,27 +71,42 @@ class RoleController extends Controller
             'guard_name' => 'web',
         ]);
 
-        $role->syncPermissions($validated['permissions'] ?? []);
+        $role->syncPermissions(
+            $validated['permissions'] ?? []
+        );
 
-        return redirect()
-            ->route('admin.roles.index')
-            ->with('success', 'Rol creado correctamente.');
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Rol creado correctamente.',
+        ]);
+
+        return to_route(
+            'admin.roles.index'
+        );
     }
 
     public function edit(Role $role)
     {
         $role->load('permissions');
 
-        return Inertia::render('admin/roles/Edit', [
-            'role' => $role,
-            'permissions' => Permission::where('guard_name', 'web')
-                ->orderBy('name')
-                ->get(),
-        ]);
+        return Inertia::render(
+            'admin/roles/Edit',
+            [
+                'role' => $role,
+                'permissions' => Permission::where(
+                    'guard_name',
+                    'web'
+                )
+                    ->orderBy('name')
+                    ->get(),
+            ]
+        );
     }
 
-    public function update(Request $request, Role $role)
-    {
+    public function update(
+        Request $request,
+        Role $role
+    ) {
         $validated = $request->validate([
             'name' => [
                 'required',
@@ -84,34 +114,53 @@ class RoleController extends Controller
                 'max:255',
                 'unique:roles,name,'.$role->id,
             ],
-            'permissions' => ['nullable', 'array'],
-            'permissions.*' => ['exists:permissions,name'],
+            'permissions' => [
+                'nullable',
+                'array',
+            ],
+            'permissions.*' => [
+                'exists:permissions,name',
+            ],
         ]);
 
         $role->update([
             'name' => $validated['name'],
         ]);
 
-        $role->syncPermissions($validated['permissions'] ?? []);
+        $role->syncPermissions(
+            $validated['permissions'] ?? []
+        );
 
-        return redirect()
-            ->route('admin.roles.index')
-            ->with('success', 'Rol actualizado correctamente.');
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Rol actualizado correctamente.',
+        ]);
+
+        return to_route(
+            'admin.roles.index'
+        );
     }
 
     public function destroy(Role $role)
     {
         if ($role->name === 'admin') {
-            return back()->with(
-                'error',
-                'El rol admin no puede ser eliminado.'
-            );
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => 'El rol admin no puede ser eliminado.',
+            ]);
+
+            return back();
         }
 
         $role->delete();
 
-        return redirect()
-            ->route('admin.roles.index')
-            ->with('success', 'Rol eliminado correctamente.');
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Rol eliminado correctamente.',
+        ]);
+
+        return to_route(
+            'admin.roles.index'
+        );
     }
 }

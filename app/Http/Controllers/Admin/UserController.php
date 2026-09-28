@@ -16,8 +16,21 @@ class UserController extends Controller
         $users = User::with('roles')
             ->when($request->search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
+                    $q->where(
+                        'name',
+                        'like',
+                        "%{$search}%"
+                    )
+                        ->orWhere(
+                            'username',
+                            'like',
+                            "%{$search}%"
+                        )
+                        ->orWhere(
+                            'email',
+                            'like',
+                            "%{$search}%"
+                        );
                 });
             })
             ->orderBy('name')
@@ -34,89 +47,174 @@ class UserController extends Controller
 
     public function create()
     {
-        return Inertia::render('admin/users/Create', [
-            'roles' => Role::where('guard_name', 'web')
-                ->orderBy('name')
-                ->get(),
-        ]);
+        return Inertia::render(
+            'admin/users/Create',
+            [
+                'roles' => Role::where(
+                    'guard_name',
+                    'web'
+                )
+                    ->orderBy('name')
+                    ->get(),
+            ]
+        );
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'exists:roles,name'],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+            'username' => [
+                'required',
+                'string',
+                'max:255',
+                'unique:users,username',
+            ],
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                'unique:users,email',
+            ],
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed',
+            ],
+            'role' => [
+                'required',
+                'exists:roles,name',
+            ],
         ]);
 
         $user = User::create([
             'name' => $validated['name'],
+            'username' => $validated['username'],
             'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
+            'password' => Hash::make(
+                $validated['password']
+            ),
         ]);
 
-        $user->assignRole($validated['role']);
+        $user->assignRole(
+            $validated['role']
+        );
 
-        return redirect()
-            ->route('admin.users.index')
-            ->with('success', 'Usuario creado correctamente.');
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Usuario creado correctamente.',
+        ]);
+
+        return to_route(
+            'admin.users.index'
+        );
     }
 
     public function edit(User $user)
     {
         $user->load('roles');
 
-        return Inertia::render('admin/users/Edit', [
-            'user' => $user,
-            'roles' => Role::where('guard_name', 'web')
-                ->orderBy('name')
-                ->get(),
-        ]);
+        return Inertia::render(
+            'admin/users/Edit',
+            [
+                'user' => $user,
+                'roles' => Role::where(
+                    'guard_name',
+                    'web'
+                )
+                    ->orderBy('name')
+                    ->get(),
+            ]
+        );
     }
 
-    public function update(Request $request, User $user)
-    {
+    public function update(
+        Request $request,
+        User $user
+    ) {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+            'username' => [
+                'required',
+                'string',
+                'max:255',
+                'unique:users,username,'.$user->id,
+            ],
             'email' => [
                 'required',
                 'email',
                 'max:255',
                 'unique:users,email,'.$user->id,
             ],
-            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'exists:roles,name'],
+            'password' => [
+                'nullable',
+                'string',
+                'min:8',
+                'confirmed',
+            ],
+            'role' => [
+                'required',
+                'exists:roles,name',
+            ],
         ]);
 
         $data = [
             'name' => $validated['name'],
+            'username' => $validated['username'],
             'email' => $validated['email'],
         ];
 
         if (! empty($validated['password'])) {
-            $data['password'] = Hash::make($validated['password']);
+            $data['password'] = Hash::make(
+                $validated['password']
+            );
         }
 
         $user->update($data);
 
-        $user->syncRoles([$validated['role']]);
+        $user->syncRoles([
+            $validated['role'],
+        ]);
 
-        return redirect()
-            ->route('admin.users.index')
-            ->with('success', 'Usuario actualizado correctamente.');
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Usuario actualizado correctamente.',
+        ]);
+
+        return to_route(
+            'admin.users.index'
+        );
     }
 
     public function destroy(User $user)
     {
         if ($user->id === auth()->id()) {
-            return back()->with('error', 'No puedes eliminar tu propio usuario.');
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => 'No puedes eliminar tu propio usuario.',
+            ]);
+
+            return back();
         }
 
         $user->delete();
 
-        return redirect()
-            ->route('admin.users.index')
-            ->with('success', 'Usuario eliminado correctamente.');
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Usuario eliminado correctamente.',
+        ]);
+
+        return to_route(
+            'admin.users.index'
+        );
     }
 }

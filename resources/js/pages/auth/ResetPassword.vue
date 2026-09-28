@@ -33,10 +33,13 @@ const inputEmail = ref(props.email);
         :transform="(data) => ({ ...data, token, email })"
         :reset-on-success="['password', 'password_confirmation']"
         v-slot="{ errors, processing }"
+        class="flex flex-col gap-6"
     >
         <div class="grid gap-6">
             <div class="grid gap-2">
-                <Label for="email">Correo electrónico</Label>
+                <Label for="email">
+                    Correo electrónico
+                </Label>
 
                 <Input
                     id="email"
@@ -44,21 +47,21 @@ const inputEmail = ref(props.email);
                     name="email"
                     autocomplete="email"
                     v-model="inputEmail"
-                    class="mt-1 block w-full"
                     readonly
                 />
 
-                <InputError :message="errors.email" class="mt-2" />
+                <InputError :message="errors.email" />
             </div>
 
             <div class="grid gap-2">
-                <Label for="password">Contraseña</Label>
+                <Label for="password">
+                    Contraseña
+                </Label>
 
                 <PasswordInput
                     id="password"
                     name="password"
                     autocomplete="new-password"
-                    class="mt-1 block w-full"
                     autofocus
                     placeholder="Contraseña"
                     :passwordrules="passwordRules"
@@ -76,7 +79,6 @@ const inputEmail = ref(props.email);
                     id="password_confirmation"
                     name="password_confirmation"
                     autocomplete="new-password"
-                    class="mt-1 block w-full"
                     placeholder="Confirmar contraseña"
                     :passwordrules="passwordRules"
                 />
@@ -86,7 +88,7 @@ const inputEmail = ref(props.email);
 
             <Button
                 type="submit"
-                class="mt-4 w-full"
+                class="w-full"
                 :disabled="processing"
                 data-test="reset-password-button"
             >
