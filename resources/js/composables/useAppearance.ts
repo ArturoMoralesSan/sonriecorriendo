@@ -1,5 +1,7 @@
 import type { ComputedRef, Ref } from 'vue';
+
 import { computed, onMounted, ref } from 'vue';
+
 import type { Appearance, ResolvedAppearance } from '@/types';
 
 export type { Appearance, ResolvedAppearance };
@@ -10,24 +12,22 @@ export type UseAppearanceReturn = {
     updateAppearance: (value: Appearance) => void;
 };
 
-export function updateTheme(value: Appearance): void {
-    if (typeof window === 'undefined') {
+/**
+ * El sitio utiliza exclusivamente el tema claro.
+ *
+ * No se consulta:
+ * - prefers-color-scheme
+ * - tema del sistema operativo
+ * - tema del navegador
+ *
+ * La clase "dark" siempre se elimina del documento.
+ */
+export function updateTheme(_value: Appearance = 'light'): void {
+    if (typeof document === 'undefined') {
         return;
     }
 
-    if (value === 'system') {
-        const mediaQueryList = window.matchMedia(
-            '(prefers-color-scheme: dark)',
-        );
-        const systemTheme = mediaQueryList.matches ? 'dark' : 'light';
-
-        document.documentElement.classList.toggle(
-            'dark',
-            systemTheme === 'dark',
-        );
-    } else {
-        document.documentElement.classList.toggle('dark', value === 'dark');
-    }
+    document.documentElement.classList.remove('dark');
 }
 
 const setCookie = (name: string, value: string, days = 365) => {
@@ -40,15 +40,7 @@ const setCookie = (name: string, value: string, days = 365) => {
     document.cookie = `${name}=${value};path=/;max-age=${maxAge};SameSite=Lax`;
 };
 
-const mediaQuery = () => {
-    if (typeof window === 'undefined') {
-        return null;
-    }
-
-    return window.matchMedia('(prefers-color-scheme: dark)');
-};
-
-const getStoredAppearance = () => {
+const getStoredAppearance = (): Appearance | null => {
     if (typeof window === 'undefined') {
         return null;
     }
@@ -56,64 +48,57 @@ const getStoredAppearance = () => {
     return localStorage.getItem('appearance') as Appearance | null;
 };
 
-const prefersDark = (): boolean => {
-    if (typeof window === 'undefined') {
-        return false;
-    }
-
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
-};
-
-const handleSystemThemeChange = () => {
-    const currentAppearance = getStoredAppearance();
-
-    updateTheme(currentAppearance || 'system');
-};
-
+/**
+ * Inicializa siempre el tema claro.
+ *
+ * Aunque exista una preferencia anterior guardada como "dark"
+ * o "system", el sitio permanecerá en modo claro.
+ */
 export function initializeTheme(): void {
     if (typeof window === 'undefined') {
         return;
     }
 
-    // Initialize theme from saved preference or default to system...
-    const savedAppearance = getStoredAppearance();
-    updateTheme(savedAppearance || 'system');
+    updateTheme('light');
 
-    // Set up system theme change listener...
-    mediaQuery()?.addEventListener('change', handleSystemThemeChange);
+    // Corregimos cualquier preferencia anterior para que
+    // el sistema quede establecido permanentemente en light.
+    localStorage.setItem('appearance', 'light');
+    setCookie('appearance', 'light');
 }
 
-const appearance = ref<Appearance>('system');
+/**
+ * Apariencia global de la aplicación.
+ *
+ * La interfaz queda permanentemente en modo claro.
+ */
+const appearance = ref<Appearance>('light');
 
 export function useAppearance(): UseAppearanceReturn {
     onMounted(() => {
-        const savedAppearance = localStorage.getItem(
-            'appearance',
-        ) as Appearance | null;
+        // Ignoramos cualquier configuración anterior del usuario
+        // y establecemos siempre light.
+        appearance.value = 'light';
 
-        if (savedAppearance) {
-            appearance.value = savedAppearance;
-        }
+        localStorage.setItem('appearance', 'light');
+        setCookie('appearance', 'light');
+
+        updateTheme('light');
     });
 
     const resolvedAppearance = computed<ResolvedAppearance>(() => {
-        if (appearance.value === 'system') {
-            return prefersDark() ? 'dark' : 'light';
-        }
-
-        return appearance.value;
+        return 'light';
     });
 
-    function updateAppearance(value: Appearance) {
-        appearance.value = value;
+    function updateAppearance(_value: Appearance) {
+        // Independientemente del valor recibido (dark, light o system),
+        // la aplicación siempre utiliza light.
+        appearance.value = 'light';
 
-        // Store in localStorage for client-side persistence...
-        localStorage.setItem('appearance', value);
+        localStorage.setItem('appearance', 'light');
+        setCookie('appearance', 'light');
 
-        // Store in cookie for SSR...
-        setCookie('appearance', value);
-
-        updateTheme(value);
+        updateTheme('light');
     }
 
     return {

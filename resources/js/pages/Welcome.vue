@@ -154,6 +154,7 @@ const benefits = [
                     <Link
                         href="/"
                         class="landing-nav-link active"
+                        @click="menuOpen = false"
                     >
                         Inicio
                     </Link>
@@ -161,6 +162,7 @@ const benefits = [
                     <a
                         href="#eventos"
                         class="landing-nav-link"
+                        @click="menuOpen = false"
                     >
                         Eventos
                     </a>
@@ -168,6 +170,7 @@ const benefits = [
                     <a
                         href="#como-funciona"
                         class="landing-nav-link"
+                        @click="menuOpen = false"
                     >
                         Cómo funciona
                     </a>
@@ -175,6 +178,7 @@ const benefits = [
                     <a
                         href="#nosotros"
                         class="landing-nav-link"
+                        @click="menuOpen = false"
                     >
                         Nosotros
                     </a>
@@ -182,11 +186,48 @@ const benefits = [
                     <a
                         href="#contacto"
                         class="landing-nav-link"
+                        @click="menuOpen = false"
                     >
                         Contacto
                     </a>
+
+                    <!-- =================================================
+                         AUTENTICACIÓN MÓVIL
+                         ================================================= -->
+                    <div class="landing-mobile-auth">
+                        <template v-if="$page.props.auth.user">
+                            <Link
+                                :href="admin.dashboard()"
+                                class="landing-nav-mobile-auth landing-nav-mobile-login"
+                                @click="menuOpen = false"
+                            >
+                                Dashboard
+                            </Link>
+                        </template>
+
+                        <template v-else>
+                            <Link
+                                :href="login()"
+                                class="landing-nav-mobile-auth landing-nav-mobile-login"
+                                @click="menuOpen = false"
+                            >
+                                Iniciar sesión
+                            </Link>
+
+                            <Link
+                                :href="register()"
+                                class="landing-nav-mobile-auth landing-nav-mobile-register"
+                                @click="menuOpen = false"
+                            >
+                                Registrarse
+                            </Link>
+                        </template>
+                    </div>
                 </nav>
 
+                <!-- =====================================================
+                     ACCIONES DESKTOP
+                     ===================================================== -->
                 <div class="landing-header-actions">
                     <button
                         type="button"
@@ -238,10 +279,14 @@ const benefits = [
                     </template>
                 </div>
 
+                <!-- =====================================================
+                     BOTÓN MENÚ MÓVIL
+                     ===================================================== -->
                 <button
                     type="button"
                     class="landing-mobile-toggle"
-                    aria-label="Abrir menú"
+                    :aria-label="menuOpen ? 'Cerrar menú' : 'Abrir menú'"
+                    :aria-expanded="menuOpen"
                     @click="menuOpen = !menuOpen"
                 >
                     <X
@@ -323,9 +368,6 @@ const benefits = [
                     <div class="landing-hero-message">
                         <p>
                             Sonríe Corriendo <strong>IMAX</strong>
-
-
-                            
                         </p>
                     </div>
                 </div>
@@ -574,8 +616,6 @@ const benefits = [
                 id="contacto"
                 class="landing-cta-section"
             >
-
-
                 <div class="landing-container landing-cta-inner">
                     <div class="landing-cta-icon">
                         <Zap

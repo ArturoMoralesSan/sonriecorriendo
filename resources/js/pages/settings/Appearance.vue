@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import AppearanceTabs from '@/components/AppearanceTabs.vue';
 import Heading from '@/components/Heading.vue';
 import { edit } from '@/routes/appearance';
 
@@ -25,9 +24,7 @@ defineOptions({
         <Heading
             variant="small"
             title="Configuración de apariencia"
-            description="Actualiza la configuración de apariencia de tu cuenta"
+            description="La aplicación utiliza una apariencia clara de forma permanente."
         />
-
-        <AppearanceTabs />
     </div>
 </template>

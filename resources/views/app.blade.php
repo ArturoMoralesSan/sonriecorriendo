@@ -1,32 +1,33 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"  @class(['dark' => ($appearance ?? 'system') == 'dark'])>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        {{-- Inline script to detect system dark mode preference and apply it immediately --}}
+        {{-- La aplicación utiliza exclusivamente el modo claro --}}
         <script>
             (function() {
-                const appearance = '{{ $appearance ?? "system" }}';
+                document.documentElement.classList.remove('dark');
+                document.documentElement.classList.add('light');
 
-                if (appearance === 'system') {
-                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-                    if (prefersDark) {
-                        document.documentElement.classList.add('dark');
-                    }
-                }
+                localStorage.setItem('appearance', 'light');
             })();
         </script>
 
-        {{-- Inline style to set the HTML background color based on our theme in app.css --}}
+        {{-- Fondo global permanente en modo claro --}}
         <style>
             html {
-                background-color: oklch(1 0 0);
+                background-color: #ffffff;
+                color-scheme: light;
             }
 
             html.dark {
-                background-color: oklch(0.145 0 0);
+                background-color: #ffffff;
+                color-scheme: light;
+            }
+
+            body {
+                background-color: #ffffff;
             }
         </style>
 
@@ -36,11 +37,17 @@
 
         @fonts
 
-        @vite(['resources/css/app.css', 'resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
+        @vite([
+            'resources/css/app.css',
+            'resources/js/app.ts',
+            "resources/js/pages/{$page['component']}.vue"
+        ])
+
         <x-inertia::head>
             <title>{{ config('app.name', 'Laravel') }}</title>
         </x-inertia::head>
     </head>
+
     <body class="font-sans antialiased">
         <x-inertia::app />
     </body>
