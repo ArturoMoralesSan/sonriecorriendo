@@ -163,16 +163,16 @@
     height: 3px;
     content: '';
     border-radius: 4px 4px 0 0;
-    background: linear-gradient(
-        90deg,
-        var(--landing-blue),
-        var(--landing-pink)
-    );
+    background:
+        linear-gradient(
+            90deg,
+            var(--landing-blue),
+            var(--landing-pink)
+        );
 }
 
 /* =========================================================
-   AUTENTICACIÓN DEL MENÚ MÓVIL
-   Oculto en escritorio.
+   AUTENTICACIÓN MÓVIL
    ========================================================= */
 
 .landing-mobile-auth {
@@ -308,10 +308,6 @@
     transform: translateY(-1px);
 }
 
-/* =========================================================
-   LOGIN
-   ========================================================= */
-
 .landing-btn-login {
     min-width: 112px;
     border: 1px solid #e2edf6;
@@ -327,10 +323,6 @@
         0 5px 14px rgba(36, 158, 219, 0.08);
 }
 
-/* =========================================================
-   OUTLINE
-   ========================================================= */
-
 .landing-btn-outline {
     border: 1px solid #d8e7f2;
     background: #ffffff;
@@ -341,10 +333,6 @@
     border-color: #b9d9eb;
     background: var(--landing-blue-light);
 }
-
-/* =========================================================
-   GRADIENT
-   ========================================================= */
 
 .landing-btn-gradient {
     border: 0;
@@ -367,7 +355,7 @@
 }
 
 /* =========================================================
-   MOBILE MENU BUTTON
+   MOBILE TOGGLE
    ========================================================= */
 
 .landing-mobile-toggle {
@@ -385,7 +373,7 @@
 }
 
 /* =========================================================
-   HERO / BANNER
+   HERO
    ========================================================= */
 
 .landing-hero {
@@ -401,10 +389,6 @@
         );
 }
 
-/* =========================================================
-   IMAGEN HERO
-   ========================================================= */
-
 .landing-hero-image {
     position: absolute;
     inset: 0;
@@ -414,10 +398,6 @@
     background-size: cover;
     opacity: 0.72;
 }
-
-/* =========================================================
-   CAPA DE COLOR
-   ========================================================= */
 
 .landing-hero::before {
     position: absolute;
@@ -434,10 +414,6 @@
             rgba(244, 139, 176, 0.32) 100%
         );
 }
-
-/* =========================================================
-   DIAGONAL DECORATIVA
-   ========================================================= */
 
 .landing-hero::after {
     position: absolute;
@@ -456,10 +432,6 @@
     transform: rotate(8deg);
 }
 
-/* =========================================================
-   CONTENIDO HERO
-   ========================================================= */
-
 .landing-hero-content {
     position: relative;
     z-index: 4;
@@ -468,10 +440,6 @@
     justify-content: space-between;
     min-height: 360px;
 }
-
-/* =========================================================
-   TEXTO HERO
-   ========================================================= */
 
 .landing-hero-copy {
     width: 560px;
@@ -512,10 +480,6 @@
     line-height: 1.65;
 }
 
-/* =========================================================
-   BOTÓN HERO
-   ========================================================= */
-
 .landing-hero-actions {
     display: flex;
     align-items: center;
@@ -540,10 +504,6 @@
     box-shadow:
         0 12px 27px rgba(10, 64, 105, 0.28);
 }
-
-/* =========================================================
-   META HERO
-   ========================================================= */
 
 .landing-hero-meta {
     display: flex;
@@ -574,10 +534,6 @@
     height: 25px;
     background: rgba(255, 255, 255, 0.28);
 }
-
-/* =========================================================
-   MENSAJE HERO
-   ========================================================= */
 
 .landing-hero-message {
     align-self: flex-end;
@@ -746,19 +702,14 @@
 }
 
 /* =========================================================
-   EVENTS
+   SECTION HEADERS
    ========================================================= */
-
-.landing-events-section {
-    padding: 27px 0 38px;
-    background: #ffffff;
-}
 
 .landing-section-header {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
-    margin-bottom: 15px;
+    margin-bottom: 18px;
 }
 
 .landing-section-eyebrow {
@@ -798,159 +749,206 @@
     color: var(--landing-pink-dark);
 }
 
+/* =========================================================
+   EVENTOS
+   ESTILO POSTER / EXPERIENCIA
+   ========================================================= */
+
+.landing-events-section {
+    position: relative;
+    padding: 40px 0 50px;
+    overflow: hidden;
+    background:
+        radial-gradient(
+            circle at 8% 15%,
+            rgba(36, 158, 219, 0.06),
+            transparent 28%
+        ),
+        radial-gradient(
+            circle at 92% 80%,
+            rgba(217, 76, 154, 0.06),
+            transparent 28%
+        ),
+        #ffffff;
+}
+
 .landing-events-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
+    gap: 20px;
 }
 
 .landing-event-card {
+    position: relative;
+    min-height: 390px;
     overflow: hidden;
-    border: 1px solid #e2ebf3;
-    border-radius: 13px;
-    background: #ffffff;
+    border: 0;
+    border-radius: 20px;
+    background: #123d72;
     box-shadow:
-        0 5px 17px rgba(26, 87, 130, 0.07);
+        0 10px 25px rgba(18, 61, 114, 0.10);
+    isolation: isolate;
     transition:
-        transform 0.25s ease,
-        box-shadow 0.25s ease;
+        transform 0.35s ease,
+        box-shadow 0.35s ease;
 }
 
 .landing-event-card:hover {
-    transform: translateY(-4px);
+    transform: translateY(-8px);
     box-shadow:
-        0 12px 27px rgba(26, 87, 130, 0.13);
+        0 22px 42px rgba(18, 61, 114, 0.19);
 }
 
 .landing-event-image-wrapper {
-    position: relative;
-    height: 92px;
-    margin: 7px 7px 0;
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    margin: 0;
     overflow: hidden;
-    border-radius: 10px;
+    border-radius: 20px;
+    background: #123d72;
 }
 
 .landing-event-image {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.35s ease;
+    transition:
+        transform 0.65s cubic-bezier(.2,.7,.2,1),
+        filter 0.5s ease;
 }
 
 .landing-event-card:hover .landing-event-image {
-    transform: scale(1.04);
+    transform: scale(1.10);
+    filter: saturate(1.12);
+}
+
+.landing-event-image-wrapper::before {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    content: '';
+    background: linear-gradient(#123d7214 0% 28%, #123d7266 52%, #4295c8 100%);
+    transition:
+        background 0.45s ease;
+}
+
+.landing-event-card:hover .landing-event-image-wrapper::before {
+    background:
+        linear-gradient(
+            180deg,
+            rgba(36, 158, 219, 0.10) 0%,
+            rgba(23, 105, 168, 0.20) 25%,
+            rgba(103, 83, 183, 0.60) 57%,
+            rgba(217, 76, 154, 0.94) 100%
+        );
+}
+
+.landing-event-card:hover .landing-event-image-wrapper::after {
+    transform: scale(1.3);
+    opacity: 0.7;
 }
 
 .landing-event-badge {
     position: absolute;
-    top: 8px;
-    left: 9px;
+    top: 15px;
+    left: 15px;
+    z-index: 5;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 53px;
-    height: 30px;
-    padding: 0 12px;
-    border-radius: 9px;
-    color: #ffffff;
-    font-size: 12px;
+    min-width: 56px;
+    height: 29px;
+    padding: 0 13px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.93);
+    color: #1769a8;
+    font-size: 10px;
     font-weight: 800;
+    letter-spacing: 0.4px;
     box-shadow:
-        0 4px 10px rgba(0, 0, 0, 0.12);
+        0 6px 15px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(8px);
+    transition:
+        transform 0.35s ease,
+        background 0.35s ease,
+        color 0.35s ease;
 }
 
-.badge-blue {
-    background:
-        linear-gradient(
-            135deg,
-            #27a9ed,
-            #249edb
-        );
-}
-
-.badge-purple {
-    background:
-        linear-gradient(
-            135deg,
-            #7b63df,
-            #6753b7
-        );
-}
-
-.badge-pink {
-    background:
-        linear-gradient(
-            135deg,
-            #f25d9a,
-            #d94c9a
-        );
-}
-
-.badge-green {
-    background:
-        linear-gradient(
-            135deg,
-            #2acdb6,
-            #18b89a
-        );
+.landing-event-card:hover .landing-event-badge {
+    background: rgba(255, 255, 255, 0.96);
+    color: #d94c9a;
+    transform: translateY(-2px);
 }
 
 .landing-event-body {
-    padding: 10px 11px 11px;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 4;
+    padding: 24px 19px 18px;
+    color: #ffffff;
 }
 
 .landing-event-title {
-    min-height: 18px;
-    margin: 0 0 8px;
-    overflow: hidden;
-    color: #123d72;
-    font-size: 15px;
-    font-weight: 700;
-    line-height: 1.25;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    min-height: auto;
+    margin: 0 0 12px;
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1.12;
+    letter-spacing: -0.4px;
+    text-shadow:
+        0 2px 10px rgba(0, 0, 0, 0.18);
 }
 
 .landing-event-info {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 7px;
+    padding: 0;
+    border: 0;
 }
 
 .landing-event-info-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    color: #5d7798;
+    gap: 7px;
+    color: rgba(255, 255, 255, 0.90);
     font-size: 10px;
 }
 
 .landing-event-info-row svg {
     flex-shrink: 0;
-    color: #2867a0;
+    color: #ffffff;
 }
 
 .landing-event-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    margin-top: 11px;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.22);
 }
 
 .landing-event-price {
     display: flex;
     align-items: baseline;
     gap: 3px;
-    color: #123d72;
+    color: #ffffff;
 }
 
 .landing-event-price strong {
-    font-size: 16px;
+    font-size: 20px;
     font-weight: 800;
 }
 
 .landing-event-price span {
+    color: rgba(255, 255, 255, 0.70);
     font-size: 8px;
     font-weight: 700;
 }
@@ -960,31 +958,759 @@
     align-items: center;
     justify-content: center;
     gap: 5px;
-    min-height: 32px;
+    min-height: 34px;
     padding: 0 13px;
-    border-radius: 9px;
-    background:
-        linear-gradient(
-            115deg,
-            #249edb 0%,
-            #1769a8 48%,
-            #d95f91 100%
-        );
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.16);
     color: #ffffff !important;
     font-size: 10px;
     font-weight: 700;
     box-shadow:
-        0 5px 13px rgba(36, 158, 219, 0.16);
+        0 5px 14px rgba(0, 0, 0, 0.10);
+    backdrop-filter: blur(8px);
     transition:
-        transform 0.2s ease,
-        box-shadow 0.2s ease;
+        background 0.25s ease,
+        transform 0.25s ease,
+        color 0.25s ease;
 }
 
 .landing-event-button:hover {
-    transform: translateY(-1px);
-    color: #ffffff;
+    transform: translateY(-2px);
+    background: #ffffff;
+    color: #1769a8 !important;
+}
+
+/* =========================================================
+   CLUBES
+   FOTO COMPLETA + OVERLAY
+   ========================================================= */
+
+.landing-clubs-section {
+    position: relative;
+    padding: 48px 0 55px;
+    overflow: hidden;
+    background:
+        linear-gradient(
+            135deg,
+            #f4fbff 0%,
+            #ffffff 48%,
+            #fff4fa 100%
+        );
+}
+
+.landing-clubs-section::before {
+    position: absolute;
+    top: -150px;
+    right: -120px;
+    width: 360px;
+    height: 360px;
+    content: '';
+    border-radius: 50%;
+    background:
+        radial-gradient(
+            circle,
+            rgba(103, 83, 183, 0.10),
+            transparent 68%
+        );
+    pointer-events: none;
+}
+
+.landing-clubs-section::after {
+    position: absolute;
+    bottom: -180px;
+    left: -120px;
+    width: 380px;
+    height: 380px;
+    content: '';
+    border-radius: 50%;
+    background:
+        radial-gradient(
+            circle,
+            rgba(36, 158, 219, 0.10),
+            transparent 68%
+        );
+    pointer-events: none;
+}
+
+.landing-clubs-grid {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+.landing-club-card {
+    position: relative;
+    min-height: 340px;
+    overflow: hidden;
+    border: 0;
+    border-radius: 20px;
+    background: #123d72;
     box-shadow:
-        0 8px 17px rgba(36, 158, 219, 0.24);
+        0 10px 25px rgba(26, 72, 111, 0.10);
+    isolation: isolate;
+    cursor: pointer;
+    transition:
+        transform 0.35s ease,
+        box-shadow 0.35s ease;
+}
+
+.landing-club-card:hover {
+    transform: translateY(-9px);
+    box-shadow:
+        0 23px 43px rgba(103, 83, 183, 0.20);
+}
+
+.landing-club-image-wrapper {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    border-radius: 20px;
+    background: #123d72;
+}
+
+.landing-club-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition:
+        transform 0.7s cubic-bezier(.2,.7,.2,1),
+        filter 0.55s ease;
+}
+
+.landing-club-card:hover .landing-club-image {
+    transform: scale(1.10);
+    filter: saturate(1.12);
+}
+
+.landing-club-image-wrapper::before {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    content: '';
+    background:
+        linear-gradient(
+            180deg,
+            rgba(18, 61, 114, 0.04) 0%,
+            rgba(18, 61, 114, 0.10) 30%,
+            rgba(18, 61, 114, 0.62) 62%,
+            rgba(18, 61, 114, 0.97) 100%
+        );
+    transition:
+        background 0.45s ease;
+}
+
+.landing-club-card:hover .landing-club-image-wrapper::before {
+    background:
+        linear-gradient(
+            180deg,
+            rgba(36, 158, 219, 0.16) 0%,
+            rgba(23, 105, 168, 0.28) 25%,
+            rgba(103, 83, 183, 0.68) 58%,
+            rgba(217, 76, 154, 0.95) 100%
+        );
+}
+
+.landing-club-image-wrapper::after {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    content: '';
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    background:
+        linear-gradient(
+            135deg,
+            rgba(36, 158, 219, 0.05),
+            transparent 40%,
+            rgba(217, 76, 154, 0.18)
+        );
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+.landing-club-content {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 5;
+    padding: 22px 19px 18px;
+    color: #ffffff;
+    transform: translateY(39px);
+    transition:
+        transform 0.4s cubic-bezier(.2,.7,.2,1);
+}
+
+.landing-club-card:hover .landing-club-content {
+    transform: translateY(0);
+}
+
+.landing-club-title {
+    margin: 0 0 8px;
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1.12;
+    letter-spacing: -0.4px;
+    text-shadow:
+        0 2px 10px rgba(0, 0, 0, 0.20);
+}
+
+.landing-club-location {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 9px;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.13);
+    color: rgba(255, 255, 255, 0.94);
+    font-size: 9px;
+    font-weight: 700;
+    backdrop-filter: blur(7px);
+}
+
+.landing-club-location svg {
+    color: #ffffff;
+}
+
+.landing-club-description {
+    min-height: 0;
+    max-height: 0;
+    margin: 0;
+    overflow: hidden;
+    color: rgba(255, 255, 255, 0.86);
+    font-size: 10px;
+    line-height: 1.5;
+    opacity: 0;
+    transform: translateY(8px);
+    transition:
+        max-height 0.4s ease,
+        margin 0.4s ease,
+        opacity 0.35s ease,
+        transform 0.35s ease;
+}
+
+.landing-club-card:hover .landing-club-description {
+    max-height: 60px;
+    margin: 10px 0 12px;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.landing-club-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 0 14px;
+    border: 1px solid rgba(255, 255, 255, 0.30);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff !important;
+    font-size: 10px;
+    font-weight: 700;
+    box-shadow:
+        0 5px 14px rgba(0, 0, 0, 0.10);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    transform: translateY(10px);
+    transition:
+        opacity 0.35s ease 0.05s,
+        transform 0.35s ease 0.05s,
+        background 0.25s ease,
+        color 0.25s ease;
+}
+
+.landing-club-card:hover .landing-club-button {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.landing-club-button:hover {
+    background: #ffffff;
+    color: #6753b7 !important;
+}
+
+/* =========================================================
+   TIENDA
+   ESTILO ESCAPARATE / SHOP PREMIUM
+   ========================================================= */
+
+.landing-shop-section {
+    position: relative;
+    padding: 58px 0 64px;
+    overflow: hidden;
+    background: #f8fafc;
+}
+
+.landing-shop-section::before {
+    position: absolute;
+    top: -180px;
+    left: -160px;
+    width: 430px;
+    height: 430px;
+    content: '';
+    border-radius: 50%;
+    background:
+        radial-gradient(
+            circle,
+            rgba(36, 158, 219, 0.10),
+            transparent 68%
+        );
+    pointer-events: none;
+}
+
+.landing-shop-section::after {
+    position: absolute;
+    right: -170px;
+    bottom: -200px;
+    width: 480px;
+    height: 480px;
+    content: '';
+    border-radius: 50%;
+    background:
+        radial-gradient(
+            circle,
+            rgba(217, 76, 154, 0.09),
+            transparent 68%
+        );
+    pointer-events: none;
+}
+
+.landing-shop-section .landing-container {
+    position: relative;
+    z-index: 2;
+}
+
+.landing-shop-section .landing-section-header {
+    align-items: center;
+    margin-bottom: 28px;
+}
+
+.landing-shop-section .landing-section-eyebrow {
+    color: #d94c9a;
+}
+
+.landing-shop-section .landing-section-title {
+    font-size: 30px;
+}
+
+.landing-shop-section .landing-section-subtitle {
+    max-width: 520px;
+}
+
+.landing-shop-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+
+/* =========================================================
+   PRODUCT CARD
+   ========================================================= */
+
+.landing-product-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #e3eaf1;
+    border-radius: 20px;
+    background: #ffffff;
+    box-shadow:
+        0 8px 24px rgba(26, 74, 110, 0.06);
+    transition:
+        transform 0.45s cubic-bezier(.2,.7,.2,1),
+        box-shadow 0.45s ease,
+        border-color 0.45s ease;
+}
+
+.landing-product-card:hover {
+    transform: translateY(-8px);
+    border-color: #d9e5ee;
+    box-shadow:
+        0 20px 38px rgba(26, 74, 110, 0.12);
+}
+
+
+/* =========================================================
+   OVERLAY HOVER
+   GRADIENTE SONRÍE CORRIENDO
+   ========================================================= */
+
+/* =========================================================
+   OVERLAY HOVER
+   GRADIENTE SONRÍE CORRIENDO
+   ========================================================= */
+
+.landing-product-card::after {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    content: '';
+    border-radius: inherit;
+    background:
+        linear-gradient(
+            135deg,
+            rgba(36, 158, 219, 0.22) 0%,
+            rgba(103, 83, 183, 0.18) 48%,
+            rgba(217, 76, 154, 0.24) 100%
+        );
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        opacity 0.45s ease;
+}
+
+.landing-product-card:hover::after {
+    opacity: 1;
+}
+
+
+/* =========================================================
+   BADGE
+   ========================================================= */
+.landing-product-card:hover::before {
+    background:
+        linear-gradient(
+            110deg,
+            #249edb,
+            #6753b7
+        );
+    color: #ffffff;
+    transform: translateY(-2px);
+}
+
+
+/* =========================================================
+   IMAGE WRAPPER
+   ========================================================= */
+
+.landing-product-image-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 230px;
+    overflow: hidden;
+    border-radius: 15px;
+    background:
+        linear-gradient(
+            145deg,
+            #edf8fd 0%,
+            #f8f4ff 52%,
+            #fff1f6 100%
+        );
+}
+
+
+/* =========================================================
+   DECORACIÓN DE FONDO
+   ========================================================= */
+
+.landing-product-image-wrapper::before {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 165px;
+    height: 165px;
+    content: '';
+    border-radius: 50%;
+    background:
+        linear-gradient(
+            135deg,
+            rgba(36, 158, 219, 0.16),
+            rgba(217, 76, 154, 0.16)
+        );
+    transform:
+        translate(-50%, -50%);
+    transition:
+        transform 0.55s cubic-bezier(.2,.7,.2,1),
+        opacity 0.45s ease;
+}
+
+.landing-product-card:hover
+.landing-product-image-wrapper::before {
+    transform:
+        translate(-50%, -50%)
+        scale(1.18);
+}
+
+.landing-product-image-wrapper::after {
+    position: absolute;
+    top: -80px;
+    right: -80px;
+    width: 170px;
+    height: 170px;
+    content: '';
+    border-radius: 50%;
+    background:
+        linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.85),
+            rgba(255, 255, 255, 0)
+        );
+    transition:
+        transform 0.55s ease;
+}
+
+.landing-product-card:hover
+.landing-product-image-wrapper::after {
+    transform:
+        translate(-15px, 15px);
+}
+
+
+/* =========================================================
+   IMAGEN COMPLETA DEL WRAPPER
+   ========================================================= */
+
+.landing-product-image {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    filter:
+        drop-shadow(
+            0 13px 15px rgba(22, 62, 97, 0.12)
+        );
+    transition:
+        transform 0.65s cubic-bezier(.2,.7,.2,1),
+        filter 0.55s ease;
+}
+
+.landing-product-card:hover
+.landing-product-image {
+    transform:
+        scale(1.06);
+    filter:
+        drop-shadow(
+            0 20px 22px rgba(22, 62, 97, 0.18)
+        );
+}
+
+
+/* =========================================================
+   CONTENT
+   ========================================================= */
+
+.landing-product-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 17px 16px 16px;
+}
+
+.landing-product-title {
+    min-height: 42px;
+    margin: 0 0 14px;
+    color: #123d72;
+    font-size: 14px;
+    font-weight: 750;
+    line-height: 1.4;
+}
+
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+.landing-product-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 13px;
+    border-top: 1px solid #edf1f5;
+}
+
+
+/* =========================================================
+   PRECIO
+   $599 MXN
+   ========================================================= */
+
+.landing-product-price {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    color: #d94c9a;
+}
+
+.landing-product-price strong {
+    font-size: 19px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.landing-product-price span {
+    color: #91a1b3;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+
+/* =========================================================
+   BOTÓN
+   ========================================================= */
+
+.landing-product-button {
+    position: relative;
+    z-index: 10;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 42px;
+    height: 38px;
+    padding: 0 13px;
+    border: 0;
+    border-radius: 11px;
+    background: #edf7fc;
+    color: #1769a8 !important;
+    font-size: 10px;
+    font-weight: 750;
+    transition:
+        background 0.35s ease,
+        color 0.35s ease,
+        transform 0.35s ease,
+        box-shadow 0.35s ease;
+}
+
+.landing-product-button:hover {
+    background:
+        linear-gradient(
+            115deg,
+            #249edb,
+            #1769a8,
+            #d95f91
+        );
+    color: #ffffff !important;
+    transform: translateY(-2px);
+    box-shadow:
+        0 8px 17px rgba(23, 105, 168, 0.20);
+}
+
+
+/* =========================================================
+   RESPONSIVE - 1100px
+   ========================================================= */
+
+@media (max-width: 1100px) {
+
+    .landing-shop-grid {
+        gap: 15px;
+    }
+
+    .landing-product-image-wrapper {
+        height: 215px;
+    }
+}
+
+
+/* =========================================================
+   RESPONSIVE - 900px
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+    .landing-shop-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+
+    .landing-product-image-wrapper {
+        height: 220px;
+    }
+}
+
+
+/* =========================================================
+   RESPONSIVE - 600px
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    .landing-shop-section {
+        padding: 42px 0 48px;
+    }
+
+    .landing-shop-section .landing-section-header {
+        margin-bottom: 20px;
+    }
+
+    .landing-shop-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .landing-product-image-wrapper {
+        height: 230px;
+        margin: 7px 7px 0;
+        border-radius: 14px;
+    }
+
+    .landing-product-content {
+        padding: 15px 14px 14px;
+    }
+
+    .landing-product-title {
+        min-height: auto;
+        margin-bottom: 12px;
+        font-size: 14px;
+    }
+
+    .landing-product-price strong {
+        font-size: 19px;
+    }
+
+    .landing-product-price span {
+        font-size: 9px;
+    }
+
+    .landing-product-button {
+        height: 36px;
+    }
+}
+
+
+/* =========================================================
+   RESPONSIVE - 400px
+   ========================================================= */
+
+@media (max-width: 400px) {
+
+    .landing-product-image-wrapper {
+        height: 215px;
+    }
+
+    .landing-product-title {
+        font-size: 13px;
+    }
+
+    .landing-product-price strong {
+        font-size: 18px;
+    }
+
+    .landing-product-card::before {
+        top: 13px;
+        left: 13px;
+    }
 }
 
 /* =========================================================
@@ -1176,23 +1902,6 @@
     line-height: 1.4;
 }
 
-.experience-decoration {
-    position: absolute;
-    right: -10px;
-    bottom: 28px;
-    width: 28px;
-    height: 105px;
-    border-radius: 30px;
-    background:
-        linear-gradient(
-            180deg,
-            #249edb,
-            #6753b7,
-            #d94c9a
-        );
-    transform: rotate(42deg);
-}
-
 /* =========================================================
    CTA
    ========================================================= */
@@ -1275,37 +1984,6 @@
 
 .landing-cta-message strong {
     color: #d94c9a;
-}
-
-.landing-cta-decoration {
-    position: absolute;
-    width: 22px;
-    height: 92px;
-    border-radius: 25px;
-    transform: rotate(42deg);
-}
-
-.cta-decoration-left {
-    bottom: -26px;
-    left: 30px;
-    background:
-        linear-gradient(
-            180deg,
-            #249edb,
-            #6753b7,
-            #d94c9a
-        );
-}
-
-.cta-decoration-right {
-    top: -25px;
-    right: 30px;
-    background:
-        linear-gradient(
-            180deg,
-            #d94c9a,
-            #249edb
-        );
 }
 
 /* =========================================================
@@ -1447,6 +2125,31 @@
         width: 190px;
         margin-left: 5px;
     }
+
+    .landing-events-grid,
+    .landing-clubs-grid {
+        gap: 15px;
+    }
+
+    .landing-event-card {
+        min-height: 365px;
+    }
+
+    .landing-club-card {
+        min-height: 320px;
+    }
+
+    .landing-shop-grid {
+        gap: 15px;
+    }
+
+    .landing-product-image-wrapper {
+        height: 205px;
+    }
+
+    .landing-product-content {
+        padding: 15px 14px;
+    }
 }
 
 /* =========================================================
@@ -1458,11 +2161,6 @@
         height: 64px;
     }
 
-    /*
-     * Ocultamos únicamente la navegación normal.
-     * Los botones desktop permanecen visibles en esta
-     * resolución hasta llegar al breakpoint de 600px.
-     */
     .landing-nav {
         display: none;
     }
@@ -1474,10 +2172,6 @@
     .landing-mobile-toggle {
         display: flex;
     }
-
-    /* =====================================================
-       MENÚ MÓVIL ABIERTO
-       ===================================================== */
 
     .landing-nav.landing-nav-open {
         position: absolute;
@@ -1504,9 +2198,6 @@
         display: none;
     }
 
-    /*
-     * Autenticación dentro del menú móvil.
-     */
     .landing-nav.landing-nav-open .landing-mobile-auth {
         display: flex;
         flex-direction: column;
@@ -1559,8 +2250,26 @@
         padding-top: 12px;
     }
 
-    .landing-events-grid {
+    .landing-events-grid,
+    .landing-clubs-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    .landing-event-card {
+        min-height: 365px;
+    }
+
+    .landing-club-card {
+        min-height: 325px;
+    }
+
+    .landing-shop-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+
+    .landing-product-image-wrapper {
+        height: 220px;
     }
 
     .landing-experience-grid {
@@ -1626,12 +2335,6 @@
         height: 34px;
     }
 
-    /*
-     * En móvil ocultamos los botones de autenticación
-     * del HEADER DESKTOP.
-     *
-     * Los botones reales están dentro del menú.
-     */
     .landing-header-actions .landing-btn {
         display: none;
     }
@@ -1641,9 +2344,9 @@
         height: 36px;
     }
 
-    /* =====================================================
+    /* -----------------------------------------------------
        HERO
-       ===================================================== */
+       ----------------------------------------------------- */
 
     .landing-hero {
         min-height: 500px;
@@ -1699,30 +2402,9 @@
         display: none;
     }
 
-    .landing-hero-decoration {
-        transform:
-            rotate(43deg)
-            scale(0.7);
-    }
-
-    .decoration-one {
-        top: 190px;
-        right: 11%;
-    }
-
-    .decoration-two {
-        top: 225px;
-        right: 2%;
-    }
-
-    .decoration-three {
-        right: -5px;
-        bottom: 25px;
-    }
-
-    /* =====================================================
+    /* -----------------------------------------------------
        BENEFITS
-       ===================================================== */
+       ----------------------------------------------------- */
 
     .landing-benefits-section {
         margin-top: 0;
@@ -1760,13 +2442,9 @@
         font-size: 10px;
     }
 
-    /* =====================================================
-       EVENTS
-       ===================================================== */
-
-    .landing-events-section {
-        padding-top: 30px;
-    }
+    /* -----------------------------------------------------
+       HEADERS
+       ----------------------------------------------------- */
 
     .landing-section-header {
         align-items: flex-start;
@@ -1787,50 +2465,146 @@
         white-space: nowrap;
     }
 
+    /* -----------------------------------------------------
+       EVENTOS
+       ----------------------------------------------------- */
+
+    .landing-events-section {
+        padding: 32px 0 42px;
+    }
+
     .landing-events-grid {
         grid-template-columns: 1fr;
-        gap: 13px;
+        gap: 14px;
     }
 
     .landing-event-card {
-        display: grid;
-        grid-template-columns: 145px 1fr;
-        min-height: 145px;
+        min-height: 350px;
+        border-radius: 18px;
     }
 
     .landing-event-image-wrapper {
-        height: 100%;
-        min-height: 145px;
-        margin:
-            7px
-            0
-            7px
-            7px;
+        border-radius: 18px;
     }
 
     .landing-event-body {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        padding: 12px 11px;
+        padding: 20px 17px 16px;
     }
 
     .landing-event-title {
-        margin-bottom: 5px;
-        white-space: normal;
+        font-size: 18px;
     }
 
-    .landing-event-footer {
-        margin-top: 8px;
+    .landing-event-card:hover {
+        transform: translateY(-4px);
     }
 
-    .landing-event-button {
+    /* -----------------------------------------------------
+       CLUBES
+       ----------------------------------------------------- */
+
+    .landing-clubs-section {
+        padding: 38px 0 44px;
+    }
+
+    .landing-clubs-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .landing-club-card {
+        min-height: 330px;
+        border-radius: 18px;
+    }
+
+    .landing-club-image-wrapper {
+        border-radius: 18px;
+    }
+
+    .landing-club-content {
+        padding: 20px 17px 17px;
+        transform: translateY(0);
+    }
+
+    .landing-club-description {
+        max-height: 60px;
+        margin: 9px 0 12px;
+        opacity: 1;
+        transform: none;
+    }
+
+    .landing-club-button {
+        opacity: 1;
+        transform: none;
+    }
+
+    /* -----------------------------------------------------
+       TIENDA
+       ----------------------------------------------------- */
+
+    .landing-shop-section {
+        padding: 42px 0 48px;
+    }
+
+    .landing-shop-section .landing-section-header {
+        margin-bottom: 20px;
+    }
+
+    .landing-shop-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .landing-product-card {
+        display: grid;
+        grid-template-columns: 145px 1fr;
+        min-height: 155px;
+    }
+
+    .landing-product-card::before {
+        top: 11px;
+        left: 155px;
+    }
+
+    .landing-product-image-wrapper {
+        height: auto;
+        min-height: 141px;
+        border-radius: 13px;
+    }
+
+    .landing-product-image {
+        width: 88%;
+        height: 88%;
+    }
+
+    .landing-product-content {
+        min-width: 0;
+        padding: 14px 13px 12px;
+    }
+
+    .landing-product-title {
+        min-height: auto;
+        margin-bottom: 10px;
+        font-size: 13px;
+    }
+
+    .landing-product-footer {
+        padding-top: 9px;
+    }
+
+    .landing-product-price strong {
+        font-size: 17px;
+    }
+
+    .landing-product-button {
+        min-width: 38px;
+        height: 35px;
         padding: 0 10px;
     }
 
-    /* =====================================================
+    /* -----------------------------------------------------
        EXPERIENCE
-       ===================================================== */
+       ----------------------------------------------------- */
 
     .landing-experience-section {
         padding: 50px 0;
@@ -1858,9 +2632,9 @@
         bottom: 0;
     }
 
-    /* =====================================================
+    /* -----------------------------------------------------
        CTA
-       ===================================================== */
+       ----------------------------------------------------- */
 
     .landing-cta-inner {
         display: grid;
@@ -1886,9 +2660,9 @@
         width: 100%;
     }
 
-    /* =====================================================
+    /* -----------------------------------------------------
        FOOTER
-       ===================================================== */
+       ----------------------------------------------------- */
 
     .landing-footer-main {
         flex-direction: column;
@@ -1944,14 +2718,44 @@
     }
 
     .landing-event-card {
+        min-height: 330px;
+    }
+
+    .landing-club-card {
+        min-height: 315px;
+    }
+
+    .landing-event-title,
+    .landing-club-title {
+        font-size: 17px;
+    }
+
+    .landing-product-card {
         grid-template-columns: 125px 1fr;
     }
 
-    .landing-event-image-wrapper {
-        min-height: 145px;
+    .landing-product-card::before {
+        left: 135px;
+        min-width: 50px;
+        height: 23px;
+        font-size: 7px;
     }
 
-    .landing-event-button {
+    .landing-product-image-wrapper {
+        min-height: 135px;
+    }
+
+    .landing-product-title {
+        font-size: 12px;
+    }
+
+    .landing-product-price strong {
+        font-size: 16px;
+    }
+
+    .landing-event-button,
+    .landing-product-button,
+    .landing-club-button {
         font-size: 9px;
     }
 
