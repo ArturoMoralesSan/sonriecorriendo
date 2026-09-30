@@ -24,14 +24,15 @@ class MercadoPagoController extends Controller
     {
 
             \Log::info('Mercado Pago Webhook recibido', [
-            'method' => $request->method(),
-            'path' => $request->path(),
-            'data_id' => $request->query('data.id'),
-            'type' => $request->input('type'),
-            'action' => $request->input('action'),
-            'has_signature' => $request->hasHeader('x-signature'),
-            'has_request_id' => $request->hasHeader('x-request-id'),
-        ]);
+                'method' => $request->method(),
+                'path' => $request->path(),
+                'query' => $request->query(),
+                'body' => $request->except([]),
+                'type' => $request->input('type'),
+                'action' => $request->input('action'),
+                'has_signature' => $request->hasHeader('x-signature'),
+                'has_request_id' => $request->hasHeader('x-request-id'),
+            ]);
         $xSignature = $request->header('x-signature');
         $xRequestId = $request->header('x-request-id');
         $dataId = $request->query('data.id');
