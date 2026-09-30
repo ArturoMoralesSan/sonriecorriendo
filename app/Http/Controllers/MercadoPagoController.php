@@ -18,13 +18,19 @@ use Throwable;
 class MercadoPagoController extends Controller
 {
     /**
-     * Recibe las notificaciones Webhook de Mercado Pago.
+     * Recibe y procesa las notificaciones Webhook de Mercado Pago.
      */
     public function webhook(Request $request): JsonResponse
     {
         $xSignature = $request->header('x-signature');
         $xRequestId = $request->header('x-request-id');
         $dataId = $request->query('data.id');
+
+        /*
+         * =========================================================
+         * 1. VALIDAR DATOS DEL WEBHOOK
+         * =========================================================
+         */
 
         if (
             empty($xSignature) ||
@@ -36,6 +42,12 @@ class MercadoPagoController extends Controller
             ], 400);
         }
 
+        /*
+         * =========================================================
+         * 2. OBTENER WEBHOOK SECRET
+         * =========================================================
+         */
+
         $secret = config(
             'services.mercadopago.webhook_secret'
         );
@@ -46,10 +58,12 @@ class MercadoPagoController extends Controller
             ], 500);
         }
 
-        /**
-         * Validamos que la notificación realmente
-         * provenga de Mercado Pago.
+        /*
+         * =========================================================
+         * 3. VALIDAR FIRMA DE MERCADO PAGO
+         * =========================================================
          */
+
         try {
             WebhookSignatureValidator::validate(
                 $xSignature,
@@ -63,10 +77,13 @@ class MercadoPagoController extends Controller
             ], 401);
         }
 
+        /*
+         * =========================================================
+         * 4. PROCESAR ORDER
+         * =========================================================
+         */
+
         try {
-            /**
-             * Configuramos el SDK con nuestro Access Token.
-             */
             $accessToken = config(
                 'services.mercadopago.access_token'
             );
@@ -81,10 +98,8 @@ class MercadoPagoController extends Controller
                 $accessToken
             );
 
-            /**
-             * Consultamos la Order directamente en Mercado Pago.
-             *
-             * data.id contiene el ID de la Order.
+            /*
+             * Consultamos directamente la Order.
              */
             $orderClient = new OrderClient();
 
@@ -92,30 +107,25 @@ class MercadoPagoController extends Controller
                 $dataId
             );
 
-            if (empty($order->id)) {
+            if (empty($order) || empty($order->id)) {
                 throw new RuntimeException(
                     'Mercado Pago no devolvió información de la Order.'
                 );
             }
 
-            /**
-             * Buscamos nuestra venta mediante
-             * mercadopago_order_id.
+            /*
+             * =====================================================
+             * 5. BUSCAR LA VENTA
+             * =====================================================
              */
+
             $sale = Sale::query()
                 ->where(
                     'mercadopago_order_id',
-                    $order->id
+                    (string) $order->id
                 )
                 ->first();
 
-            /**
-             * Puede existir una notificación de una Order
-             * que todavía no tengamos registrada.
-             *
-             * En ese caso respondemos 200 para que Mercado Pago
-             * no siga reintentando innecesariamente.
-             */
             if (! $sale) {
                 return response()->json([
                     'message' => 'Order recibida, pero no existe una Sale asociada.',
@@ -123,37 +133,141 @@ class MercadoPagoController extends Controller
                 ], 200);
             }
 
-            /**
-             * Obtenemos el estado actual de la Order.
+            /*
+             * =====================================================
+             * 6. VALIDAR ESTADO DE LA ORDER
+             * =====================================================
              */
-            $orderStatus = $order->status ?? null;
 
-            /**
-             * Si la Order todavía no está procesada,
-             * no modificamos nuestra venta.
-             */
+            $orderStatus = $order->status ?? null;
+            $orderStatusDetail = $order->status_detail ?? null;
+
             if ($orderStatus !== 'processed') {
                 return response()->json([
-                    'message' => 'Order recibida, pero todavía no está procesada.',
+                    'message' => 'La Order todavía no está procesada.',
                     'order_id' => $order->id,
                     'status' => $orderStatus,
+                    'status_detail' => $orderStatusDetail,
                 ], 200);
             }
 
-            /**
-             * La Order ya está procesada.
+            /*
+             * =====================================================
+             * 7. OBTENER PAYMENT
+             * =====================================================
              *
-             * Ahora actualizamos nuestra venta
-             * de forma atómica.
+             * La estructura ya fue comprobada directamente
+             * contra Mercado Pago:
+             *
+             * transactions
+             *   payments
+             *     0
              */
+
+            $payment = null;
+
+            if (
+                isset($order->transactions) &&
+                isset($order->transactions->payments)
+            ) {
+                $payments = $order->transactions->payments;
+
+                if (is_array($payments)) {
+                    $payment = $payments[0] ?? null;
+                } elseif (
+                    $payments instanceof \Traversable
+                ) {
+                    foreach ($payments as $paymentItem) {
+                        $payment = $paymentItem;
+                        break;
+                    }
+                } else {
+                    $payment = $payments[0] ?? null;
+                }
+            }
+
+            if (! $payment) {
+                throw new RuntimeException(
+                    'Mercado Pago no devolvió información del pago.'
+                );
+            }
+
+            /*
+             * =====================================================
+             * 8. DATOS DEL PAYMENT
+             * =====================================================
+             */
+
+            $paymentId = $payment->id ?? null;
+            $paymentStatus = $payment->status ?? null;
+            $paymentStatusDetail =
+                $payment->status_detail ?? null;
+            $paymentAmount = $payment->amount ?? null;
+
+            if (empty($paymentId)) {
+                throw new RuntimeException(
+                    'Mercado Pago no devolvió el ID del pago.'
+                );
+            }
+
+            /*
+             * =====================================================
+             * 9. VERIFICAR QUE EL PAGO ESTÉ ACREDITADO
+             * =====================================================
+             */
+
+            if (
+                $paymentStatus !== 'processed' ||
+                $paymentStatusDetail !== 'accredited'
+            ) {
+                return response()->json([
+                    'message' => 'El pago todavía no está acreditado.',
+                    'order_id' => $order->id,
+                    'payment_id' => $paymentId,
+                    'status' => $paymentStatus,
+                    'status_detail' => $paymentStatusDetail,
+                ], 200);
+            }
+
+            /*
+             * =====================================================
+             * 10. VALIDAR MONTO
+             * =====================================================
+             */
+
+            if ($paymentAmount === null) {
+                throw new RuntimeException(
+                    'Mercado Pago no devolvió el monto del pago.'
+                );
+            }
+
+            $paymentAmount = (float) $paymentAmount;
+            $saleTotal = (float) $sale->total;
+
+            if (
+                round($paymentAmount, 2) !==
+                round($saleTotal, 2)
+            ) {
+                throw new RuntimeException(
+                    "El monto del pago ({$paymentAmount}) " .
+                    "no coincide con el total de la venta ({$saleTotal})."
+                );
+            }
+
+            /*
+             * =====================================================
+             * 11. PROCESAR VENTA EN UNA TRANSACCIÓN
+             * =====================================================
+             */
+
             DB::transaction(function () use (
                 $sale,
-                $order
+                $paymentMethod = null,
+                $paymentId,
+                $paymentAmount
             ) {
-                /**
-                 * Volvemos a consultar la venta con bloqueo
-                 * para evitar que dos Webhooks simultáneos
-                 * procesen el mismo pago.
+                /*
+                 * Volvemos a consultar la venta con bloqueo.
                  */
                 $lockedSale = Sale::query()
                     ->whereKey($sale->id)
@@ -166,129 +280,114 @@ class MercadoPagoController extends Controller
                     );
                 }
 
-                /**
-                 * Si ya fue pagada, no hacemos nada.
+                /*
+                 * Si ya está pagada, no hacemos absolutamente nada.
                  *
-                 * Esto evita crear dos SalePayment
-                 * o descontar stock dos veces si Mercado Pago
-                 * reenvía el mismo Webhook.
+                 * Esto evita:
+                 * - segundo SalePayment
+                 * - segundo descuento de stock
                  */
                 if ($lockedSale->status === 'paid') {
                     return;
                 }
 
-                /**
-                 * Buscamos el método de pago de Mercado Pago.
-                 *
-                 * Debe existir en tu catálogo de métodos de pago
-                 * con code = mercadopago.
+                /*
+                 * =================================================
+                 * 12. MÉTODO DE PAGO
+                 * =================================================
                  */
+
                 $paymentMethod = PaymentMethod::query()
-                    ->where('code', 'mercadopago')
-                    ->where('is_active', true)
+                    ->where(
+                        'code',
+                        'mercadopago'
+                    )
+                    ->where(
+                        'is_active',
+                        true
+                    )
                     ->first();
 
                 if (! $paymentMethod) {
                     throw new RuntimeException(
-                        'No existe un método de pago activo con código "mercadopago".'
+                        'No existe un método de pago activo ' .
+                        'con código "mercadopago".'
                     );
                 }
 
-                /**
-                 * Obtenemos el primer pago registrado
-                 * dentro de la Order.
+                /*
+                 * =================================================
+                 * 13. EVITAR PAYMENT DUPLICADO
+                 * =================================================
                  */
-                $payment = data_get(
-                    $order,
-                    'transactions.payments.0'
-                );
 
-                if (! $payment) {
-                    throw new RuntimeException(
-                        'Mercado Pago no devolvió información del pago.'
-                    );
-                }
-
-                $paymentId = data_get(
-                    $payment,
-                    'id'
-                );
-
-                $paymentAmount = data_get(
-                    $payment,
-                    'amount'
-                );
-
-                $paymentStatus = data_get(
-                    $payment,
-                    'status'
-                );
-
-                /**
-                 * Si Mercado Pago no devuelve un ID de pago,
-                 * no podemos registrar SalePayment correctamente.
-                 */
-                if (empty($paymentId)) {
-                    throw new RuntimeException(
-                        'Mercado Pago no devolvió el ID del pago.'
-                    );
-                }
-
-                /**
-                 * Evitamos duplicar el SalePayment
-                 * si el Webhook se recibe más de una vez.
-                 */
                 $existingPayment = $lockedSale
                     ->payments()
                     ->where(
                         'reference',
                         (string) $paymentId
                     )
-                    ->exists();
+                    ->first();
 
                 if (! $existingPayment) {
                     $lockedSale->payments()->create([
-                        'payment_method_id' => $paymentMethod->id,
-                        'amount' => $paymentAmount !== null
-                            ? (float) $paymentAmount
-                            : (float) $lockedSale->total,
-                        'reference' => (string) $paymentId,
-                        'notes' => 'Pago confirmado por Mercado Pago.',
+                        'payment_method_id' =>
+                            $paymentMethod->id,
+
+                        'amount' =>
+                            $paymentAmount,
+
+                        'reference' =>
+                            (string) $paymentId,
+
+                        'notes' =>
+                            'Pago acreditado por Mercado Pago.',
                     ]);
                 }
 
-                /**
-                 * Cargamos los productos con bloqueo para
-                 * evitar descontar stock incorrectamente.
+                /*
+                 * =================================================
+                 * 14. CARGAR PRODUCTOS CON BLOQUEO
+                 * =================================================
                  */
+
                 $lockedSale->load([
                     'items' => function ($query) {
                         $query->with([
-                            'product' => function ($productQuery) {
+                            'product' => function (
+                                $productQuery
+                            ) {
                                 $productQuery->lockForUpdate();
                             },
                         ]);
                     },
                 ]);
 
-                /**
-                 * Descontamos el stock solamente una vez.
-                 *
-                 * Si la venta ya estuviera pagada, este bloque
-                 * no se ejecutaría porque salimos arriba.
+                /*
+                 * =================================================
+                 * 15. DESCONTAR STOCK
+                 * =================================================
                  */
+
                 foreach ($lockedSale->items as $item) {
                     $product = $item->product;
 
                     if (! $product) {
                         throw new RuntimeException(
-                            "El producto de la venta #{$lockedSale->id} ya no existe."
+                            "El producto de la venta " .
+                            "#{$lockedSale->id} ya no existe."
                         );
                     }
 
-                    if ($product->stock < $item->quantity) {
+                    if (
+                        $product->stock <
+                        $item->quantity
+                    ) {
                         throw new RuntimeException(
-                            "Stock insuficiente para el producto \"{$product->name}\"."
+                            "Stock insuficiente para " .
+                            "\"{$product->name}\". " .
+                            "Disponible: {$product->stock}. " .
+                            "Solicitado: {$item->quantity}."
                         );
                     }
 
@@ -298,33 +397,83 @@ class MercadoPagoController extends Controller
                     );
                 }
 
-                /**
-                 * Finalmente marcamos la venta como pagada.
+                /*
+                 * =================================================
+                 * 16. MARCAR VENTA COMO PAGADA
+                 * =================================================
                  */
+
                 $lockedSale->update([
                     'status' => 'paid',
                     'sold_at' => now(),
                 ]);
             });
 
+            /*
+             * =====================================================
+             * 17. RESPUESTA EXITOSA
+             * =====================================================
+             */
+
             return response()->json([
-                'message' => 'Webhook procesado correctamente.',
-                'order_id' => $order->id,
-                'status' => $orderStatus,
+                'message' =>
+                    'Webhook procesado correctamente.',
+
+                'order_id' =>
+                    $order->id,
+
+                'order_status' =>
+                    $orderStatus,
+
+                'order_status_detail' =>
+                    $orderStatusDetail,
+
+                'payment_id' =>
+                    $paymentId,
+
+                'payment_status' =>
+                    $paymentStatus,
+
+                'payment_status_detail' =>
+                    $paymentStatusDetail,
+
+                'payment_amount' =>
+                    $paymentAmount,
+
+                'sale_id' =>
+                    $sale->id,
+
+                'sale_status' =>
+                    'paid',
             ], 200);
+
         } catch (MPApiException $exception) {
+            $content = $exception
+                ->getApiResponse()
+                ->getContent();
+
             return response()->json([
-                'message' => 'Mercado Pago rechazó la consulta de la Order.',
-                'error' => $exception
-                    ->getApiResponse()
-                    ->getContent(),
+                'message' =>
+                    'Mercado Pago rechazó la consulta de la Order.',
+
+                'error' =>
+                    is_string($content)
+                        ? $content
+                        : json_encode(
+                            $content,
+                            JSON_UNESCAPED_UNICODE
+                        ),
             ], 500);
+
         } catch (Throwable $exception) {
             report($exception);
 
             return response()->json([
-                'message' => 'No fue posible procesar el Webhook.',
-                'error' => $exception->getMessage(),
+                'message' =>
+                    'No fue posible procesar el Webhook.',
+
+                'error' =>
+                    $exception->getMessage(),
             ], 500);
         }
     }
