@@ -23,19 +23,21 @@ class MercadoPagoController extends Controller
     public function webhook(Request $request): JsonResponse
     {
 
-            \Log::info('Mercado Pago Webhook recibido', [
-                'method' => $request->method(),
-                'path' => $request->path(),
-                'query' => $request->query(),
-                'body' => $request->except([]),
-                'type' => $request->input('type'),
-                'action' => $request->input('action'),
-                'has_signature' => $request->hasHeader('x-signature'),
-                'has_request_id' => $request->hasHeader('x-request-id'),
-            ]);
+        \Log::info('Mercado Pago Webhook recibido', [
+            'method' => $request->method(),
+            'path' => $request->path(),
+            'query' => $request->query(),
+            'body' => $request->except([]),
+            'type' => $request->input('type'),
+            'action' => $request->input('action'),
+            'has_signature' => $request->hasHeader('x-signature'),
+            'has_request_id' => $request->hasHeader('x-request-id'),
+        ]);
         $xSignature = $request->header('x-signature');
         $xRequestId = $request->header('x-request-id');
-        $dataId = $request->query('data.id');
+
+        $dataId = $request->query('data_id')
+            ?? data_get($request->input('data'), 'id');
 
         /*
          * =========================================================
