@@ -12,6 +12,9 @@ use App\Http\Controllers\Admin\SponsorRaceController;
 use App\Http\Controllers\Admin\RaceExpenseController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\RaceGalleryController;
+use App\Http\Controllers\Admin\ClubController;
+use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\SaleController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -282,7 +285,45 @@ Route::middleware(['auth', 'verified'])
                     'destroy' => 'permission:races.edit',
                 ]);
 
+        Route::resource('clubs', ClubController::class)
+            ->middleware([
+                'index' => 'permission:clubs.view',
+                'create' => 'permission:clubs.create',
+                'store' => 'permission:clubs.create',
+                'edit' => 'permission:clubs.edit',
+                'update' => 'permission:clubs.edit',
+                'destroy' => 'permission:clubs.delete',
+            ]);
 
+        
+        
+
+        Route::resource('products', ProductController::class)
+            ->middleware([
+                'index'   => 'permission:products.view',
+                'create'  => 'permission:products.create',
+                'store'   => 'permission:products.create',
+                'show'    => 'permission:products.view',
+                'edit'    => 'permission:products.edit',
+                'update'  => 'permission:products.edit',
+                'destroy' => 'permission:products.delete',
+            ]);
+
+        Route::post(
+            'sales/customer-by-qr',
+            [SaleController::class, 'customerByQr']
+        )->name('sales.customer-by-qr');
+
+        Route::resource('sales', SaleController::class)
+        ->middleware([
+            'index' => 'permission:sales.view',
+            'create' => 'permission:sales.create',
+            'store' => 'permission:sales.create',
+            'show' => 'permission:sales.view',
+            'edit' => 'permission:sales.edit',
+            'update' => 'permission:sales.edit',
+            'destroy' => 'permission:sales.delete',
+        ]);
     });
 
 require __DIR__.'/settings.php';

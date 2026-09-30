@@ -9,6 +9,8 @@ const { breadcrumbs = [] } = defineProps<{
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
-        <slot />
+        <div class="print-layout-content">
+            <slot />
+        </div>
     </AppLayout>
 </template>

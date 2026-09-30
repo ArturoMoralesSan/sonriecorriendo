@@ -69,7 +69,10 @@ class User extends Authenticatable implements PasskeyUser
         return $this->hasOne(Profile::class);
     }
 
-    
+    public function sales(): HasMany
+    {
+        return $this->hasMany(Sale::class, 'customer_id');
+    }
 
     
 }

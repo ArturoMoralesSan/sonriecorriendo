@@ -3,28 +3,16 @@ import { Link, usePage } from '@inertiajs/vue3';
 
 import {
     BadgeCheck,
-    BookOpen,
+    BriefcaseBusiness,
     CalendarDays,
-    CirclePlus,
     CreditCard,
-    FolderGit2,
-    Gift,
-    Heart,
-    History,
-    KeyRound,
     LayoutDashboard,
     LayoutGrid,
-    Map,
-    MapPin,
-    PawPrint,
-    Receipt,
-    Route,
-    Settings,
     Shield,
+    ShoppingCart,
+    Store,
     Tag,
-    Tags,
     Ticket,
-    TicketCheck,
     Trophy,
     Users,
 } from '@lucide/vue';
@@ -44,7 +32,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 
-import admin from "@/routes/admin";
+import admin from '@/routes/admin';
 import type { NavItem } from '@/types';
 
 interface MenuLink {
@@ -75,28 +63,16 @@ const menus = page.props.menus as Menu[];
 
 const icons = {
     BadgeCheck,
-    BookOpen,
+    BriefcaseBusiness,
     CalendarDays,
-    CirclePlus,
     CreditCard,
-    FolderGit2,
-    Gift,
-    Heart,
-    History,
-    KeyRound,
     LayoutDashboard,
     LayoutGrid,
-    Map,
-    MapPin,
-    PawPrint,
-    Receipt,
-    Route,
-    Settings,
     Shield,
+    ShoppingCart,
+    Store,
     Tag,
-    Tags,
     Ticket,
-    TicketCheck,
     Trophy,
     Users,
 };
@@ -137,7 +113,6 @@ const footerNavItems: NavItem[] = [];
 
 <template>
     <Sidebar collapsible="icon" variant="inset">
-
         <SidebarHeader>
             <SidebarMenu>
                 <SidebarMenuItem>
@@ -162,7 +137,6 @@ const footerNavItems: NavItem[] = [];
 
             <NavUser />
         </SidebarFooter>
-
     </Sidebar>
 
     <slot />

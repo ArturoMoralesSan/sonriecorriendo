@@ -18,7 +18,7 @@ class MenuSeeder extends Seeder
         */
 
         Menu::updateOrCreate(
-            ['name' => 'Dashboard'],
+            ['name' => 'Panel de administración'],
             [
                 'icon' => 'LayoutDashboard',
                 'order' => 1,
@@ -79,14 +79,14 @@ class MenuSeeder extends Seeder
 
         /*
         |--------------------------------------------------------------------------
-        | Venta
+        | Clubes
         |--------------------------------------------------------------------------
         */
 
-        $ticketOffice = Menu::updateOrCreate(
-            ['name' => 'Venta'],
+        $clubs = Menu::updateOrCreate(
+            ['name' => 'Clubes'],
             [
-                'icon' => 'Ticket',
+                'icon' => 'UsersRound',
                 'order' => 4,
                 'route' => null,
                 'is_submenu' => true,
@@ -94,10 +94,53 @@ class MenuSeeder extends Seeder
         );
 
         $this->link(
-            $ticketOffice,
+            $clubs,
+            'Listado de clubes',
+            'UsersRound',
+            1,
+            'admin.clubs.index',
+            'clubs.view'
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Venta
+        |--------------------------------------------------------------------------
+        */
+
+        $sales = Menu::updateOrCreate(
+            ['name' => 'Venta'],
+            [
+                'icon' => 'ShoppingCart',
+                'order' => 5,
+                'route' => null,
+                'is_submenu' => true,
+            ]
+        );
+
+        $this->link(
+            $sales,
+            'Ventas',
+            'Receipt',
+            1,
+            'admin.sales.index',
+            'sales.view'
+        );
+
+        $this->link(
+            $sales,
+            'Productos',
+            'Package',
+            2,
+            'admin.products.index',
+            'products.view'
+        );
+
+        $this->link(
+            $sales,
             'Métodos de pago',
             'CreditCard',
-            1,
+            3,
             'admin.payment-methods.index',
             'payment-methods.view'
         );
@@ -112,7 +155,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Administración'],
             [
                 'icon' => 'Settings',
-                'order' => 5,
+                'order' => 6,
                 'route' => null,
                 'is_submenu' => true,
             ]

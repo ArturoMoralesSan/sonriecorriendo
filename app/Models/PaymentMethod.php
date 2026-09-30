@@ -25,4 +25,9 @@ class PaymentMethod extends Model
             'sort_order' => 'integer',
         ];
     }
+
+    public function salePayments(): HasMany
+    {
+        return $this->hasMany(SalePayment::class);
+    }
 }

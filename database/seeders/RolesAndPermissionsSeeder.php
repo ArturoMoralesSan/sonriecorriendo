@@ -47,44 +47,112 @@ class RolesAndPermissionsSeeder extends Seeder
         */
 
         $permissions = [
-            // Dashboard
+            /*
+            |--------------------------------------------------------------------------
+            | Dashboard
+            |--------------------------------------------------------------------------
+            */
+
             'dashboard.view',
 
-            // Usuarios
+            /*
+            |--------------------------------------------------------------------------
+            | Usuarios
+            |--------------------------------------------------------------------------
+            */
+
             'users.view',
             'users.create',
             'users.edit',
             'users.delete',
 
-            // Roles
+            /*
+            |--------------------------------------------------------------------------
+            | Roles
+            |--------------------------------------------------------------------------
+            */
+
             'roles.view',
             'roles.create',
             'roles.edit',
             'roles.delete',
 
-            // Permisos
+            /*
+            |--------------------------------------------------------------------------
+            | Permisos
+            |--------------------------------------------------------------------------
+            */
+
             'permissions.view',
             'permissions.create',
             'permissions.edit',
             'permissions.delete',
 
-            // Métodos de pago
+            /*
+            |--------------------------------------------------------------------------
+            | Métodos de pago
+            |--------------------------------------------------------------------------
+            */
+
             'payment-methods.view',
             'payment-methods.create',
             'payment-methods.edit',
             'payment-methods.delete',
 
-            // Carreras
+            /*
+            |--------------------------------------------------------------------------
+            | Carreras
+            |--------------------------------------------------------------------------
+            */
+
             'races.view',
             'races.create',
             'races.edit',
             'races.delete',
 
-            // Patrocinadores
+            /*
+            |--------------------------------------------------------------------------
+            | Patrocinadores
+            |--------------------------------------------------------------------------
+            */
+
             'sponsors.view',
             'sponsors.create',
             'sponsors.edit',
             'sponsors.delete',
+
+            /*
+            |--------------------------------------------------------------------------
+            | Clubes
+            |--------------------------------------------------------------------------
+            */
+
+            'clubs.view',
+            'clubs.create',
+            'clubs.edit',
+            'clubs.delete',
+
+            /*
+            |--------------------------------------------------------------------------
+            | Productos
+            |--------------------------------------------------------------------------
+            */
+
+            'products.view',
+            'products.create',
+            'products.edit',
+            'products.delete',
+
+            /*
+            |--------------------------------------------------------------------------
+            | Ventas
+            |--------------------------------------------------------------------------
+            */
+
+            'sales.view',
+            'sales.create',
+            'sales.edit',
+            'sales.delete',
         ];
 
         /*
@@ -127,26 +195,64 @@ class RolesAndPermissionsSeeder extends Seeder
         | Staff
         |--------------------------------------------------------------------------
         |
-        | Puede consultar y operar carreras, checklist, egresos
-        | y patrocinadores.
+        | Puede consultar y operar carreras, checklist, egresos,
+        | patrocinadores, clubes, productos y ventas.
         |
-        | Checklist y egresos utilizan races.view y races.edit.
-        | Las operaciones de patrocinadores utilizan sponsors.view
-        | y sponsors.edit.
+        | Checklist, egresos y galería utilizan:
+        | races.view / races.edit.
+        |
+        | Operaciones de patrocinadores utilizan:
+        | sponsors.view / sponsors.edit.
         |
         */
 
         $staffPermissions = [
-            // Consultar dashboard
+            /*
+            | Dashboard
+            */
+
             'dashboard.view',
 
-            // Carreras y operaciones relacionadas
+            /*
+            | Carreras y operaciones relacionadas
+            */
+
             'races.view',
             'races.edit',
 
-            // Patrocinadores y operaciones relacionadas
+            /*
+            | Patrocinadores y operaciones relacionadas
+            */
+
             'sponsors.view',
             'sponsors.edit',
+
+            /*
+            | Clubes
+            */
+
+            'clubs.view',
+            'clubs.create',
+            'clubs.edit',
+            'clubs.delete',
+
+            /*
+            | Productos
+            */
+
+            'products.view',
+            'products.create',
+            'products.edit',
+            'products.delete',
+
+            /*
+            | Ventas
+            */
+
+            'sales.view',
+            'sales.create',
+            'sales.edit',
+            'sales.delete',
         ];
 
         $staff->syncPermissions($staffPermissions);
@@ -162,7 +268,12 @@ class RolesAndPermissionsSeeder extends Seeder
 
         $visitor->syncPermissions([]);
 
-        // Limpiar caché nuevamente
+        /*
+        |--------------------------------------------------------------------------
+        | Limpiar caché nuevamente
+        |--------------------------------------------------------------------------
+        */
+
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
     }
 }
