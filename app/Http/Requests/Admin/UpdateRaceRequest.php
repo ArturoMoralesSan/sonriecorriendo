@@ -363,46 +363,28 @@ class UpdateRaceRequest extends FormRequest
             'event_date.required' => 'La fecha de la carrera es obligatoria.',
             'end_time.after' => 'La hora de finalización debe ser posterior a la hora de inicio.',
             'country.required' => 'El país es obligatorio.',
-            'registration_closes_at.after_or_equal' =>
-                'El cierre de registros debe ser posterior o igual a la apertura.',
+            'registration_closes_at.after_or_equal' => 'El cierre de registros debe ser posterior o igual a la apertura.',
             'status.required' => 'El estado es obligatorio.',
             'status.in' => 'El estado seleccionado no es válido.',
             'distances.required' => 'Debe existir al menos una distancia.',
             'distances.min' => 'Debe existir al menos una distancia.',
-            'distances.*.name.required' =>
-                'El nombre de la distancia es obligatorio.',
-            'distances.*.distance.required' =>
-                'La distancia es obligatoria.',
-            'distances.*.distance.numeric' =>
-                'La distancia debe ser un número.',
-            'distances.*.unit.required' =>
-                'La unidad de la distancia es obligatoria.',
-            'distances.*.unit.in' =>
-                'La unidad de la distancia debe ser km o m.',
-            'distances.*.prices.required' =>
-                'Cada distancia debe tener al menos un precio.',
-            'distances.*.prices.min' =>
-                'Cada distancia debe tener al menos un precio.',
-            'distances.*.prices.*.name.required' =>
-                'El nombre del precio es obligatorio.',
-            'distances.*.prices.*.price.required' =>
-                'El precio es obligatorio.',
-            'distances.*.prices.*.price.numeric' =>
-                'El precio debe ser un número.',
-            'distances.*.inclusions.*.name.required' =>
-                'El nombre de la inclusión es obligatorio.',
-            'distances.*.inclusions.*.type.required' =>
-                'El tipo de inclusión es obligatorio.',
-            'distances.*.categories.required' =>
-                'Cada distancia debe tener al menos una categoría.',
-            'distances.*.categories.min' =>
-                'Cada distancia debe tener al menos una categoría.',
-            'distances.*.categories.*.name.required' =>
-                'El nombre de la categoría es obligatorio.',
-            'distances.*.categories.*.gender.required' =>
-                'El género de la categoría es obligatorio.',
-            'distances.*.categories.*.gender.in' =>
-                'El género seleccionado no es válido.',
+            'distances.*.name.required' => 'El nombre de la distancia es obligatorio.',
+            'distances.*.distance.required' => 'La distancia es obligatoria.',
+            'distances.*.distance.numeric' => 'La distancia debe ser un número.',
+            'distances.*.unit.required' => 'La unidad de la distancia es obligatoria.',
+            'distances.*.unit.in' => 'La unidad de la distancia debe ser km o m.',
+            'distances.*.prices.required' => 'Cada distancia debe tener al menos un precio.',
+            'distances.*.prices.min' => 'Cada distancia debe tener al menos un precio.',
+            'distances.*.prices.*.name.required' => 'El nombre del precio es obligatorio.',
+            'distances.*.prices.*.price.required' => 'El precio es obligatorio.',
+            'distances.*.prices.*.price.numeric' => 'El precio debe ser un número.',
+            'distances.*.inclusions.*.name.required' => 'El nombre de la inclusión es obligatorio.',
+            'distances.*.inclusions.*.type.required' => 'El tipo de inclusión es obligatorio.',
+            'distances.*.categories.required' => 'Cada distancia debe tener al menos una categoría.',
+            'distances.*.categories.min' => 'Cada distancia debe tener al menos una categoría.',
+            'distances.*.categories.*.name.required' => 'El nombre de la categoría es obligatorio.',
+            'distances.*.categories.*.gender.required' => 'El género de la categoría es obligatorio.',
+            'distances.*.categories.*.gender.in' => 'El género seleccionado no es válido.',
         ];
     }
 }

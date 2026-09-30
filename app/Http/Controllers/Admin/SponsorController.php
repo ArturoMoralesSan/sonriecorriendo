@@ -69,8 +69,8 @@ class SponsorController extends Controller
 
         if ($logo && $logo->isValid()) {
             $filename = uniqid('', true)
-                . '.'
-                . $logo->getClientOriginalExtension();
+                .'.'
+                .$logo->getClientOriginalExtension();
 
             $directory = storage_path(
                 'app/public/sponsors'
@@ -94,7 +94,7 @@ class SponsorController extends Controller
              * el disco public.
              */
             $data['logo'] =
-                'sponsors/' . $filename;
+                'sponsors/'.$filename;
         } else {
             $data['logo'] = null;
         }
@@ -195,8 +195,8 @@ class SponsorController extends Controller
             }
 
             $filename = uniqid('', true)
-                . '.'
-                . $logo->getClientOriginalExtension();
+                .'.'
+                .$logo->getClientOriginalExtension();
 
             $directory = storage_path(
                 'app/public/sponsors'
@@ -220,7 +220,7 @@ class SponsorController extends Controller
              * solamente el nombre/ruta del archivo.
              */
             $data['logo'] =
-                'sponsors/' . $filename;
+                'sponsors/'.$filename;
         }
 
         /*

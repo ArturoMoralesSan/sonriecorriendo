@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3'
-import VueApexCharts from 'vue3-apexcharts'
-
 import {
     ArrowUpRight,
     CalendarDays,
@@ -13,6 +11,8 @@ import {
     TrendingUp,
     Users,
 } from 'lucide-vue-next'
+import VueApexCharts from 'vue3-apexcharts'
+
 
 import admin from '@/routes/admin'
 

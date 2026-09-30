@@ -71,8 +71,8 @@ class ProductController extends Controller
             $image = $request->file('image');
 
             $filename =
-                uniqid() .
-                '.' .
+                uniqid().
+                '.'.
                 $image->getClientOriginalExtension();
 
             $image->move($directory, $filename);
@@ -113,7 +113,7 @@ class ProductController extends Controller
                 'nullable',
                 'string',
                 'max:255',
-                'unique:products,slug,' . $product->id,
+                'unique:products,slug,'.$product->id,
             ],
             'description' => ['nullable', 'string'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
@@ -130,7 +130,7 @@ class ProductController extends Controller
         }
 
         if ($request->boolean('remove_image') && $product->image) {
-            $path = storage_path('app/public/' . $product->image);
+            $path = storage_path('app/public/'.$product->image);
 
             if (is_file($path)) {
                 unlink($path);
@@ -141,7 +141,7 @@ class ProductController extends Controller
 
         if ($request->hasFile('image')) {
             if ($product->image) {
-                $oldPath = storage_path('app/public/' . $product->image);
+                $oldPath = storage_path('app/public/'.$product->image);
 
                 if (is_file($oldPath)) {
                     unlink($oldPath);
@@ -157,8 +157,8 @@ class ProductController extends Controller
             $image = $request->file('image');
 
             $filename =
-                uniqid() .
-                '.' .
+                uniqid().
+                '.'.
                 $image->getClientOriginalExtension();
 
             $image->move($directory, $filename);
@@ -184,7 +184,7 @@ class ProductController extends Controller
     public function destroy(Product $product): RedirectResponse
     {
         if ($product->image) {
-            $imagePath = storage_path('app/public/' . $product->image);
+            $imagePath = storage_path('app/public/'.$product->image);
 
             if (is_file($imagePath)) {
                 unlink($imagePath);

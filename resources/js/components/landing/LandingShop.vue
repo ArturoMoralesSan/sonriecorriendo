@@ -1,43 +1,60 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
 import {
     ArrowRight,
     ShoppingCart,
 } from 'lucide-vue-next';
 
-const products = [
-    {
-        id: 1,
-        name: 'Playera Sonríe Corriendo',
-        price: '$450',
-        image:
-            'https://images.pexels.com/photos/6311387/pexels-photo-6311387.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    },
-    {
-        id: 2,
-        name: 'Gorra oficial',
-        price: '$280',
-        image:
-            'https://images.pexels.com/photos/1124465/pexels-photo-1124465.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    },
-    {
-        id: 3,
-        name: 'Termo Sonríe Corriendo',
-        price: '$320',
-        image:
-            'https://images.pexels.com/photos/1346155/pexels-photo-1346155.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    },
-    {
-        id: 4,
-        name: 'Kit corredor',
-        price: '$650',
-        image:
-            'https://images.pexels.com/photos/3763877/pexels-photo-3763877.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    },
-];
+interface Product {
+    id: number;
+    name: string;
+    slug: string;
+    description: string | null;
+    image: string | null;
+    type: string | null;
+    year: number | null;
+    price: number | string;
+    stock: number;
+    is_active: boolean;
+}
+
+const props = defineProps<{
+    products: Product[];
+    showAllLink?: boolean;
+}>();
+
+const getImageUrl = (image: string | null): string => {
+    if (!image) {
+        return 'https://images.pexels.com/photos/6311387/pexels-photo-6311387.jpeg?auto=compress&cs=tinysrgb&w=1200';
+    }
+
+    if (
+        image.startsWith('http://') ||
+        image.startsWith('https://')
+    ) {
+        return image;
+    }
+
+    return `/storage/${image}`;
+};
+
+const formatPrice = (price: number | string): string => {
+    const value = Number(price);
+
+    if (Number.isNaN(value)) {
+        return 'Consultar';
+    }
+
+    return `$${value.toLocaleString('es-MX', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+    })}`;
+};
 </script>
 
 <template>
     <section
+        v-if="props.products.length"
         id="tienda"
         class="landing-shop-section"
     >
@@ -57,8 +74,9 @@ const products = [
                     </p>
                 </div>
 
-                <a
-                    href="#tienda"
+                <Link
+                    v-if="props.showAllLink"
+                    href="/tienda"
                     class="landing-see-all"
                 >
                     Ver productos
@@ -67,36 +85,47 @@ const products = [
                         :size="17"
                         :stroke-width="2"
                     />
-                </a>
+                </Link>
             </div>
 
             <div class="landing-shop-grid">
                 <article
-                    v-for="product in products"
+                    v-for="product in props.products"
                     :key="product.id"
                     class="landing-product-card"
                 >
-                    <div class="landing-product-image-wrapper">
+                    <Link
+                        :href="`/productos/${product.slug}`"
+                        class="landing-product-image-wrapper"
+                    >
                         <img
-                            :src="product.image"
+                            :src="getImageUrl(product.image)"
                             :alt="product.name"
                             class="landing-product-image"
                         />
-                    </div>
+                    </Link>
 
                     <div class="landing-product-content">
-                        <h3 class="landing-product-title">
-                            {{ product.name }}
-                        </h3>
+                        <Link
+                            :href="`/productos/${product.slug}`"
+                            class="landing-product-title-link"
+                        >
+                            <h3 class="landing-product-title">
+                                {{ product.name }}
+                            </h3>
+                        </Link>
 
                         <div class="landing-product-footer">
                             <div class="landing-product-price">
-                                <strong>{{ product.price }}</strong>
+                                <strong>
+                                    {{ formatPrice(product.price) }}
+                                </strong>
+
                                 <span>MXN</span>
                             </div>
 
-                            <a
-                                href="#"
+                            <Link
+                                :href="`/productos/${product.slug}`"
                                 class="landing-product-button"
                             >
                                 <ShoppingCart
@@ -105,7 +134,7 @@ const products = [
                                 />
 
                                 Comprar
-                            </a>
+                            </Link>
                         </div>
                     </div>
                 </article>

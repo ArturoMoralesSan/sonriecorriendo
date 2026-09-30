@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -13,8 +12,8 @@ use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
-use Spatie\Permission\Traits\HasRoles;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 #[Hidden([
     'password',
@@ -25,11 +24,11 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable implements PasskeyUser
 {
     use HasApiTokens,
-    HasFactory,
-    HasRoles,
-    Notifiable,
-    PasskeyAuthenticatable,
-    TwoFactorAuthenticatable;
+        HasFactory,
+        HasRoles,
+        Notifiable,
+        PasskeyAuthenticatable,
+        TwoFactorAuthenticatable;
 
     protected $fillable = [
         'username',
@@ -62,8 +61,6 @@ class User extends Authenticatable implements PasskeyUser
         });
     }
 
-    
-
     public function profile(): HasOne
     {
         return $this->hasOne(Profile::class);
@@ -73,6 +70,4 @@ class User extends Authenticatable implements PasskeyUser
     {
         return $this->hasMany(Sale::class, 'customer_id');
     }
-
-    
 }

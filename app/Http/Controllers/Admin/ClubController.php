@@ -140,8 +140,8 @@ class ClubController extends Controller
             $logo = $request->file('logo');
 
             $filename =
-                uniqid() .
-                '.' .
+                uniqid().
+                '.'.
                 $logo->getClientOriginalExtension();
 
             $logo->move(
@@ -207,7 +207,7 @@ class ClubController extends Controller
                 'nullable',
                 'string',
                 'max:255',
-                'unique:clubs,slug,' . $club->id,
+                'unique:clubs,slug,'.$club->id,
             ],
             'description' => [
                 'nullable',
@@ -275,7 +275,7 @@ class ClubController extends Controller
             $club->logo
         ) {
             $path = storage_path(
-                'app/public/' . $club->logo
+                'app/public/'.$club->logo
             );
 
             if (is_file($path)) {
@@ -300,7 +300,7 @@ class ClubController extends Controller
 
             if ($club->logo) {
                 $oldPath = storage_path(
-                    'app/public/' . $club->logo
+                    'app/public/'.$club->logo
                 );
 
                 if (is_file($oldPath)) {
@@ -335,8 +335,8 @@ class ClubController extends Controller
             $logo = $request->file('logo');
 
             $filename =
-                uniqid() .
-                '.' .
+                uniqid().
+                '.'.
                 $logo->getClientOriginalExtension();
 
             $logo->move(
@@ -395,7 +395,7 @@ class ClubController extends Controller
 
         if ($club->logo) {
             $logoPath = storage_path(
-                'app/public/' . $club->logo
+                'app/public/'.$club->logo
             );
 
             if (is_file($logoPath)) {

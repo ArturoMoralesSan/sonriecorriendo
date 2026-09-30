@@ -30,4 +30,3 @@ class RaceGallery extends Model
         return $this->belongsTo(Race::class);
     }
 }
-

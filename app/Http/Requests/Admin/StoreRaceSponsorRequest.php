@@ -62,23 +62,17 @@ class StoreRaceSponsorRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'race_id.required' =>
-                'La carrera es obligatoria.',
+            'race_id.required' => 'La carrera es obligatoria.',
 
-            'race_id.exists' =>
-                'La carrera seleccionada no existe.',
+            'race_id.exists' => 'La carrera seleccionada no existe.',
 
-            'type.required' =>
-                'El tipo de patrocinio es obligatorio.',
+            'type.required' => 'El tipo de patrocinio es obligatorio.',
 
-            'amount.required' =>
-                'El monto acordado es obligatorio.',
+            'amount.required' => 'El monto acordado es obligatorio.',
 
-            'amount.numeric' =>
-                'El monto acordado debe ser numérico.',
+            'amount.numeric' => 'El monto acordado debe ser numérico.',
 
-            'amount.min' =>
-                'El monto acordado no puede ser negativo.',
+            'amount.min' => 'El monto acordado no puede ser negativo.',
         ];
     }
 

@@ -4,8 +4,6 @@ namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-use Illuminate\Validation\Rule;
-
 class StoreRaceRequest extends FormRequest
 {
     /**
@@ -310,8 +308,7 @@ class StoreRaceRequest extends FormRequest
             'event_date.required' => 'La fecha de la carrera es obligatoria.',
             'end_time.after' => 'La hora de finalización debe ser posterior a la hora de inicio.',
             'country.required' => 'El país es obligatorio.',
-            'registration_closes_at.after_or_equal' =>
-                'El cierre de registros debe ser posterior o igual a la apertura.',
+            'registration_closes_at.after_or_equal' => 'El cierre de registros debe ser posterior o igual a la apertura.',
             'status.required' => 'El estado es obligatorio.',
             'status.in' => 'El estado seleccionado no es válido.',
         ];

@@ -267,6 +267,7 @@ const focusFirstError = (
 
     if (firstError === 'results_url') {
         activeTab.value = 'results';
+
         return;
     }
 
@@ -283,6 +284,7 @@ const focusFirstError = (
 
     if (locationFields.includes(firstError)) {
         activeTab.value = 'location';
+
         return;
     }
 
@@ -295,6 +297,7 @@ const focusFirstError = (
 
     if (registrationFields.includes(firstError)) {
         activeTab.value = 'registration';
+
         return;
     }
 
@@ -317,6 +320,7 @@ const selectBanner = (event: Event): void => {
 
     if (!file.type.startsWith('image/')) {
         target.value = '';
+
         return;
     }
 

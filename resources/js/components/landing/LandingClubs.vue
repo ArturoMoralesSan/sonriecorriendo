@@ -4,44 +4,52 @@ import {
     MapPin,
 } from 'lucide-vue-next';
 
-const clubs = [
-    {
-        id: 1,
-        name: 'Club de Corredores',
-        location: 'Durango, Dgo.',
-        description: 'Corre, comparte y disfruta cada kilómetro.',
-        image:
-            'https://images.pexels.com/photos/2402777/pexels-photo-2402777.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    },
-    {
-        id: 2,
-        name: 'Running Team',
-        location: 'Durango, Dgo.',
-        description: 'Una comunidad para disfrutar el running.',
-        image:
-            'https://images.pexels.com/photos/3768916/pexels-photo-3768916.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    },
-    {
-        id: 3,
-        name: 'Comunidad Runner',
-        location: 'Durango, Dgo.',
-        description: 'Entrena, participa y vive nuevas experiencias.',
-        image:
-            'https://images.pexels.com/photos/1462399/pexels-photo-1462399.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    },
-    {
-        id: 4,
-        name: 'Club de Atletismo',
-        location: 'Durango, Dgo.',
-        description: 'Metas, kilómetros y experiencias compartidas.',
-        image:
-            'https://images.pexels.com/photos/11757805/pexels-photo-11757805.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    },
-];
+interface Club {
+    id: number;
+    name: string;
+    slug: string;
+    description: string | null;
+    logo: string | null;
+    responsible: string | null;
+    phone: string | null;
+    email: string | null;
+    city: string | null;
+    address: string | null;
+    is_active: boolean;
+}
+
+const props = defineProps<{
+    clubs: Club[];
+    showAllLink?: boolean;
+}>();
+
+const getImageUrl = (logo: string | null): string => {
+    if (!logo) {
+        return 'https://images.pexels.com/photos/2402777/pexels-photo-2402777.jpeg?auto=compress&cs=tinysrgb&w=1200';
+    }
+
+    if (
+        logo.startsWith('http://') ||
+        logo.startsWith('https://')
+    ) {
+        return logo;
+    }
+
+    return `/storage/${logo}`;
+};
+
+const getLocation = (club: Club): string => {
+    if (club.city) {
+        return club.city;
+    }
+
+    return 'Por confirmar';
+};
 </script>
 
 <template>
     <section
+        v-if="props.clubs.length"
         id="clubes"
         class="landing-clubs-section"
     >
@@ -63,7 +71,8 @@ const clubs = [
                 </div>
 
                 <a
-                    href="#clubes"
+                    v-if="props.showAllLink"
+                    href="/clubes"
                     class="landing-see-all"
                 >
                     Ver todos los clubes
@@ -77,13 +86,13 @@ const clubs = [
 
             <div class="landing-clubs-grid">
                 <article
-                    v-for="club in clubs"
+                    v-for="club in props.clubs"
                     :key="club.id"
                     class="landing-club-card"
                 >
                     <div class="landing-club-image-wrapper">
                         <img
-                            :src="club.image"
+                            :src="getImageUrl(club.logo)"
                             :alt="club.name"
                             class="landing-club-image"
                         />
@@ -100,15 +109,20 @@ const clubs = [
                                 :stroke-width="1.9"
                             />
 
-                            <span>{{ club.location }}</span>
+                            <span>
+                                {{ getLocation(club) }}
+                            </span>
                         </div>
 
-                        <p class="landing-club-description">
+                        <p
+                            v-if="club.description"
+                            class="landing-club-description"
+                        >
                             {{ club.description }}
                         </p>
 
                         <a
-                            href="#"
+                            :href="`/clubes/${club.slug}`"
                             class="landing-club-button"
                         >
                             Ver club

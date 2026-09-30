@@ -1,24 +1,122 @@
 <?php
 
+use App\Http\Controllers\Admin\ClubController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PaymentMethodController;
 use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\RaceChecklistController;
 use App\Http\Controllers\Admin\RaceController;
+use App\Http\Controllers\Admin\RaceExpenseController;
+use App\Http\Controllers\Admin\RaceGalleryController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\SaleController as AdminSaleController;
 use App\Http\Controllers\Admin\SponsorController;
 use App\Http\Controllers\Admin\SponsorPaymentController;
 use App\Http\Controllers\Admin\SponsorRaceController;
-use App\Http\Controllers\Admin\RaceExpenseController;
 use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Admin\RaceGalleryController;
-use App\Http\Controllers\Admin\ClubController;
-use App\Http\Controllers\Admin\ProductController;
-use App\Http\Controllers\Admin\SaleController;
+use App\Http\Controllers\CartController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\SaleController;
+use App\Http\Controllers\MercadoPagoController;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'Welcome')->name('home');
+/*
+|--------------------------------------------------------------------------
+| Público
+|--------------------------------------------------------------------------
+*/
 
+Route::get('/', [HomeController::class, 'index'])
+    ->name('home');
+
+/*
+|--------------------------------------------------------------------------
+| Carreras
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/carreras', [HomeController::class, 'races'])
+    ->name('races.index');
+
+Route::get('/carreras/{slug}', [HomeController::class, 'race'])
+    ->name('races.show');
+
+/*
+|--------------------------------------------------------------------------
+| Galería
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/galeria', [HomeController::class, 'galleries'])
+    ->name('gallery.index');
+
+Route::get('/galeria/{slug}', [HomeController::class, 'gallery'])
+    ->name('gallery.show');
+
+/*
+|--------------------------------------------------------------------------
+| Tienda
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/tienda', [HomeController::class, 'shop'])
+    ->name('shop.index');
+
+Route::get('/productos/{slug}', [HomeController::class, 'product'])
+    ->name('products.show');
+
+/*
+|--------------------------------------------------------------------------
+| Clubes
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/clubes', [HomeController::class, 'clubs'])
+    ->name('clubs.index');
+
+Route::get('/clubes/{slug}', [HomeController::class, 'club'])
+    ->name('clubs.show');
+
+/*
+|--------------------------------------------------------------------------
+| Carrito
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/carrito', [CartController::class, 'index'])
+    ->name('cart.index');
+
+Route::post('/carrito/agregar', [CartController::class, 'add'])
+    ->name('cart.add');
+
+Route::patch('/carrito/actualizar', [CartController::class, 'update'])
+    ->name('cart.update');
+
+Route::delete('/carrito/eliminar', [CartController::class, 'remove'])
+    ->name('cart.remove');
+
+Route::delete('/carrito/vaciar', [CartController::class, 'clear'])
+    ->name('cart.clear');
+
+/*
+|--------------------------------------------------------------------------
+| Pedidos / Ventas de tienda
+|--------------------------------------------------------------------------
+*/
+
+Route::post('/carrito/finalizar', [SaleController::class, 'checkout'])
+    ->name('sales.checkout');
+
+Route::get('/ventas/{sale}', [SaleController::class, 'show'])
+    ->name('sales.show');
+
+
+
+Route::post(
+    '/mercadopago/webhook',
+    [MercadoPagoController::class, 'webhook']
+)->name('mercadopago.webhook');
 /*
 |--------------------------------------------------------------------------
 | Admin
@@ -193,9 +291,11 @@ Route::middleware(['auth', 'verified'])
             ->name('race-sponsors.payments.destroy')
             ->middleware('permission:sponsors.edit');
 
-       /* --------------------------------------------------------------------------
+        /*
+        |--------------------------------------------------------------------------
         | Checklist de carreras
-        | -------------------------------------------------------------------------- */
+        |--------------------------------------------------------------------------
+        */
 
         Route::resource(
             'races.checklist',
@@ -217,9 +317,11 @@ Route::middleware(['auth', 'verified'])
                 'destroy' => 'permission:races.edit',
             ]);
 
-        /* --------------------------------------------------------------------------
+        /*
+        |--------------------------------------------------------------------------
         | Checklist - Cambiar estado
-        | -------------------------------------------------------------------------- */
+        |--------------------------------------------------------------------------
+        */
 
         Route::patch(
             'races/{race}/checklist/{checklistItem}/status',
@@ -228,9 +330,11 @@ Route::middleware(['auth', 'verified'])
             ->name('races.checklist.status')
             ->middleware('permission:races.edit');
 
-        /* --------------------------------------------------------------------------
+        /*
+        |--------------------------------------------------------------------------
         | Checklist - Aplicar plantilla
-        | -------------------------------------------------------------------------- */
+        |--------------------------------------------------------------------------
+        */
 
         Route::post(
             'races/{race}/checklist/apply-template',
@@ -239,10 +343,11 @@ Route::middleware(['auth', 'verified'])
             ->name('races.checklist.apply-template')
             ->middleware('permission:races.edit');
 
-        
-        /* --------------------------------------------------------------------------
+        /*
+        |--------------------------------------------------------------------------
         | Egresos de carreras
-        | -------------------------------------------------------------------------- */
+        |--------------------------------------------------------------------------
+        */
 
         Route::resource(
             'races.expenses',
@@ -264,26 +369,37 @@ Route::middleware(['auth', 'verified'])
                 'destroy' => 'permission:races.edit',
             ]);
 
+        /*
+        |--------------------------------------------------------------------------
+        | Galería de carreras
+        |--------------------------------------------------------------------------
+        */
 
-            Route::resource(
-                'races.gallery',
-                RaceGalleryController::class
-            )
-                ->only([
-                    'index',
-                    'store',
-                    'update',
-                    'destroy',
-                ])
-                ->parameters([
-                    'gallery' => 'gallery',
-                ])
-                ->middleware([
-                    'index' => 'permission:races.view',
-                    'store' => 'permission:races.edit',
-                    'update' => 'permission:races.edit',
-                    'destroy' => 'permission:races.edit',
-                ]);
+        Route::resource(
+            'races.gallery',
+            RaceGalleryController::class
+        )
+            ->only([
+                'index',
+                'store',
+                'update',
+                'destroy',
+            ])
+            ->parameters([
+                'gallery' => 'gallery',
+            ])
+            ->middleware([
+                'index' => 'permission:races.view',
+                'store' => 'permission:races.edit',
+                'update' => 'permission:races.edit',
+                'destroy' => 'permission:races.edit',
+            ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Clubes
+        |--------------------------------------------------------------------------
+        */
 
         Route::resource('clubs', ClubController::class)
             ->middleware([
@@ -295,35 +411,51 @@ Route::middleware(['auth', 'verified'])
                 'destroy' => 'permission:clubs.delete',
             ]);
 
-        
-        
+        /*
+        |--------------------------------------------------------------------------
+        | Productos
+        |--------------------------------------------------------------------------
+        */
 
         Route::resource('products', ProductController::class)
             ->middleware([
-                'index'   => 'permission:products.view',
-                'create'  => 'permission:products.create',
-                'store'   => 'permission:products.create',
-                'show'    => 'permission:products.view',
-                'edit'    => 'permission:products.edit',
-                'update'  => 'permission:products.edit',
+                'index' => 'permission:products.view',
+                'create' => 'permission:products.create',
+                'store' => 'permission:products.create',
+                'show' => 'permission:products.view',
+                'edit' => 'permission:products.edit',
+                'update' => 'permission:products.edit',
                 'destroy' => 'permission:products.delete',
             ]);
 
+        /*
+        |--------------------------------------------------------------------------
+        | Ventas - Cliente por QR
+        |--------------------------------------------------------------------------
+        */
+
         Route::post(
             'sales/customer-by-qr',
-            [SaleController::class, 'customerByQr']
-        )->name('sales.customer-by-qr');
+            [AdminSaleController::class, 'customerByQr']
+        )
+            ->name('sales.customer-by-qr');
 
-        Route::resource('sales', SaleController::class)
-        ->middleware([
-            'index' => 'permission:sales.view',
-            'create' => 'permission:sales.create',
-            'store' => 'permission:sales.create',
-            'show' => 'permission:sales.view',
-            'edit' => 'permission:sales.edit',
-            'update' => 'permission:sales.edit',
-            'destroy' => 'permission:sales.delete',
-        ]);
+        /*
+        |--------------------------------------------------------------------------
+        | Ventas
+        |--------------------------------------------------------------------------
+        */
+
+        Route::resource('sales', AdminSaleController::class)
+            ->middleware([
+                'index' => 'permission:sales.view',
+                'create' => 'permission:sales.create',
+                'store' => 'permission:sales.create',
+                'show' => 'permission:sales.view',
+                'edit' => 'permission:sales.edit',
+                'update' => 'permission:sales.edit',
+                'destroy' => 'permission:sales.delete',
+            ]);
     });
 
 require __DIR__.'/settings.php';

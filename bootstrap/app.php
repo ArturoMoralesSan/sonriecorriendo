@@ -12,12 +12,14 @@ use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
+
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
-        api: __DIR__.'/../routes/api.php',
-        commands: __DIR__.'/../routes/console.php',
+        web: __DIR__ . '/../routes/web.php',
+        api: __DIR__ . '/../routes/api.php',
+        commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
+
     ->withMiddleware(function (Middleware $middleware): void {
 
         /*
@@ -56,7 +58,23 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | CSRF exceptions
+        |--------------------------------------------------------------------------
+        |
+        | Mercado Pago enviará Webhooks directamente a esta ruta.
+        | Como Mercado Pago no tiene el token CSRF de Laravel,
+        | esta ruta debe quedar fuera de la validación CSRF.
+        |
+        */
+
+        $middleware->validateCsrfTokens(except: [
+            'mercadopago/webhook',
+        ]);
     })
+
     ->withExceptions(function (Exceptions $exceptions): void {
 
         $exceptions->shouldRenderJsonWhen(
@@ -64,4 +82,5 @@ return Application::configure(basePath: dirname(__DIR__))
                 || $request->expectsJson(),
         );
     })
+
     ->create();

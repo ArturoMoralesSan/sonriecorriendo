@@ -4,8 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Race extends Model
 {
@@ -30,7 +30,7 @@ class Race extends Model
         'status',
         'terms_and_conditions',
         'notes',
-        'results_url'
+        'results_url',
     ];
 
     protected function casts(): array

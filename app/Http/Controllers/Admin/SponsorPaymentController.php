@@ -33,8 +33,7 @@ class SponsorPaymentController extends Controller
         if ($paymentAmount > $remaining) {
             return back()
                 ->withErrors([
-                    'amount' =>
-                        'El pago no puede ser mayor al saldo pendiente de $'.
+                    'amount' => 'El pago no puede ser mayor al saldo pendiente de $'.
                         number_format(
                             $remaining,
                             2
@@ -44,23 +43,17 @@ class SponsorPaymentController extends Controller
         }
 
         $paymentData = [
-            'race_sponsor_id' =>
-                $raceSponsor->id,
+            'race_sponsor_id' => $raceSponsor->id,
 
-            'amount' =>
-                $paymentAmount,
+            'amount' => $paymentAmount,
 
-            'paid_at' =>
-                $data['paid_at'],
+            'paid_at' => $data['paid_at'],
 
-            'payment_method' =>
-                $data['payment_method'] ?? null,
+            'payment_method' => $data['payment_method'] ?? null,
 
-            'reference' =>
-                $data['reference'] ?? null,
+            'reference' => $data['reference'] ?? null,
 
-            'notes' =>
-                $data['notes'] ?? null,
+            'notes' => $data['notes'] ?? null,
         ];
 
         $receipt = $request->file('receipt');
@@ -98,8 +91,7 @@ class SponsorPaymentController extends Controller
 
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' =>
-                'El pago se registró correctamente.',
+            'message' => 'El pago se registró correctamente.',
         ]);
 
         return back();
@@ -124,8 +116,7 @@ class SponsorPaymentController extends Controller
 
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' =>
-                'El pago se eliminó correctamente.',
+            'message' => 'El pago se eliminó correctamente.',
         ]);
 
         return back();

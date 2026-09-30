@@ -14,6 +14,14 @@ import LandingRoutes from '@/components/landing/LandingRoutes.vue';
 import LandingShop from '@/components/landing/LandingShop.vue';
 import LandingSponsors from '@/components/landing/LandingSponsors.vue';
 import LandingWinners from '@/components/landing/LandingWinners.vue';
+
+defineProps<{
+    races: Array<any>;
+    clubs: Array<any>;
+    products: Array<any>;
+    gallery: Array<any>;
+    sponsors: Array<any>;
+}>();
 </script>
 
 <template>
@@ -31,7 +39,6 @@ import LandingWinners from '@/components/landing/LandingWinners.vue';
         <link
             rel="preconnect"
             href="https://fonts.gstatic.com"
-            crossorigin
         />
 
         <link
@@ -48,7 +55,10 @@ import LandingWinners from '@/components/landing/LandingWinners.vue';
 
             <LandingBenefits />
 
-            <LandingEvents />
+            <LandingEvents
+                :events="races"
+                :show-all-link="true"
+            />
 
             <LandingExperience />
 
@@ -56,13 +66,19 @@ import LandingWinners from '@/components/landing/LandingWinners.vue';
 
             <LandingWinners />
 
-            <LandingGallery />
+            <LandingGallery :gallery="gallery" :show-all-link="true" />
 
-            <LandingShop />
+            <LandingShop
+                :products="products"
+                :show-all-link="true"
+            />
 
-            <LandingSponsors />
+            <LandingSponsors :sponsors="sponsors" />
 
-            <LandingClubs />
+            <LandingClubs
+                :clubs="clubs"
+                :show-all-link="true"
+            />
 
             <LandingCta />
         </main>

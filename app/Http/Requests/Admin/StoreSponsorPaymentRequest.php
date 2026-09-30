@@ -55,55 +55,40 @@ class StoreSponsorPaymentRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'amount.required' =>
-                'El monto del pago es obligatorio.',
+            'amount.required' => 'El monto del pago es obligatorio.',
 
-            'amount.numeric' =>
-                'El monto del pago debe ser numérico.',
+            'amount.numeric' => 'El monto del pago debe ser numérico.',
 
-            'amount.min' =>
-                'El monto del pago debe ser mayor a cero.',
+            'amount.min' => 'El monto del pago debe ser mayor a cero.',
 
-            'paid_at.required' =>
-                'La fecha del pago es obligatoria.',
+            'paid_at.required' => 'La fecha del pago es obligatoria.',
 
-            'paid_at.date' =>
-                'La fecha del pago no es válida.',
+            'paid_at.date' => 'La fecha del pago no es válida.',
 
-            'paid_at.before_or_equal' =>
-                'La fecha del pago no puede ser futura.',
+            'paid_at.before_or_equal' => 'La fecha del pago no puede ser futura.',
 
-            'receipt.file' =>
-                'El comprobante no es válido.',
+            'receipt.file' => 'El comprobante no es válido.',
 
-            'receipt.mimes' =>
-                'El comprobante debe ser JPG, PNG, JPEG o PDF.',
+            'receipt.mimes' => 'El comprobante debe ser JPG, PNG, JPEG o PDF.',
 
-            'receipt.max' =>
-                'El comprobante no puede superar los 5 MB.',
+            'receipt.max' => 'El comprobante no puede superar los 5 MB.',
         ];
     }
 
     public function attributes(): array
     {
         return [
-            'amount' =>
-                'monto',
+            'amount' => 'monto',
 
-            'paid_at' =>
-                'fecha de pago',
+            'paid_at' => 'fecha de pago',
 
-            'payment_method' =>
-                'método de pago',
+            'payment_method' => 'método de pago',
 
-            'reference' =>
-                'referencia',
+            'reference' => 'referencia',
 
-            'notes' =>
-                'notas',
+            'notes' => 'notas',
 
-            'receipt' =>
-                'comprobante',
+            'receipt' => 'comprobante',
         ];
     }
 }

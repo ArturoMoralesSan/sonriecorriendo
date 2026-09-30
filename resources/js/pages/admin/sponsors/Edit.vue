@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { computed, onBeforeUnmount, ref } from 'vue';
 import {
     ArrowLeft,
     Building2,
@@ -8,6 +7,7 @@ import {
     Upload,
     X,
 } from 'lucide-vue-next';
+import { computed, onBeforeUnmount, ref } from 'vue';
 
 import admin from '@/routes/admin';
 import sponsors from '@/routes/admin/sponsors';

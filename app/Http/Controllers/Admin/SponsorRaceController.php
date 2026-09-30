@@ -36,8 +36,7 @@ class SponsorRaceController extends Controller
 
         $races = $races
             ->filter(
-                fn (Race $race) =>
-                    ! $associatedRaceIds->contains($race->id)
+                fn (Race $race) => ! $associatedRaceIds->contains($race->id)
             )
             ->values();
 
@@ -66,8 +65,7 @@ class SponsorRaceController extends Controller
 
         if ($exists) {
             return back()->withErrors([
-                'race_id' =>
-                    'Este patrocinador ya está asociado a la carrera seleccionada.',
+                'race_id' => 'Este patrocinador ya está asociado a la carrera seleccionada.',
             ]);
         }
 
@@ -88,8 +86,7 @@ class SponsorRaceController extends Controller
 
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' =>
-                'El patrocinador se asoció correctamente a la carrera.',
+            'message' => 'El patrocinador se asoció correctamente a la carrera.',
         ]);
 
         return to_route(
@@ -157,14 +154,10 @@ class SponsorRaceController extends Controller
                         'id' => $raceSponsor->race->id,
                         'name' => $raceSponsor->race->name,
                         'slug' => $raceSponsor->race->slug,
-                        'event_date' =>
-                            $raceSponsor->race->event_date,
-                        'start_time' =>
-                            $raceSponsor->race->start_time,
-                        'end_time' =>
-                            $raceSponsor->race->end_time,
-                        'location' =>
-                            $raceSponsor->race->location,
+                        'event_date' => $raceSponsor->race->event_date,
+                        'start_time' => $raceSponsor->race->start_time,
+                        'end_time' => $raceSponsor->race->end_time,
+                        'location' => $raceSponsor->race->location,
                     ],
 
                     'type' => $raceSponsor->type,
@@ -201,8 +194,7 @@ class SponsorRaceController extends Controller
 
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' =>
-                'La asociación con la carrera se eliminó correctamente.',
+            'message' => 'La asociación con la carrera se eliminó correctamente.',
         ]);
 
         return back();

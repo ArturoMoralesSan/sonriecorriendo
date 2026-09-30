@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Product;
 use App\View\Composers\MenuComposer;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -36,6 +37,79 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $cart = $request->session()->get('cart', []);
+
+        $cartItems = 0;
+        $cartProducts = [];
+
+        /*
+        |--------------------------------------------------------------------------
+        | Productos del carrito
+        |--------------------------------------------------------------------------
+        */
+
+        if (! empty($cart)) {
+            $productIds = array_map(
+                'intval',
+                array_keys($cart)
+            );
+
+            $products = Product::query()
+                ->whereIn('id', $productIds)
+                ->where('is_active', true)
+                ->get()
+                ->keyBy('id');
+
+            foreach ($cart as $productId => $quantity) {
+                $productId = (int) $productId;
+                $quantity = (int) $quantity;
+
+                if ($quantity < 1) {
+                    continue;
+                }
+
+                $product = $products->get($productId);
+
+                if (! $product) {
+                    continue;
+                }
+
+                if ($product->stock <= 0) {
+                    continue;
+                }
+
+                $quantity = min(
+                    $quantity,
+                    (int) $product->stock
+                );
+
+                if ($quantity < 1) {
+                    continue;
+                }
+
+                $price = (float) $product->price;
+
+                $itemSubtotal = $price * $quantity;
+
+                $cartProducts[] = [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'slug' => $product->slug,
+                    'image' => $product->image,
+                    'price' => $price,
+                    'quantity' => $quantity,
+                    'stock' => (int) $product->stock,
+                    'subtotal' => $itemSubtotal,
+                ];
+
+                $cartItems += $quantity;
+            }
+        }
+
+        $cartSubtotal = collect($cartProducts)->sum(
+            'subtotal'
+        );
+
         return [
             ...parent::share($request),
 
@@ -51,6 +125,12 @@ class HandleInertiaRequests extends Middleware
                 || $request->cookie('sidebar_state') === 'true',
 
             'menus' => fn () => app(MenuComposer::class)->getMenus(),
+
+            'cart' => [
+                'totalItems' => $cartItems,
+                'subtotal' => $cartSubtotal,
+                'items' => $cartProducts,
+            ],
         ];
     }
 }

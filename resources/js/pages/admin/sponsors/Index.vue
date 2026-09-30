@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import Swal from 'sweetalert2';
-import { ref } from 'vue';
 import {
     Building2,
     Edit,
@@ -13,6 +11,8 @@ import {
     Trash2,
     UserRound,
 } from 'lucide-vue-next';
+import Swal from 'sweetalert2';
+import { ref } from 'vue';
 
 import admin from '@/routes/admin';
 

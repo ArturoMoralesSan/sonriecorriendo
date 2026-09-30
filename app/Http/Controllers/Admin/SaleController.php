@@ -134,7 +134,7 @@ class SaleController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        
+
         $validated = $request->validate([
             'customer_id' => [
                 'nullable',
@@ -486,29 +486,21 @@ class SaleController extends Controller
                 $sale = Sale::create([
                     'folio' => $folio,
 
-                    'customer_id' =>
-                        $validated['customer_id'] ?? null,
+                    'customer_id' => $validated['customer_id'] ?? null,
 
-                    'subtotal' =>
-                        $calculatedSubtotal,
+                    'subtotal' => $calculatedSubtotal,
 
-                    'discount' =>
-                        $discount,
+                    'discount' => $discount,
 
-                    'total' =>
-                        $calculatedTotal,
+                    'total' => $calculatedTotal,
 
-                    'sales_channel' =>
-                        $validated['sales_channel'],
+                    'sales_channel' => $validated['sales_channel'],
 
-                    'status' =>
-                        $status,
+                    'status' => $status,
 
-                    'notes' =>
-                        $validated['notes'] ?? null,
+                    'notes' => $validated['notes'] ?? null,
 
-                    'sold_at' =>
-                        $validated['sold_at'] ?? now(),
+                    'sold_at' => $validated['sold_at'] ?? now(),
                 ]);
 
                 /*
@@ -519,17 +511,13 @@ class SaleController extends Controller
 
                 foreach ($items as $item) {
                     $sale->items()->create([
-                        'product_id' =>
-                            $item['product']->id,
+                        'product_id' => $item['product']->id,
 
-                        'quantity' =>
-                            $item['quantity'],
+                        'quantity' => $item['quantity'],
 
-                        'unit_price' =>
-                            $item['unit_price'],
+                        'unit_price' => $item['unit_price'],
 
-                        'subtotal' =>
-                            $item['subtotal'],
+                        'subtotal' => $item['subtotal'],
                     ]);
 
                     $item['product']->decrement(
@@ -546,17 +534,13 @@ class SaleController extends Controller
 
                 foreach ($validated['payments'] as $payment) {
                     $sale->payments()->create([
-                        'payment_method_id' =>
-                            $payment['payment_method_id'],
+                        'payment_method_id' => $payment['payment_method_id'],
 
-                        'amount' =>
-                            $payment['amount'],
+                        'amount' => $payment['amount'],
 
-                        'reference' =>
-                            $payment['reference'] ?? null,
+                        'reference' => $payment['reference'] ?? null,
 
-                        'notes' =>
-                            $payment['notes'] ?? null,
+                        'notes' => $payment['notes'] ?? null,
                     ]);
                 }
 
@@ -565,8 +549,7 @@ class SaleController extends Controller
 
             Inertia::flash('toast', [
                 'type' => 'success',
-                'message' =>
-                    "Venta {$sale->folio} creada correctamente.",
+                'message' => "Venta {$sale->folio} creada correctamente.",
             ]);
 
             return redirect()
@@ -576,8 +559,7 @@ class SaleController extends Controller
             return back()
                 ->withInput()
                 ->withErrors([
-                    'sale' =>
-                        $exception->getMessage(),
+                    'sale' => $exception->getMessage(),
                 ]);
         }
     }
@@ -671,17 +653,14 @@ class SaleController extends Controller
         ]);
 
         $sale->update([
-            'status' =>
-                $validated['status'],
+            'status' => $validated['status'],
 
-            'notes' =>
-                $validated['notes'] ?? null,
+            'notes' => $validated['notes'] ?? null,
         ]);
 
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' =>
-                "Venta {$sale->folio} actualizada correctamente.",
+            'message' => "Venta {$sale->folio} actualizada correctamente.",
         ]);
 
         return redirect()
@@ -732,8 +711,7 @@ class SaleController extends Controller
 
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' =>
-                "Venta {$sale->folio} cancelada correctamente.",
+            'message' => "Venta {$sale->folio} cancelada correctamente.",
         ]);
 
         return redirect()
@@ -747,9 +725,9 @@ class SaleController extends Controller
     {
         do {
             $folio =
-                'V-' .
-                now()->format('Ymd') .
-                '-' .
+                'V-'.
+                now()->format('Ymd').
+                '-'.
                 strtoupper(
                     Str::random(6),
                 );

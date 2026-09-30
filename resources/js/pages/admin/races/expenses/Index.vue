@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import Swal from 'sweetalert2';
-import { computed, ref } from 'vue';
 import {
     ArrowLeft,
     Check,
@@ -16,6 +14,8 @@ import {
     Wallet,
     X,
 } from 'lucide-vue-next';
+import Swal from 'sweetalert2';
+import { computed, ref } from 'vue';
 
 import admin from '@/routes/admin';
 

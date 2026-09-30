@@ -191,6 +191,7 @@ const removeProduct = (product: Product): void => {
 
     if (item.quantity <= 1) {
         removeItem(product.id);
+
         return;
     }
 
@@ -376,6 +377,7 @@ const findCustomerByQr = async (
 
     if (!cleanToken) {
         qrError.value = 'Ingresa o escanea un código QR válido.';
+
         return;
     }
 
@@ -454,6 +456,7 @@ const startQrScanner = async (): Promise<void> => {
         scanning.value = false;
         qrError.value =
             'No fue posible iniciar el lector QR.';
+
         return;
     }
 
@@ -505,6 +508,7 @@ const stopQrScanner = async (): Promise<void> => {
 
     if (!scanner) {
         scanning.value = false;
+
         return;
     }
 

@@ -5,56 +5,135 @@ import {
     MapPin,
 } from 'lucide-vue-next';
 
-const events = [
-    {
-        id: 1,
-        type: '5K',
-        typeClass: 'blue',
-        name: 'Carrera Sonríe Corriendo',
-        date: '25 Jul 2026',
-        location: 'Parque Metropolitano',
-        price: '$350',
-        image:
-            'https://images.pexels.com/photos/2402777/pexels-photo-2402777.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    },
-    {
-        id: 2,
-        type: '10K',
-        typeClass: 'purple',
-        name: 'Maratón Kids',
-        date: '22 Ago 2026',
-        location: 'Parque Metropolitano',
-        price: '$250',
-        image:
-            'https://images.pexels.com/photos/11757805/pexels-photo-11757805.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    },
-    {
-        id: 3,
-        type: '10K',
-        typeClass: 'pink',
-        name: 'Carrera 10K',
-        date: '14 Sep 2026',
-        location: 'Parque Metropolitano',
-        price: '$450',
-        image:
-            'https://images.pexels.com/photos/3768916/pexels-photo-3768916.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    },
-    {
-        id: 4,
-        type: 'Kids',
-        typeClass: 'green',
-        name: 'Carrera Familiar',
-        date: '20 Oct 2026',
-        location: 'Parque Guadiana',
-        price: '$350',
-        image:
-            'https://images.pexels.com/photos/1462399/pexels-photo-1462399.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    },
-];
+interface RacePrice {
+    id: number;
+    name: string;
+    price: number | string;
+    starts_at: string | null;
+    ends_at: string | null;
+    capacity: number | null;
+    sort_order: number;
+    is_active: boolean;
+}
+
+interface RaceDistance {
+    id: number;
+    name: string;
+    distance: number | string;
+    unit: string;
+    prices?: RacePrice[];
+}
+
+interface Race {
+    id: number;
+    name: string;
+    slug: string;
+    event_date: string;
+    location: string | null;
+    banner: string | null;
+    distances?: RaceDistance[];
+}
+
+const props = defineProps<{
+    events: Race[];
+    showAllLink?: boolean;
+}>();
+
+const getTypeClass = (index: number): string => {
+    const classes = [
+        'blue',
+        'purple',
+        'pink',
+        'green',
+    ];
+
+    return classes[index % classes.length];
+};
+
+const getDistanceLabel = (event: Race): string => {
+    const distances = event.distances ?? [];
+
+    if (!distances.length) {
+        return 'Carrera';
+    }
+
+    return distances
+        .map((distance) => {
+            const value = Number(distance.distance);
+
+            if (!Number.isNaN(value)) {
+                return `${value}${distance.unit || 'K'}`;
+            }
+
+            return distance.name || 'Carrera';
+        })
+        .join(' · ');
+};
+
+const getPrice = (event: Race): string => {
+    const prices = (event.distances ?? [])
+        .flatMap((distance) => distance.prices ?? [])
+        .filter((price) => price.is_active)
+        .map((price) => Number(price.price))
+        .filter((price) => !Number.isNaN(price));
+
+    if (!prices.length) {
+        return 'Consultar';
+    }
+
+    return `$${Math.min(...prices).toLocaleString('es-MX', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+    })}`;
+};
+
+const formatDate = (date: string): string => {
+    if (!date) {
+        return '';
+    }
+
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+        return date;
+    }
+
+    const parts = new Intl.DateTimeFormat('es-MX', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'America/Mexico_City',
+    }).formatToParts(parsedDate);
+
+    const day = parts.find((part) => part.type === 'day')?.value ?? '';
+    const month = parts.find((part) => part.type === 'month')?.value ?? '';
+    const year = parts.find((part) => part.type === 'year')?.value ?? '';
+
+    const formattedMonth =
+        month.charAt(0).toUpperCase() + month.slice(1).replace('.', '');
+
+    return `${day} ${formattedMonth} ${year}`;
+};
+
+const getImageUrl = (banner: string | null): string => {
+    if (!banner) {
+        return 'https://images.pexels.com/photos/2402777/pexels-photo-2402777.jpeg?auto=compress&cs=tinysrgb&w=1200';
+    }
+
+    if (
+        banner.startsWith('http://') ||
+        banner.startsWith('https://')
+    ) {
+        return banner;
+    }
+
+    return `/storage/${banner}`;
+};
 </script>
 
 <template>
     <section
+        v-if="props.events.length"
         id="eventos"
         class="landing-events-section"
     >
@@ -75,7 +154,8 @@ const events = [
                 </div>
 
                 <a
-                    href="#eventos"
+                    v-if="props.showAllLink"
+                    href="/carreras"
                     class="landing-see-all"
                 >
                     Ver todos los eventos
@@ -89,22 +169,22 @@ const events = [
 
             <div class="landing-events-grid">
                 <article
-                    v-for="event in events"
+                    v-for="(event, index) in props.events"
                     :key="event.id"
                     class="landing-event-card"
                 >
                     <div class="landing-event-image-wrapper">
                         <img
-                            :src="event.image"
+                            :src="getImageUrl(event.banner)"
                             :alt="event.name"
                             class="landing-event-image"
                         />
 
                         <span
                             class="landing-event-badge"
-                            :class="`badge-${event.typeClass}`"
+                            :class="`badge-${getTypeClass(index)}`"
                         >
-                            {{ event.type }}
+                            {{ getDistanceLabel(event) }}
                         </span>
                     </div>
 
@@ -120,7 +200,9 @@ const events = [
                                     :stroke-width="1.9"
                                 />
 
-                                <span>{{ event.date }}</span>
+                                <span>
+                                    {{ formatDate(event.event_date) }}
+                                </span>
                             </div>
 
                             <div class="landing-event-info-row">
@@ -129,18 +211,23 @@ const events = [
                                     :stroke-width="1.9"
                                 />
 
-                                <span>{{ event.location }}</span>
+                                <span>
+                                    {{ event.location || 'Por confirmar' }}
+                                </span>
                             </div>
                         </div>
 
                         <div class="landing-event-footer">
                             <div class="landing-event-price">
-                                <strong>{{ event.price }}</strong>
+                                <strong>
+                                    {{ getPrice(event) }}
+                                </strong>
+
                                 <span>MXN</span>
                             </div>
 
                             <a
-                                href="#"
+                                :href="`/carreras/${event.slug}`"
                                 class="landing-event-button"
                             >
                                 Inscribirme

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
     ArrowLeft,
@@ -21,6 +20,7 @@ import {
     X,
 } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
+import { computed, ref } from 'vue';
 
 import admin from '@/routes/admin';
 
