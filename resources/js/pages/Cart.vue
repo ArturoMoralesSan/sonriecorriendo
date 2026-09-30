@@ -8,6 +8,7 @@ import {
     Trash2,
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import Swal from 'sweetalert2';
 
 import LandingFooter from '@/components/landing/LandingFooter.vue';
 import LandingHeader from '@/components/landing/LandingHeader.vue';
@@ -21,6 +22,14 @@ interface CartItem {
     quantity: number;
     stock: number;
     subtotal: number;
+}
+
+interface CheckoutResponse {
+    checkout_url?: string;
+    message?: string;
+    errors?: {
+        sale?: string[];
+    };
 }
 
 const props = defineProps<{
@@ -120,7 +129,7 @@ const clearCart = (): void => {
     );
 };
 
-const checkout = (): void => {
+const checkout = async (): Promise<void> => {
     if (
         !props.items.length ||
         processingCheckout.value
@@ -130,17 +139,71 @@ const checkout = (): void => {
 
     processingCheckout.value = true;
 
-    router.post(
-        '/carrito/finalizar',
-        {},
-        {
-            preserveScroll: true,
+    try {
+        const csrfToken = document
+            .querySelector('meta[name="csrf-token"]')
+            ?.getAttribute('content');
 
-            onFinish: () => {
-                processingCheckout.value = false;
+        const response = await fetch(
+            '/carrito/finalizar',
+            {
+                method: 'POST',
+
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...(csrfToken
+                        ? {
+                              'X-CSRF-TOKEN': csrfToken,
+                          }
+                        : {}),
+                },
+
+                credentials: 'same-origin',
             },
-        },
-    );
+        );
+
+        const data: CheckoutResponse =
+            await response.json();
+
+        if (!response.ok) {
+            const saleError =
+                data?.errors?.sale?.[0];
+
+            throw new Error(
+                saleError ||
+                data?.message ||
+                'No fue posible iniciar el pago.',
+            );
+        }
+
+        if (!data.checkout_url) {
+            throw new Error(
+                'Mercado Pago no devolvió la URL de Checkout.',
+            );
+        }
+
+        window.location.href =
+            data.checkout_url;
+    } catch (error) {
+        console.error(
+            'Error al iniciar checkout:',
+            error,
+        );
+
+        Swal.fire({
+            icon: 'error',
+            title: 'No se pudo iniciar el pago',
+            text:
+                error instanceof Error
+                    ? error.message
+                    : 'Ocurrió un error inesperado.',
+            confirmButtonText: 'Aceptar',
+        });
+
+        processingCheckout.value = false;
+    }
 };
 
 const hasItems = computed(() => {

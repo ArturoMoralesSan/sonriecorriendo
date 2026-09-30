@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Services\MercadoPagoService;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -19,7 +19,7 @@ class SaleController extends Controller
     public function checkout(
         Request $request,
         MercadoPagoService $mercadoPago
-    ): RedirectResponse {
+    ): JsonResponse {
         try {
             /**
              * Primero creamos nuestra venta y sus productos.
@@ -119,17 +119,26 @@ class SaleController extends Controller
             $request->session()->forget('cart');
 
             /**
-             * Mandamos al comprador a Mercado Pago.
+             * IMPORTANTE:
+             * No hacemos redirect()->away() aquí.
+             *
+             * Cart.vue recibe esta respuesta mediante fetch()
+             * y posteriormente hace:
+             *
+             * window.location.href = checkout_url;
              */
-            return redirect()->away(
-                $order->checkout_url
-            );
+            return response()->json([
+                'checkout_url' => $order->checkout_url,
+            ]);
         } catch (Throwable $exception) {
-            return back()
-                ->withInput()
-                ->withErrors([
-                    'sale' => $exception->getMessage(),
-                ]);
+            return response()->json([
+                'message' => 'No fue posible iniciar el checkout.',
+                'errors' => [
+                    'sale' => [
+                        $exception->getMessage(),
+                    ],
+                ],
+            ], 422);
         }
     }
 
