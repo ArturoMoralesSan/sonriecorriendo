@@ -44,7 +44,7 @@ class MercadoPagoController extends Controller
 
         /*
          * =========================================================
-         * 2. OBTENER WEBHOOK SECRET
+         * 2. WEBHOOK SECRET
          * =========================================================
          */
 
@@ -60,7 +60,7 @@ class MercadoPagoController extends Controller
 
         /*
          * =========================================================
-         * 3. VALIDAR FIRMA DE MERCADO PAGO
+         * 3. VALIDAR FIRMA
          * =========================================================
          */
 
@@ -79,7 +79,7 @@ class MercadoPagoController extends Controller
 
         /*
          * =========================================================
-         * 4. PROCESAR ORDER
+         * 4. CONSULTAR ORDER EN MERCADO PAGO
          * =========================================================
          */
 
@@ -98,16 +98,16 @@ class MercadoPagoController extends Controller
                 $accessToken
             );
 
-            /*
-             * Consultamos directamente la Order.
-             */
             $orderClient = new OrderClient();
 
             $order = $orderClient->get(
                 $dataId
             );
 
-            if (empty($order) || empty($order->id)) {
+            if (
+                ! $order ||
+                empty($order->id)
+            ) {
                 throw new RuntimeException(
                     'Mercado Pago no devolvió información de la Order.'
                 );
@@ -115,7 +115,7 @@ class MercadoPagoController extends Controller
 
             /*
              * =====================================================
-             * 5. BUSCAR LA VENTA
+             * 5. BUSCAR SALE
              * =====================================================
              */
 
@@ -128,26 +128,40 @@ class MercadoPagoController extends Controller
 
             if (! $sale) {
                 return response()->json([
-                    'message' => 'Order recibida, pero no existe una Sale asociada.',
-                    'order_id' => $order->id,
+                    'message' =>
+                        'Order recibida, pero no existe una Sale asociada.',
+
+                    'order_id' =>
+                        $order->id,
                 ], 200);
             }
 
             /*
              * =====================================================
-             * 6. VALIDAR ESTADO DE LA ORDER
+             * 6. VALIDAR ESTADO DE ORDER
              * =====================================================
              */
 
             $orderStatus = $order->status ?? null;
-            $orderStatusDetail = $order->status_detail ?? null;
+            $orderStatusDetail =
+                $order->status_detail ?? null;
 
-            if ($orderStatus !== 'processed') {
+            if (
+                $orderStatus !== 'processed' ||
+                $orderStatusDetail !== 'accredited'
+            ) {
                 return response()->json([
-                    'message' => 'La Order todavía no está procesada.',
-                    'order_id' => $order->id,
-                    'status' => $orderStatus,
-                    'status_detail' => $orderStatusDetail,
+                    'message' =>
+                        'La Order todavía no tiene un pago acreditado.',
+
+                    'order_id' =>
+                        $order->id,
+
+                    'status' =>
+                        $orderStatus,
+
+                    'status_detail' =>
+                        $orderStatusDetail,
                 ], 200);
             }
 
@@ -155,35 +169,28 @@ class MercadoPagoController extends Controller
              * =====================================================
              * 7. OBTENER PAYMENT
              * =====================================================
-             *
-             * La estructura ya fue comprobada directamente
-             * contra Mercado Pago:
-             *
-             * transactions
-             *   payments
-             *     0
              */
+
+            $payments =
+                $order->transactions->payments ?? null;
+
+            if (! $payments) {
+                throw new RuntimeException(
+                    'Mercado Pago no devolvió la lista de pagos.'
+                );
+            }
 
             $payment = null;
 
-            if (
-                isset($order->transactions) &&
-                isset($order->transactions->payments)
-            ) {
-                $payments = $order->transactions->payments;
-
-                if (is_array($payments)) {
-                    $payment = $payments[0] ?? null;
-                } elseif (
-                    $payments instanceof \Traversable
-                ) {
-                    foreach ($payments as $paymentItem) {
-                        $payment = $paymentItem;
-                        break;
-                    }
-                } else {
-                    $payment = $payments[0] ?? null;
+            if (is_array($payments)) {
+                $payment = $payments[0] ?? null;
+            } elseif ($payments instanceof \Traversable) {
+                foreach ($payments as $item) {
+                    $payment = $item;
+                    break;
                 }
+            } else {
+                $payment = $payments[0] ?? null;
             }
 
             if (! $payment) {
@@ -199,10 +206,12 @@ class MercadoPagoController extends Controller
              */
 
             $paymentId = $payment->id ?? null;
-            $paymentStatus = $payment->status ?? null;
+            $paymentStatus =
+                $payment->status ?? null;
             $paymentStatusDetail =
                 $payment->status_detail ?? null;
-            $paymentAmount = $payment->amount ?? null;
+            $paymentAmount =
+                $payment->amount ?? null;
 
             if (empty($paymentId)) {
                 throw new RuntimeException(
@@ -212,7 +221,7 @@ class MercadoPagoController extends Controller
 
             /*
              * =====================================================
-             * 9. VERIFICAR QUE EL PAGO ESTÉ ACREDITADO
+             * 9. VALIDAR PAYMENT
              * =====================================================
              */
 
@@ -221,11 +230,17 @@ class MercadoPagoController extends Controller
                 $paymentStatusDetail !== 'accredited'
             ) {
                 return response()->json([
-                    'message' => 'El pago todavía no está acreditado.',
-                    'order_id' => $order->id,
-                    'payment_id' => $paymentId,
-                    'status' => $paymentStatus,
-                    'status_detail' => $paymentStatusDetail,
+                    'message' =>
+                        'El pago todavía no está acreditado.',
+
+                    'payment_id' =>
+                        $paymentId,
+
+                    'status' =>
+                        $paymentStatus,
+
+                    'status_detail' =>
+                        $paymentStatusDetail,
                 ], 200);
             }
 
@@ -256,18 +271,17 @@ class MercadoPagoController extends Controller
 
             /*
              * =====================================================
-             * 11. PROCESAR VENTA EN UNA TRANSACCIÓN
+             * 11. PROCESAR SALE
              * =====================================================
              */
 
             DB::transaction(function () use (
                 $sale,
-                $paymentMethod = null,
                 $paymentId,
                 $paymentAmount
             ) {
                 /*
-                 * Volvemos a consultar la venta con bloqueo.
+                 * Bloqueamos la venta.
                  */
                 $lockedSale = Sale::query()
                     ->whereKey($sale->id)
@@ -281,11 +295,7 @@ class MercadoPagoController extends Controller
                 }
 
                 /*
-                 * Si ya está pagada, no hacemos absolutamente nada.
-                 *
-                 * Esto evita:
-                 * - segundo SalePayment
-                 * - segundo descuento de stock
+                 * Si ya está pagada, no hacemos nada.
                  */
                 if ($lockedSale->status === 'paid') {
                     return;
@@ -293,20 +303,21 @@ class MercadoPagoController extends Controller
 
                 /*
                  * =================================================
-                 * 12. MÉTODO DE PAGO
+                 * MÉTODO DE PAGO
                  * =================================================
                  */
 
-                $paymentMethod = PaymentMethod::query()
-                    ->where(
-                        'code',
-                        'mercadopago'
-                    )
-                    ->where(
-                        'is_active',
-                        true
-                    )
-                    ->first();
+                $paymentMethod =
+                    PaymentMethod::query()
+                        ->where(
+                            'code',
+                            'mercadopago'
+                        )
+                        ->where(
+                            'is_active',
+                            true
+                        )
+                        ->first();
 
                 if (! $paymentMethod) {
                     throw new RuntimeException(
@@ -317,17 +328,18 @@ class MercadoPagoController extends Controller
 
                 /*
                  * =================================================
-                 * 13. EVITAR PAYMENT DUPLICADO
+                 * EVITAR PAYMENT DUPLICADO
                  * =================================================
                  */
 
-                $existingPayment = $lockedSale
-                    ->payments()
-                    ->where(
-                        'reference',
-                        (string) $paymentId
-                    )
-                    ->first();
+                $existingPayment =
+                    $lockedSale
+                        ->payments()
+                        ->where(
+                            'reference',
+                            (string) $paymentId
+                        )
+                        ->first();
 
                 if (! $existingPayment) {
                     $lockedSale->payments()->create([
@@ -347,25 +359,17 @@ class MercadoPagoController extends Controller
 
                 /*
                  * =================================================
-                 * 14. CARGAR PRODUCTOS CON BLOQUEO
+                 * CARGAR ITEMS Y PRODUCTOS
                  * =================================================
                  */
 
                 $lockedSale->load([
-                    'items' => function ($query) {
-                        $query->with([
-                            'product' => function (
-                                $productQuery
-                            ) {
-                                $productQuery->lockForUpdate();
-                            },
-                        ]);
-                    },
+                    'items.product',
                 ]);
 
                 /*
                  * =================================================
-                 * 15. DESCONTAR STOCK
+                 * DESCONTAR STOCK
                  * =================================================
                  */
 
@@ -399,7 +403,7 @@ class MercadoPagoController extends Controller
 
                 /*
                  * =================================================
-                 * 16. MARCAR VENTA COMO PAGADA
+                 * MARCAR VENTA COMO PAGADA
                  * =================================================
                  */
 
@@ -411,7 +415,7 @@ class MercadoPagoController extends Controller
 
             /*
              * =====================================================
-             * 17. RESPUESTA EXITOSA
+             * 12. RESPUESTA
              * =====================================================
              */
 
