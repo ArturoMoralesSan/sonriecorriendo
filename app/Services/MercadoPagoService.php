@@ -33,7 +33,7 @@ class MercadoPagoService
     }
 
     /**
-     * Crea una Order de Mercado Pago para Checkout Pro.
+     * Crea una Order de Mercado Pago.
      *
      * @param array<int, array<string, mixed>> $items
      */
@@ -61,20 +61,15 @@ class MercadoPagoService
 
         $request = [
             'type' => 'online',
-
             'processing_mode' => 'manual',
-
             'total_amount' => number_format(
                 $total,
                 2,
                 '.',
                 ''
             ),
-
             'external_reference' => $externalReference,
-
             'description' => $description,
-
             'items' => $items,
         ];
 

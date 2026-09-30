@@ -21,7 +21,7 @@ class SaleController extends Controller
         MercadoPagoService $mercadoPago
     ): RedirectResponse {
         try {
-            /*
+            /**
              * Primero creamos nuestra venta y sus productos.
              *
              * Todavía queda como pending.
@@ -31,7 +31,7 @@ class SaleController extends Controller
                 return $this->createSaleFromCart($request);
             });
 
-            /*
+            /**
              * Preparamos los productos para Mercado Pago.
              */
             $sale->load('items.product');
@@ -47,19 +47,12 @@ class SaleController extends Controller
                             '.',
                             ''
                         ),
-                        'unit_measure' => 'unit',
-                        'total_amount' => number_format(
-                            (float) $item->subtotal,
-                            2,
-                            '.',
-                            ''
-                        ),
                     ];
                 })
                 ->values()
                 ->all();
 
-            /*
+            /**
              * URLs a las que Mercado Pago regresará al comprador.
              *
              * El pago NO se confirma aquí.
@@ -79,7 +72,7 @@ class SaleController extends Controller
                 $sale
             );
 
-            /*
+            /**
              * Creamos la Order en Mercado Pago.
              */
             $order = $mercadoPago->createOrder(
@@ -93,7 +86,7 @@ class SaleController extends Controller
                 pendingUrl: $pendingUrl,
             );
 
-            /*
+            /**
              * Mercado Pago debe devolver un ID de Order.
              */
             if (empty($order->id)) {
@@ -102,8 +95,8 @@ class SaleController extends Controller
                 );
             }
 
-            /*
-             * Mercado Pago debe devolver la URL de Checkout Pro.
+            /**
+             * Mercado Pago debe devolver la URL de Checkout.
              */
             if (empty($order->checkout_url)) {
                 throw new RuntimeException(
@@ -111,7 +104,7 @@ class SaleController extends Controller
                 );
             }
 
-            /*
+            /**
              * Guardamos la relación entre nuestra venta
              * y la Order de Mercado Pago.
              */
@@ -119,13 +112,13 @@ class SaleController extends Controller
                 'mercadopago_order_id' => $order->id,
             ]);
 
-            /*
+            /**
              * El carrito solamente se vacía después de
              * crear correctamente la Order.
              */
             $request->session()->forget('cart');
 
-            /*
+            /**
              * Mandamos al comprador a Mercado Pago.
              */
             return redirect()->away(
@@ -264,52 +257,38 @@ class SaleController extends Controller
 
         $sale = Sale::create([
             'folio' => $this->generateFolio(),
-
             'mercadopago_order_id' => null,
-
             'customer_id' => $request
                 ->user()
                 ?->id,
-
             'subtotal' => $subtotal,
-
             'discount' => $discount,
-
             'total' => $total,
-
             'sales_channel' => 'web',
-
             'status' => 'pending',
-
             'notes' => null,
-
             'sold_at' => null,
         ]);
 
         foreach ($items as $item) {
             $sale->items()->create([
                 'product_id' => $item['product_id'],
-
                 'quantity' => $item['quantity'],
-
                 'unit_price' => $item['unit_price'],
-
                 'subtotal' => $item['subtotal'],
             ]);
         }
 
-        /*
+        /**
          * El pago todavía no está confirmado.
          *
          * Por eso:
-         *
          * - No se crea SalePayment.
          * - No se descuenta stock.
          *
          * Eso ocurrirá cuando Mercado Pago confirme
          * correctamente el pago mediante Webhook.
          */
-
         return $sale;
     }
 
