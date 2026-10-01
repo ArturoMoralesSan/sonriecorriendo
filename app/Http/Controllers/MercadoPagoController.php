@@ -33,14 +33,13 @@ class MercadoPagoController extends Controller
         $xRequestId = $request->header('x-request-id');
 
         /*
-         * IMPORTANTE:
-         *
          * Mercado Pago puede enviar data_id como query parameter.
          *
-         * NO hacemos strtolower() aquí.
-         *
+         * IMPORTANTE:
          * Conservamos exactamente el valor recibido.
+         * NO usamos strtolower() ni strtoupper().
          */
+
         $dataId = $request->query('data_id')
             ?? data_get($request->input('data'), 'id');
 
@@ -62,7 +61,7 @@ class MercadoPagoController extends Controller
         | 2. DATOS DE LA APLICACIÓN
         |--------------------------------------------------------------------------
         |
-        | Solo diagnóstico.
+        | Solo diagnóstico temporal.
         |
         */
 
@@ -106,9 +105,7 @@ class MercadoPagoController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $secret = config(
-            'services.mercadopago.webhook_secret'
-        );
+        $secret = config('services.mercadopago.webhook_secret');
 
         if (empty($secret)) {
             Log::error(
@@ -122,16 +119,20 @@ class MercadoPagoController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 5. PRUEBA DE FIRMA
+        | 5. DIAGNÓSTICO DE FIRMA
         |--------------------------------------------------------------------------
         |
-        | Comparamos:
+        | Mercado Pago envía:
         |
-        | 1. data_id original
-        | 2. data_id lowercase
-        | 3. data_id uppercase
+        | x-signature:
+        | ts=... ,v1=...
         |
-        | Esto es SOLO diagnóstico.
+        | El manifest utilizado por SDK 3.16.0 es:
+        |
+        | id:{data_id};request-id:{x-request-id};ts:{ts};
+        |
+        | Este bloque es temporal y sirve para comparar exactamente
+        | la firma recibida contra la firma calculada.
         |
         */
 
@@ -144,11 +145,8 @@ class MercadoPagoController extends Controller
                 null
             );
 
-            if ($key !== null) {
-                $signatureParts[strtolower(trim($key))] =
-                    $value !== null
-                        ? trim($value)
-                        : null;
+            if ($key !== null && $value !== null) {
+                $signatureParts[strtolower(trim($key))] = trim($value);
             }
         }
 
@@ -163,125 +161,55 @@ class MercadoPagoController extends Controller
                 ]
             );
         } else {
-            $dataIdOriginal = (string) $dataId;
-            $dataIdLower = strtolower($dataIdOriginal);
-            $dataIdUpper = strtoupper($dataIdOriginal);
-
             /*
             |--------------------------------------------------------------------------
-            | ORIGINAL
+            | MANIFEST EXACTO DEL SDK 3.16.0
             |--------------------------------------------------------------------------
             */
 
-            $manifestOriginal = sprintf(
+            $manifest = sprintf(
                 'id:%s;request-id:%s;ts:%s;',
-                $dataIdOriginal,
+                (string) $dataId,
                 $xRequestId,
                 $ts
             );
 
-            $signatureOriginal = hash_hmac(
-                'sha256',
-                $manifestOriginal,
-                $secret
-            );
-
             /*
             |--------------------------------------------------------------------------
-            | LOWERCASE
+            | HMAC CALCULADO
             |--------------------------------------------------------------------------
             */
 
-            $manifestLower = sprintf(
-                'id:%s;request-id:%s;ts:%s;',
-                $dataIdLower,
-                $xRequestId,
-                $ts
-            );
-
-            $signatureLower = hash_hmac(
+            $calculatedSignature = hash_hmac(
                 'sha256',
-                $manifestLower,
+                $manifest,
                 $secret
             );
 
-            /*
-            |--------------------------------------------------------------------------
-            | UPPERCASE
-            |--------------------------------------------------------------------------
-            */
-
-            $manifestUpper = sprintf(
-                'id:%s;request-id:%s;ts:%s;',
-                $dataIdUpper,
-                $xRequestId,
-                $ts
-            );
-
-            $signatureUpper = hash_hmac(
-                'sha256',
-                $manifestUpper,
-                $secret
-            );
-
-            /*
-            |--------------------------------------------------------------------------
-            | RESULTADO DEL TEST
-            |--------------------------------------------------------------------------
-            */
-
-            $originalMatches = hash_equals(
-                $signatureOriginal,
+            $signatureMatches = hash_equals(
+                $calculatedSignature,
                 $v1
             );
 
-            $lowerMatches = hash_equals(
-                $signatureLower,
-                $v1
-            );
-
-            $upperMatches = hash_equals(
-                $signatureUpper,
-                $v1
-            );
-
-            Log::info(
-                'Mercado Pago Signature Case Test',
-                [
-                    'data_id_original' => $dataIdOriginal,
-                    'data_id_lower' => $dataIdLower,
-                    'data_id_upper' => $dataIdUpper,
-
-                    'received_prefix' =>
-                        substr($v1, 0, 12) . '...',
-
-                    'original_prefix' =>
-                        substr($signatureOriginal, 0, 12) . '...',
-
-                    'lower_prefix' =>
-                        substr($signatureLower, 0, 12) . '...',
-
-                    'upper_prefix' =>
-                        substr($signatureUpper, 0, 12) . '...',
-
-                    'original_matches' =>
-                        $originalMatches,
-
-                    'lower_matches' =>
-                        $lowerMatches,
-
-                    'upper_matches' =>
-                        $upperMatches,
-                ]
-            );
+            Log::info('MP FIRMA DEBUG FINAL', [
+                'data_id' => $dataId,
+                'request_id' => $xRequestId,
+                'ts' => $ts,
+                'manifest' => $manifest,
+                'received_prefix' => substr($v1, 0, 12) . '...',
+                'calculated_prefix' => substr(
+                    $calculatedSignature,
+                    0,
+                    12
+                ) . '...',
+                'matches' => $signatureMatches,
+            ]);
         }
 
         /*
         |--------------------------------------------------------------------------
         | 6. VALIDAR FIRMA CON SDK
         |--------------------------------------------------------------------------
-        |
-        | IMPORTANTE:
         |
         | Mercado Pago SDK 3.16.0:
         |
@@ -291,8 +219,6 @@ class MercadoPagoController extends Controller
         |     dataId,
         |     secret
         | )
-        |
-        | El quinto parámetro NO es topic ni URI.
         |
         */
 
@@ -369,10 +295,9 @@ class MercadoPagoController extends Controller
             $orderClient = new OrderClient();
 
             /*
-             * IMPORTANTE:
-             *
              * Usamos el data_id ORIGINAL.
              */
+
             $order = $orderClient->get(
                 $dataId
             );
@@ -665,9 +590,6 @@ class MercadoPagoController extends Controller
                 |--------------------------------------------------------------------------
                 | 16. IDEMPOTENCIA
                 |--------------------------------------------------------------------------
-                |
-                | Mercado Pago puede enviar el mismo Webhook más de una vez.
-                |
                 */
 
                 if ($lockedSale->status === 'paid') {
