@@ -38,7 +38,7 @@ class MercadoPagoController extends Controller
         |
         | ?data.id=ORDTST...
         |
-        | Laravel normalmente puede exponerlo como:
+        | Laravel puede exponerlo como:
         |
         | data_id
         |
@@ -200,13 +200,6 @@ class MercadoPagoController extends Controller
         |--------------------------------------------------------------------------
         | Manifest de Mercado Pago
         |--------------------------------------------------------------------------
-        |
-        | Para la validación:
-        |
-        | id:<data_id>;
-        | request-id:<x-request-id>;
-        | ts:<timestamp>;
-        |
         */
 
         $lowerDataId = strtolower($dataId);
@@ -226,38 +219,84 @@ class MercadoPagoController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | DIAGNÓSTICO TEMPORAL DE FIRMA
+        | Diagnóstico avanzado de firma
         |--------------------------------------------------------------------------
         |
-        | NO registramos el Webhook Secret.
+        | No se registra el Webhook Secret.
         |
-        | Estos datos permiten comprobar exactamente qué está
-        | utilizando Laravel para construir el HMAC.
+        | Se prueban distintas variantes únicamente para determinar
+        | qué formato está utilizando Mercado Pago para generar v1.
         |
         */
 
+        $diagnosticCandidates = [
+            'actual' => $manifest,
+
+            'uppercase_id' => sprintf(
+                'id:%s;request-id:%s;ts:%s;',
+                $dataId,
+                $xRequestId,
+                $ts
+            ),
+
+            'without_request_id' => sprintf(
+                'id:%s;ts:%s;',
+                $lowerDataId,
+                $ts
+            ),
+
+            'without_trailing_semicolon' => sprintf(
+                'id:%s;request-id:%s;ts:%s',
+                $lowerDataId,
+                $xRequestId,
+                $ts
+            ),
+
+            'data_id_as_received' => sprintf(
+                'id:%s;request-id:%s;ts:%s;',
+                $dataId,
+                $xRequestId,
+                $ts
+            ),
+        ];
+
+        $diagnosticMatches = [];
+
+        foreach (
+            $diagnosticCandidates as $name => $candidate
+        ) {
+            $candidateHash = hash_hmac(
+                'sha256',
+                $candidate,
+                $secret
+            );
+
+            $diagnosticMatches[$name] = [
+                'hash_prefix' => substr(
+                    $candidateHash,
+                    0,
+                    8
+                ),
+                'matches' => hash_equals(
+                    $candidateHash,
+                    $v1
+                ),
+            ];
+        }
+
         Log::info(
-            'Mercado Pago diagnóstico firma',
+            'Mercado Pago diagnóstico firma avanzado',
             [
                 'data_id' => $dataId,
                 'data_id_lower' => $lowerDataId,
                 'x_request_id' => $xRequestId,
                 'ts' => $ts,
-                'manifest' => $manifest,
                 'received_signature_prefix' => substr(
                     $v1,
                     0,
                     8
                 ),
-                'calculated_signature_prefix' => substr(
-                    $calculatedSignature,
-                    0,
-                    8
-                ),
-                'signature_matches' => hash_equals(
-                    $calculatedSignature,
-                    $v1
-                ),
+                'candidates' => $diagnosticMatches,
             ]
         );
 
