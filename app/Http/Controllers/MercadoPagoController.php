@@ -22,7 +22,7 @@ class MercadoPagoController extends Controller
     {
         /*
         |--------------------------------------------------------------------------
-        | Headers de Mercado Pago
+        | Headers y request completo
         |--------------------------------------------------------------------------
         */
 
@@ -33,16 +33,6 @@ class MercadoPagoController extends Controller
         |--------------------------------------------------------------------------
         | data.id
         |--------------------------------------------------------------------------
-        |
-        | IMPORTANTE:
-        |
-        | Para la firma debemos utilizar específicamente el parámetro
-        | data.id de la URL.
-        |
-        | Ejemplo:
-        |
-        | ?data.id=ORDTST01M3TXZPDK7802MSPF2DWTKX6P&type=order
-        |
         */
 
         $dataId = $request->query('data.id');
@@ -66,6 +56,31 @@ class MercadoPagoController extends Controller
         $action = $request->input('action');
         $liveMode = $request->boolean('live_mode');
         $applicationId = $request->input('application_id');
+
+        /*
+        |--------------------------------------------------------------------------
+        | DEBUG COMPLETO DEL REQUEST
+        |--------------------------------------------------------------------------
+        */
+
+        Log::info('MERCADO PAGO WEBHOOK DEBUG COMPLETO', [
+            'full_url' => $request->fullUrl(),
+            'method' => $request->method(),
+
+            'query' => $request->query(),
+
+            'body' => $request->all(),
+
+            'headers' => [
+                'x-signature' => $xSignature,
+                'x-request-id' => $xRequestId,
+                'content-type' => $request->header('content-type'),
+                'user-agent' => $request->header('user-agent'),
+                'accept' => $request->header('accept'),
+            ],
+
+            'all_headers' => $request->headers->all(),
+        ]);
 
         /*
         |--------------------------------------------------------------------------
@@ -173,19 +188,12 @@ class MercadoPagoController extends Controller
         |--------------------------------------------------------------------------
         | Parsear x-signature
         |--------------------------------------------------------------------------
-        |
-        | Ejemplo:
-        |
-        | ts=1742505638683,v1=ced36ab...
-        |
         */
 
         $ts = null;
         $v1 = null;
 
-        foreach (
-            explode(',', $xSignature) as $part
-        ) {
+        foreach (explode(',', $xSignature) as $part) {
             $keyValue = explode(
                 '=',
                 trim($part),
@@ -213,6 +221,7 @@ class MercadoPagoController extends Controller
                 'Mercado Pago: x-signature inválida.',
                 [
                     'data_id' => $dataId,
+                    'x_signature' => $xSignature,
                 ]
             );
 
@@ -223,17 +232,8 @@ class MercadoPagoController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Validación HMAC oficial de Mercado Pago
+        | Manifest
         |--------------------------------------------------------------------------
-        |
-        | Manifest oficial:
-        |
-        | id:[data.id];request-id:[x-request-id];ts:[ts];
-        |
-        | IMPORTANTE:
-        |
-        | Mercado Pago indica que data.id debe utilizarse en minúsculas
-        | para la validación.
         */
 
         $manifest = sprintf(
@@ -243,11 +243,60 @@ class MercadoPagoController extends Controller
             $ts
         );
 
+        /*
+        |--------------------------------------------------------------------------
+        | HMAC
+        |--------------------------------------------------------------------------
+        */
+
         $calculatedSignature = hash_hmac(
             'sha256',
             $manifest,
             $secret
         );
+
+        /*
+        |--------------------------------------------------------------------------
+        | DEBUG COMPLETO HMAC
+        |--------------------------------------------------------------------------
+        |
+        | NO registramos el secret.
+        |
+        */
+
+        Log::info('MERCADO PAGO HMAC DEBUG COMPLETO', [
+            'data_id' => $dataId,
+            'data_id_lowercase' => strtolower($dataId),
+
+            'type' => $type,
+            'action' => $action,
+            'live_mode' => $liveMode,
+            'application_id' => $applicationId,
+
+            'x_request_id' => $xRequestId,
+
+            'ts' => $ts,
+
+            'x_signature' => $xSignature,
+
+            'parsed_v1' => $v1,
+
+            'manifest' => $manifest,
+
+            'calculated_signature' => $calculatedSignature,
+
+            'signatures_match' => hash_equals(
+                $calculatedSignature,
+                $v1
+            ),
+
+            'secret_length' => strlen($secret),
+
+            'secret_sha256' => hash(
+                'sha256',
+                $secret
+            ),
+        ]);
 
         /*
         |--------------------------------------------------------------------------
@@ -384,16 +433,6 @@ class MercadoPagoController extends Controller
                         'order_id' => $orderId,
                     ]
                 );
-
-                /*
-                |--------------------------------------------------------------------------
-                | Respondemos 200
-                |--------------------------------------------------------------------------
-                |
-                | La notificación fue recibida y validada correctamente,
-                | pero no existe una venta local asociada.
-                |
-                */
 
                 return response()->json([
                     'message' => 'Sale not found',
@@ -767,9 +806,7 @@ class MercadoPagoController extends Controller
                     */
 
                     $lockedSale->status = 'paid';
-
                     $lockedSale->sold_at = now();
-
                     $lockedSale->save();
                 }
             );
@@ -793,7 +830,6 @@ class MercadoPagoController extends Controller
                 'message' =>
                     'Webhook processed successfully',
             ], 200);
-
         } catch (MPApiException $e) {
             Log::error(
                 'Mercado Pago: error al consultar la Order.',
@@ -807,7 +843,6 @@ class MercadoPagoController extends Controller
                 'message' =>
                     'Mercado Pago API error',
             ], 502);
-
         } catch (Throwable $e) {
             Log::error(
                 'Mercado Pago: error procesando webhook.',
