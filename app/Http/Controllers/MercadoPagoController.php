@@ -27,7 +27,8 @@ class MercadoPagoController extends Controller
         $xRequestId = $request->headers->get('x-request-id');
 
         // Mercado Pago envía la clave literal "data.id" en el query string.
-        $dataId = $request->query('data.id');
+        $dataId = $request->query('data_id')
+        ?? data_get($request->input('data'), 'id');
         $dataId = strtolower($dataId);
 
         $secret = trim(
