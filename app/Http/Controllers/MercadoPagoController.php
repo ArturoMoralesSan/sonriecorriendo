@@ -30,29 +30,26 @@ class MercadoPagoController extends Controller
         $xRequestId = $request->header('x-request-id');
 
         /*
-         * Mercado Pago documenta el parámetro como:
-         *
-         * ?data.id=ORDTST...
-         *
-         * PHP/Laravel normalmente lo recibe como:
-         *
-         * data_id
-         *
-         * Por eso data_id es nuestra fuente principal.
-         */
+        |--------------------------------------------------------------------------
+        | Obtener data_id
+        |--------------------------------------------------------------------------
+        |
+        | Mercado Pago puede enviar:
+        |
+        | ?data.id=ORDTST...
+        |
+        | Laravel normalmente puede exponerlo como:
+        |
+        | data_id
+        |
+        */
 
         $dataId = $request->query('data_id');
 
-        /*
-         * Respaldo por si el framework conserva data.id literalmente.
-         */
         if ($dataId === null || $dataId === '') {
             $dataId = $request->query('data.id');
         }
 
-        /*
-         * Respaldo adicional por si viene dentro del JSON.
-         */
         if ($dataId === null || $dataId === '') {
             $dataId = data_get(
                 $request->input('data'),
@@ -146,10 +143,10 @@ class MercadoPagoController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Validación HMAC-SHA256
+        | Parsear x-signature
         |--------------------------------------------------------------------------
         |
-        | x-signature tiene una estructura similar a:
+        | Ejemplo:
         |
         | ts=123456789,v1=abcdef...
         |
@@ -158,10 +155,7 @@ class MercadoPagoController extends Controller
         $signatureParts = [];
 
         foreach (
-            explode(
-                ',',
-                (string) $xSignature
-            ) as $part
+            explode(',', (string) $xSignature) as $part
         ) {
             [$key, $value] = array_pad(
                 explode(
@@ -207,12 +201,7 @@ class MercadoPagoController extends Controller
         | Manifest de Mercado Pago
         |--------------------------------------------------------------------------
         |
-        | IMPORTANTE:
-        |
-        | Para IDs alfanuméricos de Order utilizamos data_id
-        | en minúsculas.
-        |
-        | Formato:
+        | Para la validación:
         |
         | id:<data_id>;
         | request-id:<x-request-id>;
@@ -220,9 +209,11 @@ class MercadoPagoController extends Controller
         |
         */
 
+        $lowerDataId = strtolower($dataId);
+
         $manifest = sprintf(
             'id:%s;request-id:%s;ts:%s;',
-            strtolower($dataId),
+            $lowerDataId,
             $xRequestId,
             $ts
         );
@@ -231,6 +222,43 @@ class MercadoPagoController extends Controller
             'sha256',
             $manifest,
             $secret
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | DIAGNÓSTICO TEMPORAL DE FIRMA
+        |--------------------------------------------------------------------------
+        |
+        | NO registramos el Webhook Secret.
+        |
+        | Estos datos permiten comprobar exactamente qué está
+        | utilizando Laravel para construir el HMAC.
+        |
+        */
+
+        Log::info(
+            'Mercado Pago diagnóstico firma',
+            [
+                'data_id' => $dataId,
+                'data_id_lower' => $lowerDataId,
+                'x_request_id' => $xRequestId,
+                'ts' => $ts,
+                'manifest' => $manifest,
+                'received_signature_prefix' => substr(
+                    $v1,
+                    0,
+                    8
+                ),
+                'calculated_signature_prefix' => substr(
+                    $calculatedSignature,
+                    0,
+                    8
+                ),
+                'signature_matches' => hash_equals(
+                    $calculatedSignature,
+                    $v1
+                ),
+            ]
         );
 
         /*
@@ -249,17 +277,11 @@ class MercadoPagoController extends Controller
                     'data_id' => $dataId,
                     'live_mode' => $liveMode,
                     'application_id' => $applicationId,
-
-                    /*
-                     * Solo mostramos prefijos para poder
-                     * diagnosticar sin exponer secretos.
-                     */
                     'received_signature_prefix' => substr(
                         $v1,
                         0,
                         8
                     ),
-
                     'calculated_signature_prefix' => substr(
                         $calculatedSignature,
                         0,
@@ -792,7 +814,9 @@ class MercadoPagoController extends Controller
                     */
 
                     $lockedSale->status = 'paid';
+
                     $lockedSale->sold_at = now();
+
                     $lockedSale->save();
                 }
             );
