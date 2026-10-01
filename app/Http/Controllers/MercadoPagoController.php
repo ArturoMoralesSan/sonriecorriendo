@@ -23,8 +23,23 @@ class MercadoPagoController extends Controller
      */
     public function webhook(Request $request): JsonResponse
     {
+
         $xSignature = $request->header('x-signature');
         $xRequestId = $request->header('x-request-id');
+
+        Log::info('Mercado Pago Signature Debug', [
+            'x_request_id' => $xRequestId,
+            'signature_prefix' => $xSignature
+                ? substr($xSignature, 0, 3) . '...'
+                : null,
+            'signature_has_ts' => $xSignature
+                ? str_contains($xSignature, 'ts=')
+                : false,
+            'signature_has_v1' => $xSignature
+                ? str_contains($xSignature, 'v1=')
+                : false,
+            'data_id' => $request->query('data_id'),
+        ]);
 
         $dataId = $request->query('data_id')
             ?? data_get($request->input('data'), 'id');
