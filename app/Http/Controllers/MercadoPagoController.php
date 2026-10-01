@@ -26,17 +26,45 @@ class MercadoPagoController extends Controller
         $xSignature = $request->header('x-signature');
         $xRequestId = $request->header('x-request-id');
 
+        /*
+        |--------------------------------------------------------------------------
+        | 1. DATOS DEL WEBHOOK
+        |--------------------------------------------------------------------------
+        */
+
+        $dataId = $request->query('data_id')
+            ?? data_get($request->input('data'), 'id');
+
         Log::info('Mercado Pago Signature Debug', [
             'x_request_id' => $xRequestId,
             'x_signature' => $xSignature,
             'data_id_dot' => $request->query('data.id'),
             'data_id_underscore' => $request->query('data_id'),
-            'body_data_id' => data_get($request->input('data'), 'id'),
+            'body_data_id' => data_get(
+                $request->input('data'),
+                'id'
+            ),
             'query' => $request->query(),
         ]);
 
-        $dataId = $request->query('data_id')
-            ?? data_get($request->input('data'), 'id');
+        /*
+        |--------------------------------------------------------------------------
+        | 2. IDENTIFICAR LA APLICACIÓN QUE GENERÓ EL WEBHOOK
+        |--------------------------------------------------------------------------
+        |
+        | Estos datos son únicamente de diagnóstico.
+        | No contienen el Access Token ni el Webhook Secret.
+        |
+        */
+
+        Log::info('Mercado Pago Application Debug', [
+            'application_id' => $request->input('application_id'),
+            'live_mode' => $request->input('live_mode'),
+            'user_id' => $request->input('user_id'),
+            'type' => $request->input('type'),
+            'action' => $request->input('action'),
+            'data_id' => $dataId,
+        ]);
 
         Log::info('Mercado Pago Webhook recibido', [
             'method' => $request->method(),
@@ -50,7 +78,7 @@ class MercadoPagoController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 1. VALIDAR DATOS DEL WEBHOOK
+        | 3. VALIDAR DATOS DEL WEBHOOK
         |--------------------------------------------------------------------------
         */
 
@@ -75,7 +103,7 @@ class MercadoPagoController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 2. WEBHOOK SECRET
+        | 4. WEBHOOK SECRET
         |--------------------------------------------------------------------------
         */
 
@@ -95,20 +123,12 @@ class MercadoPagoController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 3. DIAGNÓSTICO DIRECTO DE FIRMA
+        | 5. DIAGNÓSTICO DIRECTO DE FIRMA
         |--------------------------------------------------------------------------
         |
-        | Mercado Pago envía:
-        |
-        | x-signature:
-        | ts=...,v1=...
-        |
-        | El manifiesto oficial es:
+        | Mercado Pago:
         |
         | id:<data_id>;request-id:<x-request-id>;ts:<ts>;
-        |
-        | Este cálculo es solamente diagnóstico.
-        | La validación oficial del SDK se mantiene debajo.
         |
         */
 
@@ -122,7 +142,11 @@ class MercadoPagoController extends Controller
             );
 
             if ($key !== null) {
-                $signatureParts[$key] = $value;
+                $signatureParts[
+                    strtolower(trim($key))
+                ] = $value !== null
+                    ? trim($value)
+                    : null;
             }
         }
 
@@ -168,7 +192,7 @@ class MercadoPagoController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 4. VALIDAR FIRMA CON SDK
+        | 6. VALIDAR FIRMA CON SDK
         |--------------------------------------------------------------------------
         */
 
@@ -202,7 +226,7 @@ class MercadoPagoController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 5. CONSULTAR ORDER EN MERCADO PAGO
+        | 7. CONSULTAR ORDER EN MERCADO PAGO
         |--------------------------------------------------------------------------
         */
 
@@ -250,7 +274,7 @@ class MercadoPagoController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | 6. BUSCAR SALE
+            | 8. BUSCAR SALE
             |--------------------------------------------------------------------------
             */
 
@@ -290,7 +314,7 @@ class MercadoPagoController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | 7. VALIDAR ESTADO DE ORDER
+            | 9. VALIDAR ESTADO DE ORDER
             |--------------------------------------------------------------------------
             */
 
@@ -327,7 +351,7 @@ class MercadoPagoController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | 8. OBTENER PAYMENT
+            | 10. OBTENER PAYMENT
             |--------------------------------------------------------------------------
             */
 
@@ -361,7 +385,7 @@ class MercadoPagoController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | 9. DATOS DEL PAYMENT
+            | 11. DATOS DEL PAYMENT
             |--------------------------------------------------------------------------
             */
 
@@ -397,7 +421,7 @@ class MercadoPagoController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | 10. VALIDAR PAYMENT
+            | 12. VALIDAR PAYMENT
             |--------------------------------------------------------------------------
             */
 
@@ -429,7 +453,7 @@ class MercadoPagoController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | 11. VALIDAR MONTO
+            | 13. VALIDAR MONTO
             |--------------------------------------------------------------------------
             */
 
@@ -480,7 +504,7 @@ class MercadoPagoController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | 12. PROCESAR VENTA
+            | 14. PROCESAR VENTA
             |--------------------------------------------------------------------------
             */
 
@@ -523,13 +547,19 @@ class MercadoPagoController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
-                | 13. PAYMENT METHOD
+                | 15. PAYMENT METHOD
                 |--------------------------------------------------------------------------
                 */
 
                 $paymentMethod = PaymentMethod::query()
-                    ->where('code', 'mercadopago')
-                    ->where('is_active', true)
+                    ->where(
+                        'code',
+                        'mercadopago'
+                    )
+                    ->where(
+                        'is_active',
+                        true
+                    )
                     ->first();
 
                 if (! $paymentMethod) {
@@ -540,7 +570,7 @@ class MercadoPagoController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
-                | 14. EVITAR PAYMENT DUPLICADO
+                | 16. EVITAR PAYMENT DUPLICADO
                 |--------------------------------------------------------------------------
                 */
 
@@ -584,14 +614,15 @@ class MercadoPagoController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
-                | 15. OBTENER PRODUCTOS Y BLOQUEAR STOCK
+                | 17. OBTENER PRODUCTOS Y BLOQUEAR STOCK
                 |--------------------------------------------------------------------------
                 */
 
                 $lockedSale->load('items');
 
                 foreach ($lockedSale->items as $saleItem) {
-                    $product = $saleItem->product()
+                    $product = $saleItem
+                        ->product()
                         ->lockForUpdate()
                         ->first();
 
@@ -639,7 +670,7 @@ class MercadoPagoController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
-                | 16. MARCAR VENTA COMO PAGADA
+                | 18. MARCAR VENTA COMO PAGADA
                 |--------------------------------------------------------------------------
                 */
 
@@ -660,7 +691,7 @@ class MercadoPagoController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | 17. RESPUESTA EXITOSA
+            | 19. RESPUESTA EXITOSA
             |--------------------------------------------------------------------------
             */
 
