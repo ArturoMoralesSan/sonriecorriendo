@@ -23,7 +23,6 @@ class MercadoPagoController extends Controller
      */
     public function webhook(Request $request): JsonResponse
     {
-
         $xSignature = $request->header('x-signature');
         $xRequestId = $request->header('x-request-id');
 
@@ -44,12 +43,6 @@ class MercadoPagoController extends Controller
         $dataId = $request->query('data_id')
             ?? data_get($request->input('data'), 'id');
 
-        /*
-         * =========================================================
-         * DIAGNÓSTICO: WEBHOOK RECIBIDO
-         * =========================================================
-         */
-
         Log::info('Mercado Pago Webhook recibido', [
             'method' => $request->method(),
             'path' => $request->path(),
@@ -61,10 +54,10 @@ class MercadoPagoController extends Controller
         ]);
 
         /*
-         * =========================================================
-         * 1. VALIDAR DATOS DEL WEBHOOK
-         * =========================================================
-         */
+        |--------------------------------------------------------------------------
+        | 1. VALIDAR DATOS DEL WEBHOOK
+        |--------------------------------------------------------------------------
+        */
 
         if (
             empty($xSignature) ||
@@ -86,10 +79,10 @@ class MercadoPagoController extends Controller
         }
 
         /*
-         * =========================================================
-         * 2. WEBHOOK SECRET
-         * =========================================================
-         */
+        |--------------------------------------------------------------------------
+        | 2. WEBHOOK SECRET
+        |--------------------------------------------------------------------------
+        */
 
         $secret = config(
             'services.mercadopago.webhook_secret'
@@ -106,10 +99,83 @@ class MercadoPagoController extends Controller
         }
 
         /*
-         * =========================================================
-         * 3. VALIDAR FIRMA
-         * =========================================================
-         */
+        |--------------------------------------------------------------------------
+        | 3. DIAGNÓSTICO DIRECTO DE FIRMA
+        |--------------------------------------------------------------------------
+        |
+        | Mercado Pago envía:
+        |
+        | x-signature:
+        | ts=...,v1=...
+        |
+        | El manifiesto oficial es:
+        |
+        | id:<data_id>;request-id:<x-request-id>;ts:<ts>;
+        |
+        | Este cálculo es solamente diagnóstico.
+        | La validación oficial del SDK se mantiene debajo.
+        |
+        */
+
+        $signatureParts = [];
+
+        foreach (explode(',', $xSignature) as $part) {
+            [$key, $value] = array_pad(
+                explode('=', trim($part), 2),
+                2,
+                null
+            );
+
+            if ($key !== null) {
+                $signatureParts[$key] = $value;
+            }
+        }
+
+        $ts = $signatureParts['ts'] ?? null;
+        $v1 = $signatureParts['v1'] ?? null;
+
+        $manifest = sprintf(
+            'id:%s;request-id:%s;ts:%s;',
+            $dataId,
+            $xRequestId,
+            $ts
+        );
+
+        $calculatedSignature = hash_hmac(
+            'sha256',
+            $manifest,
+            $secret
+        );
+
+        $signatureMatches = $v1 !== null
+            ? hash_equals(
+                $calculatedSignature,
+                $v1
+            )
+            : false;
+
+        Log::info(
+            'Mercado Pago Signature Comparison',
+            [
+                'data_id' => $dataId,
+                'manifest' => $manifest,
+                'received_signature_prefix' => $v1
+                    ? substr($v1, 0, 8) . '...'
+                    : null,
+                'calculated_signature_prefix' => substr(
+                    $calculatedSignature,
+                    0,
+                    8
+                ) . '...',
+                'signature_matches' => $signatureMatches,
+            ]
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | 4. VALIDAR FIRMA CON SDK
+        |--------------------------------------------------------------------------
+        */
 
         try {
             WebhookSignatureValidator::validate(
@@ -140,10 +206,10 @@ class MercadoPagoController extends Controller
         }
 
         /*
-         * =========================================================
-         * 4. CONSULTAR ORDER EN MERCADO PAGO
-         * =========================================================
-         */
+        |--------------------------------------------------------------------------
+        | 5. CONSULTAR ORDER EN MERCADO PAGO
+        |--------------------------------------------------------------------------
+        */
 
         try {
             $accessToken = config(
@@ -188,10 +254,10 @@ class MercadoPagoController extends Controller
             );
 
             /*
-             * =====================================================
-             * 5. BUSCAR SALE
-             * =====================================================
-             */
+            |--------------------------------------------------------------------------
+            | 6. BUSCAR SALE
+            |--------------------------------------------------------------------------
+            */
 
             $sale = Sale::query()
                 ->where(
@@ -211,7 +277,6 @@ class MercadoPagoController extends Controller
                 return response()->json([
                     'message' =>
                         'Order recibida, pero no existe una Sale asociada.',
-
                     'order_id' =>
                         $order->id,
                 ], 200);
@@ -229,10 +294,10 @@ class MercadoPagoController extends Controller
             );
 
             /*
-             * =====================================================
-             * 6. VALIDAR ESTADO DE ORDER
-             * =====================================================
-             */
+            |--------------------------------------------------------------------------
+            | 7. VALIDAR ESTADO DE ORDER
+            |--------------------------------------------------------------------------
+            */
 
             $orderStatus = $order->status ?? null;
 
@@ -256,23 +321,20 @@ class MercadoPagoController extends Controller
                 return response()->json([
                     'message' =>
                         'La Order todavía no tiene un pago acreditado.',
-
                     'order_id' =>
                         $order->id,
-
                     'status' =>
                         $orderStatus,
-
                     'status_detail' =>
                         $orderStatusDetail,
                 ], 200);
             }
 
             /*
-             * =====================================================
-             * 7. OBTENER PAYMENT
-             * =====================================================
-             */
+            |--------------------------------------------------------------------------
+            | 8. OBTENER PAYMENT
+            |--------------------------------------------------------------------------
+            */
 
             $payments =
                 $order->transactions->payments ?? null;
@@ -303,10 +365,10 @@ class MercadoPagoController extends Controller
             }
 
             /*
-             * =====================================================
-             * 8. DATOS DEL PAYMENT
-             * =====================================================
-             */
+            |--------------------------------------------------------------------------
+            | 9. DATOS DEL PAYMENT
+            |--------------------------------------------------------------------------
+            */
 
             $paymentId = $payment->id ?? null;
 
@@ -339,10 +401,10 @@ class MercadoPagoController extends Controller
             );
 
             /*
-             * =====================================================
-             * 9. VALIDAR PAYMENT
-             * =====================================================
-             */
+            |--------------------------------------------------------------------------
+            | 10. VALIDAR PAYMENT
+            |--------------------------------------------------------------------------
+            */
 
             if (
                 $paymentStatus !== 'processed' ||
@@ -361,23 +423,20 @@ class MercadoPagoController extends Controller
                 return response()->json([
                     'message' =>
                         'El pago todavía no está acreditado.',
-
                     'payment_id' =>
                         $paymentId,
-
                     'status' =>
                         $paymentStatus,
-
                     'status_detail' =>
                         $paymentStatusDetail,
                 ], 200);
             }
 
             /*
-             * =====================================================
-             * 10. VALIDAR MONTO
-             * =====================================================
-             */
+            |--------------------------------------------------------------------------
+            | 11. VALIDAR MONTO
+            |--------------------------------------------------------------------------
+            */
 
             if ($paymentAmount === null) {
                 throw new RuntimeException(
@@ -406,13 +465,10 @@ class MercadoPagoController extends Controller
                 return response()->json([
                     'message' =>
                         'El monto del pago no coincide con el total de la venta.',
-
                     'payment_id' =>
                         $paymentId,
-
                     'payment_amount' =>
                         $paymentAmount,
-
                     'sale_total' =>
                         $saleTotal,
                 ], 422);
@@ -428,20 +484,16 @@ class MercadoPagoController extends Controller
             );
 
             /*
-             * =====================================================
-             * 11. PROCESAR VENTA
-             * =====================================================
-             */
+            |--------------------------------------------------------------------------
+            | 12. PROCESAR VENTA
+            |--------------------------------------------------------------------------
+            */
 
             DB::transaction(function () use (
                 $sale,
                 $paymentId,
                 $paymentAmount
             ) {
-                /*
-                 * Bloqueamos la venta para evitar
-                 * procesamiento duplicado del webhook.
-                 */
                 $lockedSale = Sale::query()
                     ->whereKey($sale->id)
                     ->lockForUpdate()
@@ -462,13 +514,6 @@ class MercadoPagoController extends Controller
                     ]
                 );
 
-                /*
-                 * Si ya fue pagada, no hacemos nada.
-                 *
-                 * Esto permite que Mercado Pago envíe
-                 * varias veces el mismo Webhook sin
-                 * descontar stock nuevamente.
-                 */
                 if ($lockedSale->status === 'paid') {
                     Log::info(
                         'Mercado Pago: venta ya estaba pagada.',
@@ -482,10 +527,10 @@ class MercadoPagoController extends Controller
                 }
 
                 /*
-                 * =====================================================
-                 * 12. PAYMENT METHOD
-                 * =====================================================
-                 */
+                |--------------------------------------------------------------------------
+                | 13. PAYMENT METHOD
+                |--------------------------------------------------------------------------
+                */
 
                 $paymentMethod = PaymentMethod::query()
                     ->where('code', 'mercadopago')
@@ -499,10 +544,10 @@ class MercadoPagoController extends Controller
                 }
 
                 /*
-                 * =====================================================
-                 * 13. EVITAR PAYMENT DUPLICADO
-                 * =====================================================
-                 */
+                |--------------------------------------------------------------------------
+                | 14. EVITAR PAYMENT DUPLICADO
+                |--------------------------------------------------------------------------
+                */
 
                 $existingPayment = $lockedSale
                     ->payments()
@@ -524,13 +569,10 @@ class MercadoPagoController extends Controller
                     $lockedSale->payments()->create([
                         'payment_method_id' =>
                             $paymentMethod->id,
-
                         'amount' =>
                             $paymentAmount,
-
                         'reference' =>
                             (string) $paymentId,
-
                         'notes' =>
                             'Pago acreditado mediante Mercado Pago.',
                     ]);
@@ -546,10 +588,10 @@ class MercadoPagoController extends Controller
                 }
 
                 /*
-                 * =====================================================
-                 * 14. OBTENER PRODUCTOS Y BLOQUEAR STOCK
-                 * =====================================================
-                 */
+                |--------------------------------------------------------------------------
+                | 15. OBTENER PRODUCTOS Y BLOQUEAR STOCK
+                |--------------------------------------------------------------------------
+                */
 
                 $lockedSale->load('items');
 
@@ -601,10 +643,10 @@ class MercadoPagoController extends Controller
                 }
 
                 /*
-                 * =====================================================
-                 * 15. MARCAR VENTA COMO PAGADA
-                 * =====================================================
-                 */
+                |--------------------------------------------------------------------------
+                | 16. MARCAR VENTA COMO PAGADA
+                |--------------------------------------------------------------------------
+                */
 
                 $lockedSale->update([
                     'status' => 'paid',
@@ -622,10 +664,10 @@ class MercadoPagoController extends Controller
             });
 
             /*
-             * =====================================================
-             * 16. RESPUESTA EXITOSA
-             * =====================================================
-             */
+            |--------------------------------------------------------------------------
+            | 17. RESPUESTA EXITOSA
+            |--------------------------------------------------------------------------
+            */
 
             Log::info(
                 'Mercado Pago Webhook procesado correctamente.',
@@ -639,16 +681,12 @@ class MercadoPagoController extends Controller
             return response()->json([
                 'message' =>
                     'Webhook procesado correctamente.',
-
                 'order_id' =>
                     $order->id,
-
                 'payment_id' =>
                     $paymentId,
-
                 'sale_id' =>
                     $sale->id,
-
                 'status' =>
                     'paid',
             ], 200);
