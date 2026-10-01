@@ -1,3 +1,4 @@
+```php
 <?php
 
 namespace App\Http\Controllers;
@@ -20,21 +21,9 @@ class MercadoPagoController extends Controller
      */
     public function webhook(Request $request): JsonResponse
     {
-        Log::info(
-            'Mercado Pago DEBUG URL',
-            [
-                'full_url' => $request->fullUrl(),
-                'query' => $request->query(),
-                'data_id_query' => $request->query('data.id'),
-                'data_id_underscore' => $request->query('data_id'),
-                'x_request_id' => $request->header('x-request-id'),
-                'x_signature' => $request->header('x-signature'),
-            ]
-        );
         /*
-
         |--------------------------------------------------------------------------
-        | Datos del webhook
+        | Headers de Mercado Pago
         |--------------------------------------------------------------------------
         */
 
@@ -43,23 +32,24 @@ class MercadoPagoController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Obtener data_id
+        | data.id
         |--------------------------------------------------------------------------
         |
-        | Mercado Pago puede enviar:
+        | IMPORTANTE:
         |
-        | ?data.id=ORDTST...
+        | Para la firma debemos utilizar específicamente el parámetro
+        | data.id de la URL.
         |
-        | Laravel puede exponerlo como:
+        | Ejemplo:
         |
-        | data_id
+        | ?data.id=ORDTST01M3TXZPDK7802MSPF2DWTKX6P&type=order
         |
         */
 
-        $dataId = $request->query('data_id');
+        $dataId = $request->query('data.id');
 
         if ($dataId === null || $dataId === '') {
-            $dataId = $request->query('data.id');
+            $dataId = $request->query('data_id');
         }
 
         if ($dataId === null || $dataId === '') {
@@ -78,22 +68,26 @@ class MercadoPagoController extends Controller
         $liveMode = $request->boolean('live_mode');
         $applicationId = $request->input('application_id');
 
-        Log::info(
-            'Mercado Pago Webhook recibido',
-            [
-                'data_id' => $dataId,
-                'type' => $type,
-                'action' => $action,
-                'live_mode' => $liveMode,
-                'application_id' => $applicationId,
-                'has_signature' => !empty($xSignature),
-                'has_request_id' => !empty($xRequestId),
-            ]
-        );
+        /*
+        |--------------------------------------------------------------------------
+        | Log inicial
+        |--------------------------------------------------------------------------
+        */
+
+        Log::info('Mercado Pago Webhook recibido', [
+            'full_url' => $request->fullUrl(),
+            'data_id' => $dataId,
+            'type' => $type,
+            'action' => $action,
+            'live_mode' => $liveMode,
+            'application_id' => $applicationId,
+            'x_request_id' => $xRequestId,
+            'has_signature' => !empty($xSignature),
+        ]);
 
         /*
         |--------------------------------------------------------------------------
-        | Credenciales
+        | Configuración
         |--------------------------------------------------------------------------
         */
 
@@ -114,43 +108,66 @@ class MercadoPagoController extends Controller
                 'Mercado Pago: Webhook Secret no configurado.'
             );
 
-            return response()->json(
-                [
-                    'message' => 'Webhook secret not configured',
-                ],
-                500
-            );
+            return response()->json([
+                'message' => 'Webhook secret not configured',
+            ], 500);
         }
 
         if ($dataId === null || $dataId === '') {
             Log::warning(
-                'Mercado Pago: webhook sin data_id.'
+                'Mercado Pago: webhook sin data.id.'
             );
 
-            return response()->json(
-                [
-                    'message' => 'Missing data_id',
-                ],
-                400
-            );
+            return response()->json([
+                'message' => 'Missing data.id',
+            ], 400);
         }
 
-        if (!$xSignature || !$xRequestId) {
+        if (!$xSignature) {
             Log::warning(
-                'Mercado Pago: faltan headers de firma.',
+                'Mercado Pago: falta x-signature.',
                 [
                     'data_id' => $dataId,
-                    'has_signature' => !empty($xSignature),
-                    'has_request_id' => !empty($xRequestId),
                 ]
             );
 
-            return response()->json(
+            return response()->json([
+                'message' => 'Missing x-signature',
+            ], 401);
+        }
+
+        if (!$xRequestId) {
+            Log::warning(
+                'Mercado Pago: falta x-request-id.',
                 [
-                    'message' => 'Missing signature headers',
-                ],
-                401
+                    'data_id' => $dataId,
+                ]
             );
+
+            return response()->json([
+                'message' => 'Missing x-request-id',
+            ], 401);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Solo procesamos Order
+        |--------------------------------------------------------------------------
+        */
+
+        if ($type !== 'order') {
+            Log::info(
+                'Mercado Pago Webhook ignorado.',
+                [
+                    'data_id' => $dataId,
+                    'type' => $type,
+                    'action' => $action,
+                ]
+            );
+
+            return response()->json([
+                'message' => 'Event ignored',
+            ], 200);
         }
 
         /*
@@ -160,65 +177,69 @@ class MercadoPagoController extends Controller
         |
         | Ejemplo:
         |
-        | ts=123456789,v1=abcdef...
+        | ts=1742505638683,v1=ced36ab...
         |
         */
 
-        $signatureParts = [];
+        $ts = null;
+        $v1 = null;
 
         foreach (
-            explode(',', (string) $xSignature) as $part
+            explode(',', $xSignature) as $part
         ) {
-            [$key, $value] = array_pad(
-                explode(
-                    '=',
-                    trim($part),
-                    2
-                ),
-                2,
-                null
+            $keyValue = explode(
+                '=',
+                trim($part),
+                2
             );
 
-            if (
-                $key !== null &&
-                $value !== null
-            ) {
-                $signatureParts[
-                    strtolower(trim($key))
-                ] = trim($value);
+            if (count($keyValue) !== 2) {
+                continue;
+            }
+
+            $key = trim($keyValue[0]);
+            $value = trim($keyValue[1]);
+
+            if ($key === 'ts') {
+                $ts = $value;
+            }
+
+            if ($key === 'v1') {
+                $v1 = $value;
             }
         }
 
-        $ts = $signatureParts['ts'] ?? null;
-        $v1 = $signatureParts['v1'] ?? null;
-
         if (!$ts || !$v1) {
             Log::warning(
-                'Mercado Pago: x-signature no contiene ts/v1.',
+                'Mercado Pago: x-signature inválida.',
                 [
                     'data_id' => $dataId,
                 ]
             );
 
-            return response()->json(
-                [
-                    'message' => 'Invalid signature format',
-                ],
-                401
-            );
+            return response()->json([
+                'message' => 'Invalid x-signature',
+            ], 401);
         }
 
         /*
         |--------------------------------------------------------------------------
-        | Manifest de Mercado Pago
+        | Validación HMAC oficial de Mercado Pago
         |--------------------------------------------------------------------------
+        |
+        | Manifest oficial:
+        |
+        | id:[data.id];request-id:[x-request-id];ts:[ts];
+        |
+        | IMPORTANTE:
+        |
+        | Mercado Pago indica que data.id debe utilizarse en minúsculas
+        | para la validación.
         */
-
-        $lowerDataId = strtolower($dataId);
 
         $manifest = sprintf(
             'id:%s;request-id:%s;ts:%s;',
-            $lowerDataId,
+            strtolower($dataId),
             $xRequestId,
             $ts
         );
@@ -229,110 +250,9 @@ class MercadoPagoController extends Controller
             $secret
         );
 
-        $secretFingerprint = hash(
-            'sha256',
-            $secret
-        );
-
-        Log::info(
-            'Mercado Pago diagnóstico secreto',
-            [
-                'secret_length' => strlen($secret),
-                'secret_fingerprint' => substr(
-                    $secretFingerprint,
-                    0,
-                    16
-                ),
-            ]
-        );
-
         /*
         |--------------------------------------------------------------------------
-        | Diagnóstico avanzado de firma
-        |--------------------------------------------------------------------------
-        |
-        | No se registra el Webhook Secret.
-        |
-        | Se prueban distintas variantes únicamente para determinar
-        | qué formato está utilizando Mercado Pago para generar v1.
-        |
-        */
-
-
-        $diagnosticCandidates = [
-            'actual' => $manifest,
-
-            'uppercase_id' => sprintf(
-                'id:%s;request-id:%s;ts:%s;',
-                $dataId,
-                $xRequestId,
-                $ts
-            ),
-
-            'without_request_id' => sprintf(
-                'id:%s;ts:%s;',
-                $lowerDataId,
-                $ts
-            ),
-
-            'without_trailing_semicolon' => sprintf(
-                'id:%s;request-id:%s;ts:%s',
-                $lowerDataId,
-                $xRequestId,
-                $ts
-            ),
-
-            'data_id_as_received' => sprintf(
-                'id:%s;request-id:%s;ts:%s;',
-                $dataId,
-                $xRequestId,
-                $ts
-            ),
-        ];
-
-        $diagnosticMatches = [];
-
-        foreach (
-            $diagnosticCandidates as $name => $candidate
-        ) {
-            $candidateHash = hash_hmac(
-                'sha256',
-                $candidate,
-                $secret
-            );
-
-            $diagnosticMatches[$name] = [
-                'hash_prefix' => substr(
-                    $candidateHash,
-                    0,
-                    8
-                ),
-                'matches' => hash_equals(
-                    $candidateHash,
-                    $v1
-                ),
-            ];
-        }
-
-        Log::info(
-            'Mercado Pago diagnóstico firma avanzado',
-            [
-                'data_id' => $dataId,
-                'data_id_lower' => $lowerDataId,
-                'x_request_id' => $xRequestId,
-                'ts' => $ts,
-                'received_signature_prefix' => substr(
-                    $v1,
-                    0,
-                    8
-                ),
-                'candidates' => $diagnosticMatches,
-            ]
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | Validar firma
+        | Comparar firma
         |--------------------------------------------------------------------------
         */
 
@@ -341,11 +261,11 @@ class MercadoPagoController extends Controller
             $v1
         )) {
             Log::warning(
-                'Mercado Pago Webhook firma inválida.',
+                'Mercado Pago: firma HMAC inválida.',
                 [
                     'data_id' => $dataId,
-                    'live_mode' => $liveMode,
-                    'application_id' => $applicationId,
+                    'request_id' => $xRequestId,
+                    'ts' => $ts,
                     'received_signature_prefix' => substr(
                         $v1,
                         0,
@@ -359,46 +279,19 @@ class MercadoPagoController extends Controller
                 ]
             );
 
-            return response()->json(
-                [
-                    'message' => 'Invalid webhook signature',
-                ],
-                401
-            );
+            return response()->json([
+                'message' => 'Invalid webhook signature',
+            ], 401);
         }
 
         Log::info(
-            'Mercado Pago Webhook firma validada.',
+            'Mercado Pago: firma HMAC validada.',
             [
                 'data_id' => $dataId,
-                'live_mode' => $liveMode,
-                'application_id' => $applicationId,
+                'request_id' => $xRequestId,
+                'ts' => $ts,
             ]
         );
-
-        /*
-        |--------------------------------------------------------------------------
-        | Solo procesamos eventos Order
-        |--------------------------------------------------------------------------
-        */
-
-        if ($type !== 'order') {
-            Log::info(
-                'Mercado Pago Webhook ignorado: tipo no soportado.',
-                [
-                    'data_id' => $dataId,
-                    'type' => $type,
-                    'action' => $action,
-                ]
-            );
-
-            return response()->json(
-                [
-                    'message' => 'Event ignored',
-                ],
-                200
-            );
-        }
 
         /*
         |--------------------------------------------------------------------------
@@ -411,18 +304,15 @@ class MercadoPagoController extends Controller
                 'Mercado Pago: Access Token no configurado.'
             );
 
-            return response()->json(
-                [
-                    'message' => 'Access token not configured',
-                ],
-                500
-            );
+            return response()->json([
+                'message' => 'Access token not configured',
+            ], 500);
         }
 
         try {
             /*
             |--------------------------------------------------------------------------
-            | Configuración SDK
+            | Configurar SDK
             |--------------------------------------------------------------------------
             */
 
@@ -442,23 +332,20 @@ class MercadoPagoController extends Controller
 
             if (!$order) {
                 Log::error(
-                    'Mercado Pago: no se encontró la Order.',
+                    'Mercado Pago: Order no encontrada.',
                     [
                         'data_id' => $dataId,
                     ]
                 );
 
-                return response()->json(
-                    [
-                        'message' => 'Order not found',
-                    ],
-                    404
-                );
+                return response()->json([
+                    'message' => 'Order not found',
+                ], 404);
             }
 
             /*
             |--------------------------------------------------------------------------
-            | Datos principales de la Order
+            | Datos de Order
             |--------------------------------------------------------------------------
             */
 
@@ -472,7 +359,7 @@ class MercadoPagoController extends Controller
                 $order->status_detail ?? null;
 
             Log::info(
-                'Mercado Pago Order consultada.',
+                'Mercado Pago: Order consultada.',
                 [
                     'order_id' => $orderId,
                     'status' => $orderStatus,
@@ -482,7 +369,7 @@ class MercadoPagoController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | Buscar venta
+            | Buscar Sale
             |--------------------------------------------------------------------------
             */
 
@@ -499,23 +386,30 @@ class MercadoPagoController extends Controller
                     ]
                 );
 
-                return response()->json(
-                    [
-                        'message' => 'Sale not found',
-                    ],
-                    200
-                );
+                /*
+                |--------------------------------------------------------------------------
+                | Respondemos 200
+                |--------------------------------------------------------------------------
+                |
+                | La notificación fue recibida y validada correctamente,
+                | pero no existe una venta local asociada.
+                |
+                */
+
+                return response()->json([
+                    'message' => 'Sale not found',
+                ], 200);
             }
 
             /*
             |--------------------------------------------------------------------------
-            | Validar Order
+            | Validar estado de Order
             |--------------------------------------------------------------------------
             */
 
             if ($orderStatus !== 'processed') {
-                Log::warning(
-                    'Mercado Pago: Order todavía no está procesada.',
+                Log::info(
+                    'Mercado Pago: Order todavía no procesada.',
                     [
                         'order_id' => $orderId,
                         'status' => $orderStatus,
@@ -524,17 +418,14 @@ class MercadoPagoController extends Controller
                     ]
                 );
 
-                return response()->json(
-                    [
-                        'message' => 'Order not processed',
-                    ],
-                    200
-                );
+                return response()->json([
+                    'message' => 'Order not processed',
+                ], 200);
             }
 
             if ($orderStatusDetail !== 'accredited') {
-                Log::warning(
-                    'Mercado Pago: Order no está acreditada.',
+                Log::info(
+                    'Mercado Pago: Order no acreditada.',
                     [
                         'order_id' => $orderId,
                         'status' => $orderStatus,
@@ -543,12 +434,9 @@ class MercadoPagoController extends Controller
                     ]
                 );
 
-                return response()->json(
-                    [
-                        'message' => 'Order not accredited',
-                    ],
-                    200
-                );
+                return response()->json([
+                    'message' => 'Order not accredited',
+                ], 200);
             }
 
             /*
@@ -569,13 +457,16 @@ class MercadoPagoController extends Controller
                     ]
                 );
 
-                return response()->json(
-                    [
-                        'message' => 'No payments',
-                    ],
-                    200
-                );
+                return response()->json([
+                    'message' => 'No payments',
+                ], 200);
             }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Payment
+            |--------------------------------------------------------------------------
+            */
 
             $payment = $payments[0];
 
@@ -595,7 +486,7 @@ class MercadoPagoController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | Validar payment
+            | Validar Payment
             |--------------------------------------------------------------------------
             */
 
@@ -608,17 +499,14 @@ class MercadoPagoController extends Controller
                     ]
                 );
 
-                return response()->json(
-                    [
-                        'message' => 'Payment ID missing',
-                    ],
-                    200
-                );
+                return response()->json([
+                    'message' => 'Payment ID missing',
+                ], 200);
             }
 
             if ($paymentStatus !== 'processed') {
-                Log::warning(
-                    'Mercado Pago: payment no procesado.',
+                Log::info(
+                    'Mercado Pago: payment todavía no procesado.',
                     [
                         'order_id' => $orderId,
                         'payment_id' => $paymentId,
@@ -628,16 +516,13 @@ class MercadoPagoController extends Controller
                     ]
                 );
 
-                return response()->json(
-                    [
-                        'message' => 'Payment not processed',
-                    ],
-                    200
-                );
+                return response()->json([
+                    'message' => 'Payment not processed',
+                ], 200);
             }
 
             if ($paymentStatusDetail !== 'accredited') {
-                Log::warning(
+                Log::info(
                     'Mercado Pago: payment no acreditado.',
                     [
                         'order_id' => $orderId,
@@ -648,12 +533,9 @@ class MercadoPagoController extends Controller
                     ]
                 );
 
-                return response()->json(
-                    [
-                        'message' => 'Payment not accredited',
-                    ],
-                    200
-                );
+                return response()->json([
+                    'message' => 'Payment not accredited',
+                ], 200);
             }
 
             /*
@@ -680,12 +562,9 @@ class MercadoPagoController extends Controller
                     ]
                 );
 
-                return response()->json(
-                    [
-                        'message' => 'Payment amount mismatch',
-                    ],
-                    400
-                );
+                return response()->json([
+                    'message' => 'Payment amount mismatch',
+                ], 400);
             }
 
             /*
@@ -703,7 +582,7 @@ class MercadoPagoController extends Controller
                 ) {
                     /*
                     |--------------------------------------------------------------------------
-                    | Bloquear venta
+                    | Bloquear Sale
                     |--------------------------------------------------------------------------
                     */
 
@@ -802,7 +681,7 @@ class MercadoPagoController extends Controller
 
                     /*
                     |--------------------------------------------------------------------------
-                    | Descontar inventario
+                    | Obtener items
                     |--------------------------------------------------------------------------
                     */
 
@@ -810,6 +689,12 @@ class MercadoPagoController extends Controller
                         ->items()
                         ->with('product')
                         ->get();
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Descontar inventario
+                    |--------------------------------------------------------------------------
+                    */
 
                     foreach ($items as $item) {
                         $product = $item->product;
@@ -856,7 +741,7 @@ class MercadoPagoController extends Controller
 
                     /*
                     |--------------------------------------------------------------------------
-                    | Registrar payment
+                    | Registrar Payment
                     |--------------------------------------------------------------------------
                     */
 
@@ -878,7 +763,7 @@ class MercadoPagoController extends Controller
 
                     /*
                     |--------------------------------------------------------------------------
-                    | Marcar venta como pagada
+                    | Marcar Sale como pagada
                     |--------------------------------------------------------------------------
                     */
 
@@ -905,13 +790,11 @@ class MercadoPagoController extends Controller
                 ]
             );
 
-            return response()->json(
-                [
-                    'message' =>
-                        'Webhook processed successfully',
-                ],
-                200
-            );
+            return response()->json([
+                'message' =>
+                    'Webhook processed successfully',
+            ], 200);
+
         } catch (MPApiException $e) {
             Log::error(
                 'Mercado Pago: error al consultar la Order.',
@@ -921,13 +804,11 @@ class MercadoPagoController extends Controller
                 ]
             );
 
-            return response()->json(
-                [
-                    'message' =>
-                        'Mercado Pago API error',
-                ],
-                502
-            );
+            return response()->json([
+                'message' =>
+                    'Mercado Pago API error',
+            ], 502);
+
         } catch (Throwable $e) {
             Log::error(
                 'Mercado Pago: error procesando webhook.',
@@ -939,13 +820,10 @@ class MercadoPagoController extends Controller
                 ]
             );
 
-            return response()->json(
-                [
-                    'message' =>
-                        'Webhook processing error',
-                ],
-                500
-            );
+            return response()->json([
+                'message' =>
+                    'Webhook processing error',
+            ], 500);
         }
     }
 }
