@@ -217,6 +217,23 @@ class MercadoPagoController extends Controller
             $secret
         );
 
+        $secretFingerprint = hash(
+            'sha256',
+            $secret
+        );
+
+        Log::info(
+            'Mercado Pago diagnóstico secreto',
+            [
+                'secret_length' => strlen($secret),
+                'secret_fingerprint' => substr(
+                    $secretFingerprint,
+                    0,
+                    16
+                ),
+            ]
+        );
+
         /*
         |--------------------------------------------------------------------------
         | Diagnóstico avanzado de firma
@@ -228,6 +245,7 @@ class MercadoPagoController extends Controller
         | qué formato está utilizando Mercado Pago para generar v1.
         |
         */
+
 
         $diagnosticCandidates = [
             'actual' => $manifest,
