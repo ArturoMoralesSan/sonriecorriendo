@@ -9,374 +9,677 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use MercadoPago\Client\Order\OrderClient;
-use MercadoPago\Exceptions\InvalidWebhookSignatureException;
 use MercadoPago\Exceptions\MPApiException;
 use MercadoPago\MercadoPagoConfig;
-use MercadoPago\Webhook\WebhookSignatureValidator; // OJO: "Webhook", no "WebHook"
-use RuntimeException;
 use Throwable;
 
 class MercadoPagoController extends Controller
 {
     /**
-     * Recibe y procesa las notificaciones Webhook de Mercado Pago (Orders API).
+     * Webhook de Mercado Pago.
      */
     public function webhook(Request $request): JsonResponse
     {
+        /*
+        |--------------------------------------------------------------------------
+        | Datos del webhook
+        |--------------------------------------------------------------------------
+        */
+
         $xSignature = $request->header('x-signature');
         $xRequestId = $request->header('x-request-id');
 
+        /*
+         * Mercado Pago envía data_id como query parameter:
+         *
+         * ?data_id=ORDTST...
+         *
+         * Algunos payloads también contienen data.id.
+         * Usamos ambos como respaldo, pero NO usamos data.id
+         * como query "data.id".
+         */
         $dataId = $request->query('data_id')
-            ?? $request->query('data.id')
             ?? data_get($request->input('data'), 'id');
 
-        $dataId = $dataId !== null ? trim((string) $dataId) : null;
+        $dataId = $dataId !== null
+            ? trim((string) $dataId)
+            : null;
 
         $type = $request->input('type');
         $action = $request->input('action');
+        $liveMode = $request->boolean('live_mode');
+        $applicationId = $request->input('application_id');
 
         Log::info('Mercado Pago Webhook recibido', [
             'data_id' => $dataId,
             'type' => $type,
             'action' => $action,
-            'live_mode' => $request->input('live_mode'),
-            'application_id' => $request->input('application_id'),
-            'has_signature' => ! empty($xSignature),
-            'has_request_id' => ! empty($xRequestId),
+            'live_mode' => $liveMode,
+            'application_id' => $applicationId,
+            'has_signature' => !empty($xSignature),
+            'has_request_id' => !empty($xRequestId),
         ]);
 
         /*
-        |----------------------------------------------------------------------
-        | 1. Validar datos mínimos
-        |----------------------------------------------------------------------
+        |--------------------------------------------------------------------------
+        | Credenciales
+        |--------------------------------------------------------------------------
         */
 
-        if (empty($xSignature) || empty($xRequestId) || empty($dataId)) {
-            Log::warning('Mercado Pago Webhook rechazado: datos incompletos.', [
-                'has_signature' => ! empty($xSignature),
-                'has_request_id' => ! empty($xRequestId),
-                'data_id' => $dataId,
-            ]);
+        $secret = trim(
+            (string) config('services.mercadopago.webhook_secret')
+        );
 
-            return response()->json(['message' => 'Datos de Webhook incompletos.'], 400);
-        }
-
-        $secret = trim((string) config('services.mercadopago.webhook_secret'));
+        $accessToken = trim(
+            (string) config('services.mercadopago.access_token')
+        );
 
         if ($secret === '') {
-            Log::error('Mercado Pago Webhook: Webhook Secret no configurado.');
+            Log::error('Mercado Pago: Webhook Secret no configurado.');
 
-            return response()->json(['message' => 'Webhook secret no configurado.'], 500);
+            return response()->json([
+                'message' => 'Webhook secret not configured',
+            ], 500);
+        }
+
+        if ($dataId === null || $dataId === '') {
+            Log::warning(
+                'Mercado Pago: webhook sin data_id.'
+            );
+
+            return response()->json([
+                'message' => 'Missing data_id',
+            ], 400);
+        }
+
+        if (!$xSignature || !$xRequestId) {
+            Log::warning(
+                'Mercado Pago: faltan headers de firma.',
+                [
+                    'data_id' => $dataId,
+                    'has_signature' => !empty($xSignature),
+                    'has_request_id' => !empty($xRequestId),
+                ]
+            );
+
+            return response()->json([
+                'message' => 'Missing signature headers',
+            ], 401);
         }
 
         /*
-        |----------------------------------------------------------------------
-        | 2. Validar firma con el SDK
-        |----------------------------------------------------------------------
+        |--------------------------------------------------------------------------
+        | Validación HMAC-SHA256
+        |--------------------------------------------------------------------------
         |
-        | Mercado Pago indica que un data.id alfanumérico va en minúsculas en
-        | el manifest. Se prueba primero con minúsculas y, si falla, con el
-        | ID original. Se registra cuál variante funcionó para dejar de adivinar.
+        | Mercado Pago utiliza:
+        |
+        | id:<data_id>;request-id:<x-request-id>;ts:<timestamp>;
+        |
+        | firmado con HMAC SHA-256 usando el Webhook Secret.
         |
         */
 
-        $variants = array_values(array_unique([
-            'lowercase' => strtolower($dataId),
-            'original' => $dataId,
-        ]));
+        $signatureParts = [];
 
-        $validatedWith = null;
-        $lastMessage = null;
+        foreach (explode(',', (string) $xSignature) as $part) {
+            [$key, $value] = array_pad(
+                explode('=', trim($part), 2),
+                2,
+                null
+            );
 
-        foreach ($variants as $candidate) {
-            try {
-                WebhookSignatureValidator::validate(
-                    $xSignature,
-                    $xRequestId,
-                    $candidate,
-                    $secret
-                );
-
-                $validatedWith = $candidate === $dataId && $candidate !== strtolower($dataId)
-                    ? 'original'
-                    : 'lowercase';
-
-                break;
-            } catch (InvalidWebhookSignatureException $exception) {
-                $lastMessage = $exception->getMessage();
-            } catch (Throwable $exception) {
-                Log::error('Mercado Pago Webhook: error al validar la firma.', [
-                    'data_id' => $dataId,
-                    'exception' => get_class($exception),
-                    'message' => $exception->getMessage(),
-                ]);
-
-                return response()->json(['message' => 'Error al validar el Webhook.'], 500);
+            if ($key !== null && $value !== null) {
+                $signatureParts[strtolower(trim($key))] = trim($value);
             }
         }
 
-        if ($validatedWith === null) {
-            Log::warning('Mercado Pago Webhook firma inválida.', [
-                'data_id' => $dataId,
-                'message' => $lastMessage,
-                'live_mode' => $request->input('live_mode'),
-                'application_id' => $request->input('application_id'),
-            ]);
+        $ts = $signatureParts['ts'] ?? null;
+        $v1 = $signatureParts['v1'] ?? null;
 
-            return response()->json(['message' => 'Firma de Webhook inválida.'], 401);
+        if (!$ts || !$v1) {
+            Log::warning(
+                'Mercado Pago: x-signature no contiene ts/v1.',
+                [
+                    'data_id' => $dataId,
+                ]
+            );
+
+            return response()->json([
+                'message' => 'Invalid signature format',
+            ], 401);
         }
 
-        Log::info('Mercado Pago Webhook firma validada.', [
-            'data_id' => $dataId,
-            'validated_with' => $validatedWith,
-        ]);
+        /*
+         * IMPORTANTE:
+         *
+         * NO convertir data_id a lowercase.
+         * NO modificar x-request-id.
+         * NO modificar ts.
+         */
+
+        $manifest = sprintf(
+            'id:%s;request-id:%s;ts:%s;',
+            $dataId,
+            $xRequestId,
+            $ts
+        );
+
+        $calculatedSignature = hash_hmac(
+            'sha256',
+            $manifest,
+            $secret
+        );
+
+        if (!hash_equals($calculatedSignature, $v1)) {
+            Log::warning(
+                'Mercado Pago Webhook firma inválida.',
+                [
+                    'data_id' => $dataId,
+                    'live_mode' => $liveMode,
+                    'application_id' => $applicationId,
+                ]
+            );
+
+            return response()->json([
+                'message' => 'Invalid webhook signature',
+            ], 401);
+        }
+
+        Log::info(
+            'Mercado Pago Webhook firma validada.',
+            [
+                'data_id' => $dataId,
+                'live_mode' => $liveMode,
+                'application_id' => $applicationId,
+            ]
+        );
 
         /*
-        |----------------------------------------------------------------------
-        | 3. Solo procesamos Orders
-        |----------------------------------------------------------------------
+        |--------------------------------------------------------------------------
+        | Solo procesamos eventos Order
+        |--------------------------------------------------------------------------
         */
 
         if ($type !== 'order') {
-            Log::info('Mercado Pago Webhook ignorado.', [
-                'type' => $type,
-                'action' => $action,
-                'data_id' => $dataId,
-            ]);
+            Log::info(
+                'Mercado Pago Webhook ignorado: tipo no soportado.',
+                [
+                    'data_id' => $dataId,
+                    'type' => $type,
+                    'action' => $action,
+                ]
+            );
 
-            return response()->json(['message' => 'Webhook recibido.'], 200);
+            return response()->json([
+                'message' => 'Event ignored',
+            ], 200);
         }
 
         /*
-        |----------------------------------------------------------------------
-        | 4. Consultar la Order y procesar
-        |----------------------------------------------------------------------
+        |--------------------------------------------------------------------------
+        | Access Token
+        |--------------------------------------------------------------------------
         */
 
-        try {
-            $accessToken = trim((string) config('services.mercadopago.access_token'));
+        if ($accessToken === '') {
+            Log::error(
+                'Mercado Pago: Access Token no configurado.'
+            );
 
-            if ($accessToken === '') {
-                throw new RuntimeException('Mercado Pago Access Token no está configurado.');
-            }
+            return response()->json([
+                'message' => 'Access token not configured',
+            ], 500);
+        }
+
+        try {
+            /*
+            |--------------------------------------------------------------------------
+            | Configuración SDK
+            |--------------------------------------------------------------------------
+            */
 
             MercadoPagoConfig::setAccessToken($accessToken);
 
-            // Para consultar la API se usa el ID ORIGINAL (no el de minúsculas).
-            $order = (new OrderClient())->get($dataId);
+            /*
+            |--------------------------------------------------------------------------
+            | Consultar Order
+            |--------------------------------------------------------------------------
+            */
 
-            if (! $order || empty($order->id)) {
-                throw new RuntimeException('Mercado Pago no devolvió información de la Order.');
-            }
+            $client = new OrderClient();
 
-            $orderId = (string) $order->id;
+            $order = $client->get($dataId);
 
-            $sale = Sale::query()
-                ->where('mercadopago_order_id', $orderId)
-                ->first();
+            if (!$order) {
+                Log::error(
+                    'Mercado Pago: no se encontró la Order.',
+                    [
+                        'data_id' => $dataId,
+                    ]
+                );
 
-            if (! $sale) {
-                Log::warning('Mercado Pago Order sin Sale asociada.', ['order_id' => $orderId]);
-
-                // 200 para evitar reintentos infinitos.
                 return response()->json([
-                    'message' => 'Order recibida, pero no existe una Sale asociada.',
-                    'order_id' => $orderId,
-                ], 200);
+                    'message' => 'Order not found',
+                ], 404);
             }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Datos principales de la Order
+            |--------------------------------------------------------------------------
+            */
+
+            $orderId = (string) ($order->id ?? $dataId);
 
             $orderStatus = $order->status ?? null;
             $orderStatusDetail = $order->status_detail ?? null;
 
-            if ($orderStatus !== 'processed' || $orderStatusDetail !== 'accredited') {
-                Log::info('Mercado Pago Order todavía no acreditada.', [
+            Log::info(
+                'Mercado Pago Order consultada.',
+                [
                     'order_id' => $orderId,
                     'status' => $orderStatus,
                     'status_detail' => $orderStatusDetail,
-                ]);
+                ]
+            );
 
+            /*
+            |--------------------------------------------------------------------------
+            | Buscar venta
+            |--------------------------------------------------------------------------
+            */
+
+            $sale = Sale::where(
+                'mercadopago_order_id',
+                $orderId
+            )->first();
+
+            if (!$sale) {
+                Log::warning(
+                    'Mercado Pago: venta no encontrada.',
+                    [
+                        'order_id' => $orderId,
+                    ]
+                );
+
+                /*
+                 * Respondemos 200 para evitar que Mercado Pago
+                 * reintente indefinidamente un evento de una
+                 * Order que no pertenece a nuestro sistema.
+                 */
                 return response()->json([
-                    'message' => 'La Order todavía no tiene un pago acreditado.',
-                    'order_id' => $orderId,
+                    'message' => 'Sale not found',
                 ], 200);
             }
 
             /*
-            | Primer pago de la Order.
+            |--------------------------------------------------------------------------
+            | Validar Order
+            |--------------------------------------------------------------------------
             */
 
-            $payments = data_get($order, 'transactions.payments');
-
-            $payment = null;
-
-            if (is_array($payments)) {
-                $payment = $payments[0] ?? null;
-            } elseif ($payments instanceof \Traversable) {
-                foreach ($payments as $item) {
-                    $payment = $item;
-                    break;
-                }
-            }
-
-            if (! $payment) {
-                throw new RuntimeException('Mercado Pago no devolvió información del pago.');
-            }
-
-            $paymentId = data_get($payment, 'id');
-            $paymentStatus = data_get($payment, 'status');
-            $paymentStatusDetail = data_get($payment, 'status_detail');
-
-            if (empty($paymentId)) {
-                throw new RuntimeException('Mercado Pago no devolvió el ID del pago.');
-            }
-
-            if ($paymentStatus !== 'processed' || $paymentStatusDetail !== 'accredited') {
-                Log::info('Mercado Pago Payment todavía no acreditado.', [
-                    'order_id' => $orderId,
-                    'payment_id' => $paymentId,
-                    'status' => $paymentStatus,
-                    'status_detail' => $paymentStatusDetail,
-                ]);
+            if ($orderStatus !== 'processed') {
+                Log::warning(
+                    'Mercado Pago: Order todavía no está procesada.',
+                    [
+                        'order_id' => $orderId,
+                        'status' => $orderStatus,
+                        'status_detail' => $orderStatusDetail,
+                        'sale_id' => $sale->id,
+                    ]
+                );
 
                 return response()->json([
-                    'message' => 'El pago todavía no está acreditado.',
-                    'payment_id' => $paymentId,
+                    'message' => 'Order not processed',
+                ], 200);
+            }
+
+            if ($orderStatusDetail !== 'accredited') {
+                Log::warning(
+                    'Mercado Pago: Order no está acreditada.',
+                    [
+                        'order_id' => $orderId,
+                        'status' => $orderStatus,
+                        'status_detail' => $orderStatusDetail,
+                        'sale_id' => $sale->id,
+                    ]
+                );
+
+                return response()->json([
+                    'message' => 'Order not accredited',
                 ], 200);
             }
 
             /*
-            | Validar monto.
+            |--------------------------------------------------------------------------
+            | Obtener payment
+            |--------------------------------------------------------------------------
             */
 
-            $paidAmount = data_get($payment, 'amount')
-                ?? data_get($payment, 'transaction_amount')
-                ?? data_get($order, 'total_amount');
+            $payments = $order->transactions->payments ?? [];
 
-            if ($paidAmount === null) {
-                throw new RuntimeException('Mercado Pago no devolvió el monto del pago.');
+            if (empty($payments)) {
+                Log::warning(
+                    'Mercado Pago: Order sin payments.',
+                    [
+                        'order_id' => $orderId,
+                        'sale_id' => $sale->id,
+                    ]
+                );
+
+                return response()->json([
+                    'message' => 'No payments',
+                ], 200);
             }
 
-            $paidAmount = (float) $paidAmount;
+            $payment = $payments[0];
+
+            $paymentId = isset($payment->id)
+                ? (string) $payment->id
+                : null;
+
+            $paymentAmount = isset($payment->amount)
+                ? (float) $payment->amount
+                : 0;
+
+            $paymentStatus = $payment->status ?? null;
+            $paymentStatusDetail = $payment->status_detail ?? null;
+
+            /*
+            |--------------------------------------------------------------------------
+            | Validar payment
+            |--------------------------------------------------------------------------
+            */
+
+            if (!$paymentId) {
+                Log::warning(
+                    'Mercado Pago: payment sin ID.',
+                    [
+                        'order_id' => $orderId,
+                        'sale_id' => $sale->id,
+                    ]
+                );
+
+                return response()->json([
+                    'message' => 'Payment ID missing',
+                ], 200);
+            }
+
+            if ($paymentStatus !== 'processed') {
+                Log::warning(
+                    'Mercado Pago: payment no procesado.',
+                    [
+                        'order_id' => $orderId,
+                        'payment_id' => $paymentId,
+                        'status' => $paymentStatus,
+                        'status_detail' => $paymentStatusDetail,
+                        'sale_id' => $sale->id,
+                    ]
+                );
+
+                return response()->json([
+                    'message' => 'Payment not processed',
+                ], 200);
+            }
+
+            if ($paymentStatusDetail !== 'accredited') {
+                Log::warning(
+                    'Mercado Pago: payment no acreditado.',
+                    [
+                        'order_id' => $orderId,
+                        'payment_id' => $paymentId,
+                        'status' => $paymentStatus,
+                        'status_detail' => $paymentStatusDetail,
+                        'sale_id' => $sale->id,
+                    ]
+                );
+
+                return response()->json([
+                    'message' => 'Payment not accredited',
+                ], 200);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Validar monto
+            |--------------------------------------------------------------------------
+            */
+
             $saleTotal = (float) $sale->total;
 
-            if (round($paidAmount, 2) !== round($saleTotal, 2)) {
-                Log::error('Mercado Pago: monto del pago no coincide.', [
-                    'sale_id' => $sale->id,
-                    'payment_id' => $paymentId,
-                    'payment_amount' => $paidAmount,
-                    'sale_total' => $saleTotal,
-                ]);
+            if (abs($paymentAmount - $saleTotal) > 0.01) {
+                Log::error(
+                    'Mercado Pago: monto incorrecto.',
+                    [
+                        'order_id' => $orderId,
+                        'payment_id' => $paymentId,
+                        'payment_amount' => $paymentAmount,
+                        'sale_total' => $saleTotal,
+                        'sale_id' => $sale->id,
+                    ]
+                );
 
                 return response()->json([
-                    'message' => 'El monto del pago no coincide con el total de la venta.',
-                ], 422);
+                    'message' => 'Payment amount mismatch',
+                ], 400);
             }
 
             /*
-            | Registrar pago, descontar stock y marcar venta como pagada.
+            |--------------------------------------------------------------------------
+            | Procesar venta
+            |--------------------------------------------------------------------------
             */
 
-            DB::transaction(function () use ($sale, $paymentId, $paidAmount) {
-                $lockedSale = Sale::query()
-                    ->whereKey($sale->id)
+            DB::transaction(function () use (
+                $sale,
+                $order,
+                $orderId,
+                $paymentId,
+                $paymentAmount
+            ) {
+                /*
+                 * Bloqueamos la venta para evitar doble procesamiento
+                 * cuando Mercado Pago mande el mismo webhook más de una vez.
+                 */
+                $lockedSale = Sale::where(
+                    'id',
+                    $sale->id
+                )
                     ->lockForUpdate()
-                    ->firstOrFail();
+                    ->first();
 
-                if ($lockedSale->status === 'paid') {
-                    Log::info('Mercado Pago: venta ya estaba pagada.', [
-                        'sale_id' => $lockedSale->id,
-                    ]);
+                if (!$lockedSale) {
+                    throw new \RuntimeException(
+                        'Sale not found while locking.'
+                    );
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | Evitar procesar dos veces
+                |--------------------------------------------------------------------------
+                */
+
+                if (
+                    isset($lockedSale->status) &&
+                    in_array(
+                        $lockedSale->status,
+                        ['paid', 'pagada'],
+                        true
+                    )
+                ) {
+                    Log::info(
+                        'Mercado Pago: venta ya estaba pagada.',
+                        [
+                            'sale_id' => $lockedSale->id,
+                            'order_id' => $orderId,
+                            'payment_id' => $paymentId,
+                        ]
+                    );
 
                     return;
                 }
 
-                $paymentMethod = PaymentMethod::query()
-                    ->where('code', 'mercadopago')
-                    ->where('is_active', true) // ajusta si tu columna se llama "active"
+                /*
+                |--------------------------------------------------------------------------
+                | Payment Method
+                |--------------------------------------------------------------------------
+                */
+
+                $paymentMethod = PaymentMethod::where(
+                    'code',
+                    'mercadopago'
+                )
+                    ->where('is_active', true)
                     ->first();
 
-                if (! $paymentMethod) {
-                    throw new RuntimeException(
-                        'No existe un método de pago activo para Mercado Pago.'
+                if (!$paymentMethod) {
+                    throw new \RuntimeException(
+                        'Payment method mercadopago not found or inactive.'
                     );
                 }
 
-                $paymentExists = $lockedSale->payments()
-                    ->where('reference', (string) $paymentId)
+                /*
+                |--------------------------------------------------------------------------
+                | Evitar payment duplicado
+                |--------------------------------------------------------------------------
+                */
+
+                $existingPayment = $lockedSale
+                    ->payments()
+                    ->where(
+                        'reference',
+                        $paymentId
+                    )
                     ->exists();
 
-                if (! $paymentExists) {
-                    $lockedSale->payments()->create([
-                        'payment_method_id' => $paymentMethod->id,
-                        'amount' => $paidAmount,
-                        'reference' => (string) $paymentId,
-                        'notes' => 'Pago acreditado mediante Mercado Pago.',
-                    ]);
+                if ($existingPayment) {
+                    Log::info(
+                        'Mercado Pago: payment ya registrado.',
+                        [
+                            'sale_id' => $lockedSale->id,
+                            'order_id' => $orderId,
+                            'payment_id' => $paymentId,
+                        ]
+                    );
+
+                    return;
                 }
 
-                $lockedSale->load('items');
+                /*
+                |--------------------------------------------------------------------------
+                | Descontar inventario
+                |--------------------------------------------------------------------------
+                */
 
-                foreach ($lockedSale->items as $saleItem) {
-                    $product = $saleItem->product()->lockForUpdate()->first();
+                $items = $lockedSale
+                    ->items()
+                    ->with('product')
+                    ->get();
 
-                    if (! $product) {
-                        throw new RuntimeException(
-                            'El producto asociado a la venta no existe.'
+                foreach ($items as $item) {
+                    $product = $item->product;
+
+                    if (!$product) {
+                        throw new \RuntimeException(
+                            "Product not found for sale item {$item->id}."
                         );
                     }
 
-                    $quantity = (int) $saleItem->quantity;
+                    $quantity = (float) $item->quantity;
 
-                    if ((int) $product->stock < $quantity) {
-                        throw new RuntimeException(
-                            "No hay suficiente stock para el producto \"{$product->name}\"."
+                    $lockedProduct = $product
+                        ->newQuery()
+                        ->where('id', $product->id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$lockedProduct) {
+                        throw new \RuntimeException(
+                            "Product {$product->id} not found."
                         );
                     }
 
-                    $product->decrement('stock', $quantity);
+                    if ((float) $lockedProduct->stock < $quantity) {
+                        throw new \RuntimeException(
+                            "Insufficient stock for product {$lockedProduct->id}."
+                        );
+                    }
+
+                    $lockedProduct->stock =
+                        (float) $lockedProduct->stock - $quantity;
+
+                    $lockedProduct->save();
                 }
 
-                $lockedSale->update([
-                    'status' => 'paid',
-                    'sold_at' => now(),
+                /*
+                |--------------------------------------------------------------------------
+                | Registrar payment
+                |--------------------------------------------------------------------------
+                */
+
+                $lockedSale->payments()->create([
+                    'payment_method_id' => $paymentMethod->id,
+                    'amount' => $paymentAmount,
+                    'reference' => $paymentId,
+                    'notes' => "Mercado Pago Order {$orderId}",
                 ]);
+
+                /*
+                |--------------------------------------------------------------------------
+                | Marcar venta como pagada
+                |--------------------------------------------------------------------------
+                */
+
+                $lockedSale->status = 'paid';
+                $lockedSale->sold_at = now();
+                $lockedSale->save();
             });
 
-            Log::info('Mercado Pago Webhook procesado correctamente.', [
-                'order_id' => $orderId,
-                'payment_id' => $paymentId,
-                'sale_id' => $sale->id,
-            ]);
+            /*
+            |--------------------------------------------------------------------------
+            | Éxito
+            |--------------------------------------------------------------------------
+            */
+
+            Log::info(
+                'Mercado Pago Webhook procesado correctamente.',
+                [
+                    'order_id' => $orderId,
+                    'payment_id' => $paymentId,
+                    'sale_id' => $sale->id,
+                ]
+            );
 
             return response()->json([
-                'message' => 'Webhook procesado correctamente.',
-                'order_id' => $orderId,
-                'payment_id' => $paymentId,
-                'sale_id' => $sale->id,
-                'status' => 'paid',
+                'message' => 'Webhook processed successfully',
             ], 200);
-        } catch (MPApiException $exception) {
-            Log::error('Mercado Pago: error al consultar la Order.', [
-                'data_id' => $dataId,
-                'message' => $exception->getMessage(),
-            ]);
+        } catch (MPApiException $e) {
+            Log::error(
+                'Mercado Pago: error al consultar la Order.',
+                [
+                    'data_id' => $dataId,
+                    'message' => $e->getMessage(),
+                ]
+            );
 
             return response()->json([
-                'message' => 'Mercado Pago rechazó la consulta de la Order.',
+                'message' => 'Mercado Pago API error',
             ], 502);
-        } catch (Throwable $exception) {
-            Log::error('Mercado Pago: error procesando Webhook.', [
-                'data_id' => $dataId,
-                'exception' => get_class($exception),
-                'message' => $exception->getMessage(),
-                'file' => $exception->getFile(),
-                'line' => $exception->getLine(),
-            ]);
-
-            report($exception);
+        } catch (Throwable $e) {
+            Log::error(
+                'Mercado Pago: error procesando webhook.',
+                [
+                    'data_id' => $dataId,
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                ]
+            );
 
             return response()->json([
-                'message' => 'No fue posible procesar el Webhook.',
+                'message' => 'Webhook processing error',
             ], 500);
         }
     }
