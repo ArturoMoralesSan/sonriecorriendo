@@ -20,7 +20,19 @@ class MercadoPagoController extends Controller
      */
     public function webhook(Request $request): JsonResponse
     {
+        Log::info(
+            'Mercado Pago DEBUG URL',
+            [
+                'full_url' => $request->fullUrl(),
+                'query' => $request->query(),
+                'data_id_query' => $request->query('data.id'),
+                'data_id_underscore' => $request->query('data_id'),
+                'x_request_id' => $request->header('x-request-id'),
+                'x_signature' => $request->header('x-signature'),
+            ]
+        );
         /*
+
         |--------------------------------------------------------------------------
         | Datos del webhook
         |--------------------------------------------------------------------------
