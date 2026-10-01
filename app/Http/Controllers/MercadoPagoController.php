@@ -28,16 +28,11 @@ class MercadoPagoController extends Controller
 
         Log::info('Mercado Pago Signature Debug', [
             'x_request_id' => $xRequestId,
-            'signature_prefix' => $xSignature
-                ? substr($xSignature, 0, 3) . '...'
-                : null,
-            'signature_has_ts' => $xSignature
-                ? str_contains($xSignature, 'ts=')
-                : false,
-            'signature_has_v1' => $xSignature
-                ? str_contains($xSignature, 'v1=')
-                : false,
-            'data_id' => $request->query('data_id'),
+            'x_signature' => $xSignature,
+            'data_id_dot' => $request->query('data.id'),
+            'data_id_underscore' => $request->query('data_id'),
+            'body_data_id' => data_get($request->input('data'), 'id'),
+            'query' => $request->query(),
         ]);
 
         $dataId = $request->query('data_id')
