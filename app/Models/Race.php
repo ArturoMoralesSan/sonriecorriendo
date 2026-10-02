@@ -63,6 +63,12 @@ class Race extends Model
         return $this->hasMany(RaceExpense::class);
     }
 
+    public function kitImages(): HasMany
+    {
+        return $this->hasMany(RaceKitImage::class)
+            ->orderBy('sort_order');
+    }
+
     public function gallery(): HasMany
     {
         return $this->hasMany(RaceGallery::class);

@@ -8,8 +8,8 @@ import {
     ChevronUp,
     ExternalLink,
     FileText,
-    Image,
     MapPin,
+    Image,
     Plus,
     Save,
     Settings2,
@@ -19,6 +19,7 @@ import {
 import { ref, watch } from 'vue';
 
 import admin from '@/routes/admin';
+import ImageGallery from '@/Components/Admin/ImageGallery.vue';
 
 type TabKey =
     | 'general'
@@ -66,6 +67,16 @@ interface DistanceForm {
     prices: PriceForm[];
     inclusions: InclusionForm[];
     categories: CategoryForm[];
+}
+
+interface KitImageForm {
+    id: number | null;
+    image: string | null;
+    file: File | null;
+    preview: string | null;
+    sort_order: number;
+    is_active: boolean;
+    isNew: boolean;
 }
 
 const activeTab = ref<TabKey>('general');
@@ -141,6 +152,9 @@ const form = useForm({
     state: '',
     country: 'México',
     banner: null as File | null,
+
+    kit_images: [] as KitImageForm[],
+
     registration_opens_at: '',
     registration_closes_at: '',
     status: 'draft',
@@ -348,6 +362,16 @@ const changeBanner = (): void => {
     document
         .getElementById('race-banner-input')
         ?.click();
+};
+
+/*
+|--------------------------------------------------------------------------
+| Kit gallery
+|--------------------------------------------------------------------------
+*/
+
+const handleKitGalleryError = (message: string): void => {
+    console.warn(message);
 };
 
 /*
@@ -916,6 +940,30 @@ defineOptions({
                                 class="admin-form-error"
                             >
                                 {{ getError('banner') }}
+                            </p>
+                        </div>
+
+                        <!-- =================================================
+                             GALERÍA DEL KIT
+                             ================================================= -->
+
+                        <div
+                            class="admin-form-group admin-form-group-full"
+                        >
+                            <ImageGallery
+                                v-model="form.kit_images"
+                                label="Galería del kit"
+                                hint="Agrega las imágenes del kit y arrástralas para cambiar su orden."
+                                :max-images="20"
+                                :max-size="10"
+                                @error="handleKitGalleryError"
+                            />
+
+                            <p
+                                v-if="hasError('kit_images')"
+                                class="admin-form-error"
+                            >
+                                {{ getError('kit_images') }}
                             </p>
                         </div>
 
@@ -3335,7 +3383,6 @@ defineOptions({
     color: #82939e;
     font-size: 11px;
 }
-
 
 /* =========================================================
    RESPONSIVE

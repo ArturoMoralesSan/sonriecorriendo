@@ -1,4 +1,3 @@
-```vue
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import {
@@ -88,6 +87,15 @@ interface RaceSponsor {
     payments?: RaceSponsorPayment[];
 }
 
+interface RaceKitImage {
+    id?: number;
+    image?: string | null;
+    path?: string | null;
+    image_path?: string | null;
+    url?: string | null;
+    sort_order?: number;
+}
+
 interface Race {
     id: number;
     name: string;
@@ -109,6 +117,8 @@ interface Race {
     notes: string | null;
     distances?: RaceDistance[];
     sponsors?: RaceSponsor[];
+    kit_images?: RaceKitImage[];
+    kitImages?: RaceKitImage[];
 }
 
 const props = defineProps<{
@@ -309,6 +319,40 @@ const getBannerUrl = (
     }
 
     return `/storage/${banner}`;
+};
+
+const getKitImages = (): RaceKitImage[] => {
+    return props.race.kit_images ?? props.race.kitImages ?? [];
+};
+
+const getKitImageUrl = (
+    kitImage: RaceKitImage,
+): string | null => {
+    const image =
+        kitImage.image ??
+        kitImage.path ??
+        kitImage.image_path ??
+        kitImage.url ??
+        null;
+
+    if (!image) {
+        return null;
+    }
+
+    if (
+        image.startsWith('http://') ||
+        image.startsWith('https://') ||
+        image.startsWith('blob:') ||
+        image.startsWith('data:')
+    ) {
+        return image;
+    }
+
+    if (image.startsWith('/')) {
+        return image;
+    }
+
+    return `/storage/${image}`;
 };
 
 const getGenderLabel = (
@@ -1647,8 +1691,64 @@ defineOptions({
                 </div>
             </div>
         </section>
+
+        <!-- =================================================
+             KIT IMAGES
+        ================================================== -->
+
+        <section
+            v-if="getKitImages().length > 0"
+            class="admin-form-card"
+        >
+            <div class="show-card-header">
+                <div>
+                    <p class="show-card-eyebrow">
+                        Multimedia
+                    </p>
+
+                    <h2 class="show-card-title">
+                        Imágenes del kit
+                    </h2>
+
+                    <p class="show-card-description">
+                        {{ getKitImages().length }}
+                        {{
+                            getKitImages().length === 1
+                                ? 'imagen'
+                                : 'imágenes'
+                        }}
+                        del kit de la carrera.
+                    </p>
+                </div>
+
+                <div class="show-card-icon">
+                    <Image
+                        :size="17"
+                        :stroke-width="2"
+                    />
+                </div>
+            </div>
+
+            <div class="show-card-body">
+                <div class="kit-images-grid">
+                    <div
+                        v-for="(kitImage, index) in getKitImages()"
+                        :key="kitImage.id ?? index"
+                        class="kit-image-card"
+                    >
+                        <img
+                            v-if="getKitImageUrl(kitImage)"
+                            :src="getKitImageUrl(kitImage)!"
+                            :alt="`Imagen del kit ${index + 1}`"
+                            class="kit-image"
+                        />
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
 </template>
+
 
 <style scoped>
 /* =========================================================
@@ -1754,7 +1854,39 @@ defineOptions({
         0 4px 15px rgba(27, 62, 90, 0.035),
         0 1px 3px rgba(27, 62, 90, 0.025);
 }
+.kit-images-grid {
+    display: grid;
+    grid-template-columns: repeat(
+        auto-fill,
+        minmax(180px, 1fr)
+    );
+    gap: 16px;
+}
 
+.kit-image-card {
+    overflow: hidden;
+    border: 1px solid var(--sc-page-border, #e5e7eb);
+    border-radius: 14px;
+    background: #ffffff;
+}
+
+.kit-image {
+    display: block;
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+}
+
+@media (max-width: 640px) {
+    .kit-images-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .kit-image {
+        height: 160px;
+    }
+}
 .race-summary-icon {
     display: flex;
     align-items: center;

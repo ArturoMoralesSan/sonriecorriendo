@@ -41,6 +41,7 @@ import {
 } from 'lucide-vue-next';
 import { ref } from 'vue';
 
+import ImageGallery from '@/Components/Admin/ImageGallery.vue';
 import admin from '@/routes/admin';
 
 type TabKey =
@@ -95,6 +96,23 @@ interface DistanceForm {
     categories: CategoryForm[];
 }
 
+interface KitImageForm {
+    id?: number;
+    image?: string | null;
+    preview?: string | null;
+    file?: File | null;
+    sort_order: number;
+    is_active: boolean;
+    isNew?: boolean;
+}
+
+interface RaceKitImage {
+    id: number;
+    image: string;
+    sort_order: number;
+    is_active: boolean;
+}
+
 interface Race {
     id: number;
     name: string;
@@ -116,6 +134,8 @@ interface Race {
     terms_and_conditions: string | null;
     notes: string | null;
     distances: DistanceForm[];
+    kitImages?: RaceKitImage[];
+    kit_images?: RaceKitImage[];
 }
 
 const props = defineProps<{
@@ -214,6 +234,55 @@ const bannerPreview = ref<string | null>(
 const existingBanner = ref<string | null>(
     props.race.banner,
 );
+
+/*
+|--------------------------------------------------------------------------
+| Kit Gallery
+|--------------------------------------------------------------------------
+*/
+
+const getKitImageUrl = (
+    image: string | null | undefined,
+): string | null => {
+    if (!image) {
+        return null;
+    }
+
+    if (
+        image.startsWith('http://') ||
+        image.startsWith('https://') ||
+        image.startsWith('blob:') ||
+        image.startsWith('data:')
+    ) {
+        return image;
+    }
+
+    if (image.startsWith('/')) {
+        return image;
+    }
+
+    return `/storage/${image}`;
+};
+
+const normalizeKitImages = (
+    images: RaceKitImage[] | undefined,
+): KitImageForm[] => {
+    if (!images?.length) {
+        return [];
+    }
+
+    return images.map((image, index) => ({
+        id: image.id,
+        image: image.image,
+        preview: getKitImageUrl(image.image),
+        file: null,
+        sort_order:
+            image.sort_order ?? index,
+        is_active:
+            image.is_active ?? true,
+        isNew: false,
+    }));
+};
 
 /*
 |--------------------------------------------------------------------------
@@ -452,6 +521,11 @@ const form = useForm({
         normalizeDistances(
             props.race.distances,
         ),
+    kit_images:
+    normalizeKitImages(
+        props.race.kit_images ??
+        props.race.kitImages,
+    ),
 });
 
 /*
@@ -500,6 +574,7 @@ const hasGeneralErrors = (): boolean => {
         'description',
         'banner',
         'status',
+        'kit_images',
     ].some(hasError);
 };
 
@@ -577,6 +652,17 @@ const focusFirstError = (
                 );
             }
         }
+
+        return;
+    }
+
+    if (
+        firstError.startsWith(
+            'kit_images.',
+        ) ||
+        firstError === 'kit_images'
+    ) {
+        activeTab.value = 'general';
 
         return;
     }
@@ -1342,6 +1428,31 @@ const submit = (): void => {
                             >
                                 {{
                                     getError('banner')
+                                }}
+                            </p>
+                        </div>
+
+                        <!-- KIT GALLERY -->
+
+                        <div
+                            class="admin-form-group admin-form-group-full"
+                        >
+                            <ImageGallery
+                                v-model="form.kit_images"
+                                label="Galería del kit"
+                                hint="Agrega las imágenes del kit de la carrera y arrástralas para cambiar su orden."
+                                :max-images="20"
+                                :max-size="10"
+                            />
+
+                            <p
+                                v-if="hasError('kit_images')"
+                                class="admin-form-error"
+                            >
+                                {{
+                                    getError(
+                                        'kit_images',
+                                    )
                                 }}
                             </p>
                         </div>

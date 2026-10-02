@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreRaceRequest;
 use App\Http\Requests\Admin\UpdateRaceRequest;
 use App\Models\Race;
+use App\Models\RaceKitImage;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -148,7 +150,8 @@ class RaceController extends Controller
          */
         $race = DB::transaction(function () use (
             $data,
-            $distances
+            $distances,
+            $request
         ) {
             $race = Race::create($data);
 
@@ -158,6 +161,16 @@ class RaceController extends Controller
                     $distanceData
                 );
             }
+
+            /**
+             * ----------------------------------------------------------------------
+             * Galería del kit
+             * ----------------------------------------------------------------------
+             */
+            $this->storeKitImages(
+                $race,
+                $request
+            );
 
             return $race;
         });
@@ -190,6 +203,7 @@ class RaceController extends Controller
             'distances.categories',
             'sponsors.sponsor',
             'sponsors.payments',
+            'kitImages',
         ]);
 
         return Inertia::render('admin/races/Show', [
@@ -207,6 +221,7 @@ class RaceController extends Controller
             'distances.prices',
             'distances.inclusions',
             'distances.categories',
+            'kitImages',
         ]);
 
         return Inertia::render('admin/races/Edit', [
@@ -320,13 +335,24 @@ class RaceController extends Controller
         DB::transaction(function () use (
             $race,
             $data,
-            $distances
+            $distances,
+            $request
         ) {
             $race->update($data);
 
             $this->updateDistances(
                 $race,
                 $distances
+            );
+
+            /**
+             * ----------------------------------------------------------------------
+             * Galería del kit
+             * ----------------------------------------------------------------------
+             */
+            $this->updateKitImages(
+                $race,
+                $request
             );
         });
 
@@ -368,6 +394,29 @@ class RaceController extends Controller
 
             if (is_file($banner)) {
                 unlink($banner);
+            }
+        }
+
+        /**
+         * --------------------------------------------------------------------------
+         * Eliminar imágenes del kit.
+         * --------------------------------------------------------------------------
+         */
+        $kitImages = $race->kitImages()->get();
+
+        foreach ($kitImages as $kitImage) {
+            if ($kitImage->image) {
+                Storage::disk('public')->delete(
+                    $kitImage->image
+                );
+
+                $imagePath = storage_path(
+                    'app/public/'.$kitImage->image
+                );
+
+                if (is_file($imagePath)) {
+                    unlink($imagePath);
+                }
             }
         }
 
@@ -695,6 +744,226 @@ class RaceController extends Controller
                     $categoriesToDelete
                 )
                 ->delete();
+        }
+    }
+
+    /**
+     * Store the race kit gallery images.
+     */
+    private function storeKitImages(
+        Race $race,
+        $request
+    ): void {
+        $kitImages = $request->input(
+            'kit_images',
+            []
+        );
+
+        if (! is_array($kitImages)) {
+            return;
+        }
+
+        foreach ($kitImages as $index => $kitImageData) {
+            $file = $request->file(
+                "kit_images.{$index}.file"
+            );
+
+            if (! $file instanceof UploadedFile) {
+                continue;
+            }
+
+            if (! $file->isValid()) {
+                continue;
+            }
+
+            $path = $this->storeKitImage(
+                $file
+            );
+
+            $race->kitImages()->create([
+                'image' => $path,
+                'sort_order' => (int) (
+                    $kitImageData['sort_order']
+                    ?? $index
+                ),
+                'is_active' => filter_var(
+                    $kitImageData['is_active']
+                    ?? true,
+                    FILTER_VALIDATE_BOOLEAN
+                ),
+            ]);
+        }
+    }
+
+    /**
+     * Update the race kit gallery images.
+     */
+    private function updateKitImages(
+        Race $race,
+        $request
+    ): void {
+        $kitImages = $request->input(
+            'kit_images',
+            []
+        );
+
+        if (! is_array($kitImages)) {
+            $kitImages = [];
+        }
+
+        $existingImages = $race->kitImages()
+            ->get()
+            ->keyBy('id');
+
+        $receivedImageIds = [];
+
+        foreach ($kitImages as $index => $kitImageData) {
+            $imageId = $kitImageData['id'] ?? null;
+
+            /**
+             * ----------------------------------------------------------------------
+             * Imagen existente.
+             * ----------------------------------------------------------------------
+             */
+            if (
+                $imageId &&
+                $existingImages->has($imageId)
+            ) {
+                $kitImage = $existingImages->get(
+                    $imageId
+                );
+
+                $kitImage->update([
+                    'sort_order' => (int) (
+                        $kitImageData['sort_order']
+                        ?? $index
+                    ),
+                    'is_active' => filter_var(
+                        $kitImageData['is_active']
+                        ?? true,
+                        FILTER_VALIDATE_BOOLEAN
+                    ),
+                ]);
+
+                $receivedImageIds[] = $kitImage->id;
+
+                continue;
+            }
+
+            /**
+             * ----------------------------------------------------------------------
+             * Nueva imagen.
+             * ----------------------------------------------------------------------
+             */
+            $file = $request->file(
+                "kit_images.{$index}.file"
+            );
+
+            if (
+                ! $file instanceof UploadedFile ||
+                ! $file->isValid()
+            ) {
+                continue;
+            }
+
+            $path = $this->storeKitImage(
+                $file
+            );
+
+            $kitImage = $race->kitImages()->create([
+                'image' => $path,
+                'sort_order' => (int) (
+                    $kitImageData['sort_order']
+                    ?? $index
+                ),
+                'is_active' => filter_var(
+                    $kitImageData['is_active']
+                    ?? true,
+                    FILTER_VALIDATE_BOOLEAN
+                ),
+            ]);
+
+            $receivedImageIds[] = $kitImage->id;
+        }
+
+        /**
+         * --------------------------------------------------------------------------
+         * Eliminar imágenes que ya no existen en el formulario.
+         * --------------------------------------------------------------------------
+         */
+        $imagesToDelete = $existingImages
+            ->keys()
+            ->diff($receivedImageIds);
+
+        if ($imagesToDelete->isNotEmpty()) {
+            $images = $race->kitImages()
+                ->whereIn(
+                    'id',
+                    $imagesToDelete
+                )
+                ->get();
+
+            foreach ($images as $image) {
+                $this->deleteKitImageFile(
+                    $image
+                );
+
+                $image->delete();
+            }
+        }
+    }
+
+    /**
+     * Store a kit gallery image.
+     */
+    private function storeKitImage(
+        UploadedFile $file
+    ): string {
+        $filename =
+            uniqid().
+            '.'.
+            $file->getClientOriginalExtension();
+
+        $directory = storage_path(
+            'app/public/races/kits'
+        );
+
+        if (! is_dir($directory)) {
+            mkdir(
+                $directory,
+                0755,
+                true
+            );
+        }
+
+        $file->move(
+            $directory,
+            $filename
+        );
+
+        return 'races/kits/'.$filename;
+    }
+
+    /**
+     * Delete a kit gallery image file.
+     */
+    private function deleteKitImageFile(
+        RaceKitImage $image
+    ): void {
+        if (! $image->image) {
+            return;
+        }
+
+        Storage::disk('public')->delete(
+            $image->image
+        );
+
+        $imagePath = storage_path(
+            'app/public/'.$image->image
+        );
+
+        if (is_file($imagePath)) {
+            unlink($imagePath);
         }
     }
 }
