@@ -188,6 +188,8 @@ class RaceController extends Controller
             'distances.prices',
             'distances.inclusions',
             'distances.categories',
+            'sponsors.sponsor',
+            'sponsors.payments',
         ]);
 
         return Inertia::render('admin/races/Show', [

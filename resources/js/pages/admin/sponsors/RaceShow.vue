@@ -88,6 +88,10 @@ const today = computed(() => {
         .substring(0, 10);
 });
 
+const goBack = (): void => {
+    window.history.back();
+};
+
 const formatMoney = (
     value: number,
 ): string => {
@@ -478,9 +482,10 @@ defineOptions({
             </div>
 
             <div class="admin-page-header-actions">
-                <Link
-                    :href="`/admin/sponsors/${sponsor.id}`"
+                <button
+                    type="button"
                     class="admin-btn admin-btn-secondary"
+                    @click="goBack"
                 >
                     <ArrowLeft
                         :size="16"
@@ -488,7 +493,7 @@ defineOptions({
                     />
 
                     <span>Volver</span>
-                </Link>
+                </button>
             </div>
         </header>
 
@@ -513,17 +518,29 @@ defineOptions({
                             </span>
 
                             <span>
-                                {{ formatDate(raceSponsor.race.event_date) }}
+                                {{
+                                    formatDate(
+                                        raceSponsor.race.event_date,
+                                    )
+                                }}
                             </span>
 
                             <span
-                                v-if="raceSponsor.race.start_time"
+                                v-if="
+                                    raceSponsor.race.start_time
+                                "
                             >
-                                {{ formatTime(raceSponsor.race.start_time) }}
+                                {{
+                                    formatTime(
+                                        raceSponsor.race.start_time,
+                                    )
+                                }}
                             </span>
 
                             <span
-                                v-if="raceSponsor.race.location"
+                                v-if="
+                                    raceSponsor.race.location
+                                "
                             >
                                 {{ raceSponsor.race.location }}
                             </span>
@@ -538,7 +555,11 @@ defineOptions({
                         inactive: !raceSponsor.is_active,
                     }"
                 >
-                    {{ raceSponsor.is_active ? 'Activo' : 'Inactivo' }}
+                    {{
+                        raceSponsor.is_active
+                            ? 'Activo'
+                            : 'Inactivo'
+                    }}
                 </span>
             </div>
 
@@ -549,7 +570,11 @@ defineOptions({
                     </span>
 
                     <strong>
-                        {{ formatMoney(raceSponsor.amount) }}
+                        {{
+                            formatMoney(
+                                raceSponsor.amount,
+                            )
+                        }}
                     </strong>
                 </div>
 
@@ -559,7 +584,11 @@ defineOptions({
                     </span>
 
                     <strong>
-                        {{ formatMoney(raceSponsor.paid) }}
+                        {{
+                            formatMoney(
+                                raceSponsor.paid,
+                            )
+                        }}
                     </strong>
                 </div>
 
@@ -569,7 +598,11 @@ defineOptions({
                     </span>
 
                     <strong>
-                        {{ formatMoney(raceSponsor.remaining) }}
+                        {{
+                            formatMoney(
+                                raceSponsor.remaining,
+                            )
+                        }}
                     </strong>
                 </div>
             </div>
@@ -629,7 +662,9 @@ defineOptions({
                 <button
                     type="button"
                     class="admin-btn admin-btn-primary"
-                    :disabled="raceSponsor.remaining <= 0"
+                    :disabled="
+                        raceSponsor.remaining <= 0
+                    "
                     @click="openPaymentForm"
                 >
                     <Plus
@@ -662,25 +697,40 @@ defineOptions({
                     <div class="payment-info">
                         <div class="payment-main">
                             <strong>
-                                {{ formatMoney(payment.amount) }}
+                                {{
+                                    formatMoney(
+                                        payment.amount,
+                                    )
+                                }}
                             </strong>
 
                             <span>
-                                {{ formatDate(payment.paid_at) }}
+                                {{
+                                    formatDate(
+                                        payment.paid_at,
+                                    )
+                                }}
                             </span>
                         </div>
 
                         <div class="payment-details">
                             <span
-                                v-if="payment.payment_method"
+                                v-if="
+                                    payment.payment_method
+                                "
                             >
-                                {{ payment.payment_method }}
+                                {{
+                                    payment.payment_method
+                                }}
                             </span>
 
                             <span
-                                v-if="payment.reference"
+                                v-if="
+                                    payment.reference
+                                "
                             >
-                                Ref. {{ payment.reference }}
+                                Ref.
+                                {{ payment.reference }}
                             </span>
                         </div>
 
@@ -696,7 +746,9 @@ defineOptions({
                         <button
                             type="button"
                             class="action-btn action-btn-delete"
-                            @click="deletePayment(payment)"
+                            @click="
+                                deletePayment(payment)
+                            "
                         >
                             <Trash2
                                 :size="14"
@@ -827,7 +879,11 @@ defineOptions({
                                 class="admin-form-help"
                             >
                                 Saldo disponible:
-                                {{ formatMoney(raceSponsor.remaining) }}
+                                {{
+                                    formatMoney(
+                                        raceSponsor.remaining,
+                                    )
+                                }}
                             </span>
                         </div>
 
@@ -882,7 +938,11 @@ defineOptions({
                                 :class="{
                                     'has-error': errors.payment_method,
                                 }"
-                                @change="clearLocalError('payment_method')"
+                                @change="
+                                    clearLocalError(
+                                        'payment_method',
+                                    )
+                                "
                             >
                                 <option value="">
                                     Selecciona
@@ -934,7 +994,11 @@ defineOptions({
                                     'has-error': errors.reference,
                                 }"
                                 placeholder="Folio o referencia"
-                                @input="clearLocalError('reference')"
+                                @input="
+                                    clearLocalError(
+                                        'reference',
+                                    )
+                                "
                             />
 
                             <span
@@ -962,7 +1026,11 @@ defineOptions({
                                 }"
                                 rows="3"
                                 placeholder="Observaciones del pago..."
-                                @input="clearLocalError('notes')"
+                                @input="
+                                    clearLocalError(
+                                        'notes',
+                                    )
+                                "
                             ></textarea>
 
                             <span
@@ -979,7 +1047,11 @@ defineOptions({
                         class="payment-inline-warning"
                     >
                         El monto ingresado supera el saldo pendiente de
-                        {{ formatMoney(raceSponsor.remaining) }}.
+                        {{
+                            formatMoney(
+                                raceSponsor.remaining,
+                            )
+                        }}.
                     </div>
 
                     <div

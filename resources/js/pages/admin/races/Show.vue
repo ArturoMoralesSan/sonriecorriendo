@@ -1,3 +1,4 @@
+```vue
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import {
@@ -5,6 +6,7 @@ import {
     CalendarDays,
     ClipboardList,
     Clock3,
+    Eye,
     FileText,
     Image,
     MapPin,
@@ -62,6 +64,30 @@ interface RaceDistance {
     categories?: RaceCategory[];
 }
 
+interface Sponsor {
+    id: number;
+    name: string;
+    logo: string | null;
+}
+
+interface RaceSponsorPayment {
+    id: number;
+    amount: string | number;
+    paid_at: string | null;
+}
+
+interface RaceSponsor {
+    id: number;
+    sponsor_id: number;
+    type: string;
+    amount: string | number;
+    benefits: string | null;
+    sort_order: number;
+    is_active: boolean;
+    sponsor?: Sponsor;
+    payments?: RaceSponsorPayment[];
+}
+
 interface Race {
     id: number;
     name: string;
@@ -82,6 +108,7 @@ interface Race {
     terms_and_conditions: string | null;
     notes: string | null;
     distances?: RaceDistance[];
+    sponsors?: RaceSponsor[];
 }
 
 const props = defineProps<{
@@ -213,6 +240,22 @@ const formatPrice = (
     }).format(numericPrice);
 };
 
+const getSponsorTypeLabel = (
+    type: string,
+): string => {
+    const labels: Record<string, string> = {
+        title: 'Patrocinador principal',
+        main: 'Patrocinador principal',
+        gold: 'Oro',
+        silver: 'Plata',
+        bronze: 'Bronce',
+        official: 'Patrocinador oficial',
+        sponsor: 'Patrocinador',
+    };
+
+    return labels[type] ?? type;
+};
+
 const formatDistance = (
     distance: string | number,
     unit: string,
@@ -241,6 +284,13 @@ const formatLocation = (): string => {
     return parts.length > 0
         ? parts.join(', ')
         : 'Sin ubicación especificada';
+};
+
+const getRaceSponsorShowUrl = (
+    sponsorId: number,
+    raceSponsorId: number,
+): string => {
+    return `/admin/sponsors/${sponsorId}/races/${raceSponsorId}`;
 };
 
 const getBannerUrl = (
@@ -328,6 +378,68 @@ const totalCategories = (): number => {
     );
 };
 
+const activeSponsors = (): RaceSponsor[] => {
+    return (props.race.sponsors ?? []).filter(
+        (sponsor) => sponsor.is_active,
+    );
+};
+
+const getSponsorPaidAmount = (
+    sponsor: RaceSponsor,
+): number => {
+    return (sponsor.payments ?? []).reduce(
+        (total, payment) =>
+            total + Number(payment.amount || 0),
+        0,
+    );
+};
+
+const getSponsorPaymentPercentage = (
+    sponsor: RaceSponsor,
+): number => {
+    const assigned = Number(sponsor.amount || 0);
+    const paid = getSponsorPaidAmount(sponsor);
+
+    if (assigned <= 0) {
+        return 0;
+    }
+
+    return Math.min(
+        100,
+        Math.round((paid / assigned) * 100),
+    );
+};
+
+const totalSponsorAmount = (): number => {
+    return activeSponsors().reduce(
+        (total, sponsor) =>
+            total + Number(sponsor.amount || 0),
+        0,
+    );
+};
+
+const totalSponsorPaidAmount = (): number => {
+    return activeSponsors().reduce(
+        (total, sponsor) =>
+            total + getSponsorPaidAmount(sponsor),
+        0,
+    );
+};
+
+const totalSponsorPaymentPercentage = (): number => {
+    const assigned = totalSponsorAmount();
+    const paid = totalSponsorPaidAmount();
+
+    if (assigned <= 0) {
+        return 0;
+    }
+
+    return Math.min(
+        100,
+        Math.round((paid / assigned) * 100),
+    );
+};
+
 defineOptions({
     layout: {
         breadcrumbs: [
@@ -373,17 +485,18 @@ defineOptions({
             </div>
 
             <div class="admin-page-header-actions">
-            <Link
-                :href="
-                    admin.races.gallery.index({
-                        race: race.id,
-                    }).url
-                "
-                class="admin-btn admin-btn-secondary"
-            >
-                <Image :size="14" :stroke-width="2" />
-                Galería
-            </Link>
+                <Link
+                    :href="
+                        admin.races.gallery.index({
+                            race: race.id,
+                        }).url
+                    "
+                    class="admin-btn admin-btn-secondary"
+                >
+                    <Image :size="14" :stroke-width="2" />
+                    Galería
+                </Link>
+
                 <Link
                     :href="
                         admin.races.checklist.index(
@@ -567,8 +680,6 @@ defineOptions({
         ================================================== -->
 
         <div class="race-show-grid">
-            <!-- GENERAL -->
-
             <section class="admin-form-card">
                 <div class="show-card-header">
                     <div>
@@ -631,8 +742,6 @@ defineOptions({
                     </div>
                 </div>
             </section>
-
-            <!-- EVENT -->
 
             <section class="admin-form-card">
                 <div class="show-card-header">
@@ -703,6 +812,288 @@ defineOptions({
                 </div>
             </section>
         </div>
+
+        <!-- =================================================
+             SPONSORS
+        ================================================== -->
+
+        <section class="admin-form-card">
+            <div class="show-card-header">
+                <div>
+                    <p class="show-card-eyebrow">
+                        Patrocinadores
+                    </p>
+
+                    <h2 class="show-card-title">
+                        Patrocinadores de la carrera
+                    </h2>
+
+                    <p class="show-card-description">
+                        {{ race.sponsors?.length ?? 0 }}
+                        patrocinadores asignados a esta carrera.
+                    </p>
+                </div>
+
+                <div class="show-card-icon">
+                    <Users
+                        :size="17"
+                        :stroke-width="2"
+                    />
+                </div>
+            </div>
+
+            <div class="show-card-body">
+                <div
+                    v-if="
+                        race.sponsors &&
+                        race.sponsors.length > 0
+                    "
+                    class="sponsor-table-wrapper"
+                >
+                    <table class="sponsor-table">
+                        <thead>
+                            <tr>
+                                <th>
+                                    Patrocinador
+                                </th>
+
+                                <th>
+                                    Tipo
+                                </th>
+
+                                <th class="sponsor-amount-column">
+                                    Monto asignado
+                                </th>
+
+                                <th class="sponsor-paid-column">
+                                    Monto cubierto
+                                </th>
+
+                                <th class="sponsor-percentage-column">
+                                    Avance
+                                </th>
+
+                                <th class="sponsor-action-column">
+                                    Acción
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr
+                                v-for="
+                                    raceSponsor in race.sponsors
+                                "
+                                :key="raceSponsor.id"
+                            >
+                                <td>
+                                    <div class="sponsor-name-cell">
+                                        <div class="sponsor-avatar">
+                                            <img
+                                                v-if="
+                                                    raceSponsor.sponsor?.logo
+                                                "
+                                                :src="
+                                                    raceSponsor.sponsor.logo.startsWith(
+                                                        'http://',
+                                                    ) ||
+                                                    raceSponsor.sponsor.logo.startsWith(
+                                                        'https://',
+                                                    ) ||
+                                                    raceSponsor.sponsor.logo.startsWith(
+                                                        '/',
+                                                    )
+                                                        ? raceSponsor.sponsor.logo
+                                                        : `/storage/${raceSponsor.sponsor.logo}`
+                                                "
+                                                :alt="
+                                                    raceSponsor.sponsor?.name ||
+                                                    'Patrocinador'
+                                                "
+                                            />
+
+                                            <Users
+                                                v-else
+                                                :size="16"
+                                                :stroke-width="2"
+                                            />
+                                        </div>
+
+                                        <strong>
+                                            {{
+                                                raceSponsor.sponsor?.name ||
+                                                'Sin patrocinador'
+                                            }}
+                                        </strong>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <span class="sponsor-type">
+                                        {{
+                                            getSponsorTypeLabel(
+                                                raceSponsor.type,
+                                            )
+                                        }}
+                                    </span>
+                                </td>
+
+                                <td class="sponsor-amount-column">
+                                    <strong class="sponsor-amount">
+                                        {{
+                                            formatPrice(
+                                                raceSponsor.amount,
+                                            )
+                                        }}
+                                    </strong>
+                                </td>
+
+                                <td class="sponsor-paid-column">
+                                    <strong class="sponsor-paid">
+                                        {{
+                                            formatPrice(
+                                                getSponsorPaidAmount(
+                                                    raceSponsor,
+                                                ),
+                                            )
+                                        }}
+                                    </strong>
+                                </td>
+
+                                <td class="sponsor-percentage-column">
+                                    <div class="sponsor-progress">
+                                        <div
+                                            class="sponsor-progress-top"
+                                        >
+                                            <strong>
+                                                {{
+                                                    getSponsorPaymentPercentage(
+                                                        raceSponsor,
+                                                    )
+                                                }}%
+                                            </strong>
+
+                                            <span>
+                                                cubierto
+                                            </span>
+                                        </div>
+
+                                        <div
+                                            class="sponsor-progress-track"
+                                        >
+                                            <div
+                                                class="sponsor-progress-bar"
+                                                :style="{
+                                                    width: `${getSponsorPaymentPercentage(raceSponsor)}%`,
+                                                }"
+                                            ></div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td class="sponsor-action-column">
+                                    <Link
+                                        v-if="
+                                            raceSponsor.sponsor_id &&
+                                            raceSponsor.id
+                                        "
+                                        :href="
+                                            getRaceSponsorShowUrl(
+                                                Number(
+                                                    raceSponsor.sponsor_id,
+                                                ),
+                                                Number(
+                                                    raceSponsor.id,
+                                                ),
+                                            )
+                                        "
+                                        class="admin-btn sponsor-view-btn"
+                                    >
+                                        <Eye
+                                            :size="15"
+                                            :stroke-width="2.2"
+                                        />
+
+                                        Ver patrocinio
+                                    </Link>
+
+                                    <span
+                                        v-else
+                                        class="sponsor-no-action"
+                                    >
+                                        No disponible
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+
+                        <tfoot>
+                            <tr>
+                                <td
+                                    colspan="2"
+                                    class="sponsor-total-label"
+                                >
+                                    Totales
+                                </td>
+
+                                <td class="sponsor-amount-column">
+                                    <strong class="sponsor-total">
+                                        {{
+                                            formatPrice(
+                                                totalSponsorAmount(),
+                                            )
+                                        }}
+                                    </strong>
+                                </td>
+
+                                <td class="sponsor-paid-column">
+                                    <strong class="sponsor-total sponsor-total-paid">
+                                        {{
+                                            formatPrice(
+                                                totalSponsorPaidAmount(),
+                                            )
+                                        }}
+                                    </strong>
+                                </td>
+
+                                <td
+                                    class="sponsor-percentage-column"
+                                >
+                                    <strong
+                                        class="sponsor-total sponsor-total-percentage"
+                                    >
+                                        {{
+                                            totalSponsorPaymentPercentage()
+                                        }}%
+                                    </strong>
+                                </td>
+
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div
+                    v-else
+                    class="show-empty-block"
+                >
+                    <Users
+                        :size="20"
+                        :stroke-width="2"
+                    />
+
+                    <strong>
+                        No hay patrocinadores asignados
+                    </strong>
+
+                    <span>
+                        Esta carrera todavía no tiene
+                        patrocinadores configurados.
+                    </span>
+                </div>
+            </div>
+        </section>
 
         <!-- =================================================
              REGISTRATION
@@ -829,8 +1220,6 @@ defineOptions({
                         :key="distance.id"
                         class="distance-show-card"
                     >
-                        <!-- DISTANCE HEADER -->
-
                         <div class="distance-show-header">
                             <div class="distance-show-title">
                                 <div class="distance-number">
@@ -901,8 +1290,6 @@ defineOptions({
                                 </span>
                             </div>
                         </div>
-
-                        <!-- PRICES -->
 
                         <div
                             v-if="
@@ -992,8 +1379,6 @@ defineOptions({
                             </div>
                         </div>
 
-                        <!-- INCLUSIONS -->
-
                         <div
                             v-if="
                                 distance.inclusions &&
@@ -1062,8 +1447,6 @@ defineOptions({
                                 </div>
                             </div>
                         </div>
-
-                        <!-- CATEGORIES -->
 
                         <div
                             v-if="
@@ -1856,6 +2239,186 @@ defineOptions({
 }
 
 /* =========================================================
+   SPONSORS - TABLE
+   ========================================================= */
+
+.sponsor-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.sponsor-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.sponsor-table th {
+    padding: 11px 13px;
+    border-bottom: 1px solid #dfe8ec;
+    background: #f8fafb;
+    color: #7f929e;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.sponsor-table td {
+    padding: 13px;
+    border-bottom: 1px solid #edf1f3;
+    color: var(--sc-page-text);
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.sponsor-table tbody tr:last-child td {
+    border-bottom: 1px solid #dfe8ec;
+}
+
+.sponsor-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 190px;
+}
+
+.sponsor-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    overflow: hidden;
+    border: 1px solid #dce9ef;
+    border-radius: 9px;
+    background: #f5f9fb;
+    color: #718d9e;
+}
+
+.sponsor-avatar img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.sponsor-name-cell strong {
+    color: var(--sc-page-text);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.sponsor-type {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    padding: 0 9px;
+    border: 1px solid #e0e9ed;
+    border-radius: 999px;
+    background: #f8fafb;
+    color: #718692;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.sponsor-amount-column {
+    text-align: right !important;
+}
+
+.sponsor-amount {
+    color: #557b8e;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.sponsor-action-column {
+    width: 1%;
+    text-align: right !important;
+    white-space: nowrap;
+}
+
+/* =========================================================
+   SPONSOR VIEW BUTTON
+   ========================================================= */
+
+.sponsor-view-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 36px;
+    padding: 0 14px;
+    border: 1px solid #249edb;
+    border-radius: 8px;
+    background: #249edb;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    box-shadow:
+        0 2px 5px rgba(36, 158, 219, 0.18),
+        0 1px 2px rgba(36, 158, 219, 0.1);
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        box-shadow 0.15s ease,
+        transform 0.15s ease;
+}
+
+.sponsor-view-btn:hover {
+    border-color: #1769a8;
+    background: #1769a8;
+    color: #ffffff;
+    box-shadow:
+        0 5px 12px rgba(23, 105, 168, 0.2),
+        0 2px 4px rgba(23, 105, 168, 0.12);
+    transform: translateY(-1px);
+}
+
+.sponsor-view-btn:active {
+    transform: translateY(0);
+}
+
+.sponsor-view-btn svg {
+    flex: 0 0 auto;
+}
+
+.sponsor-no-action {
+    color: #a1adb4;
+    font-size: 10px;
+    font-style: italic;
+}
+
+/* =========================================================
+   SPONSOR TOTAL
+   ========================================================= */
+
+.sponsor-total-label {
+    color: #718692 !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-align: right !important;
+    text-transform: uppercase;
+}
+
+.sponsor-total {
+    color: var(--sc-page-text);
+    font-size: 15px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.sponsor-table tfoot td {
+    padding-top: 15px;
+    padding-bottom: 4px;
+    border-bottom: 0;
+}
+
+/* =========================================================
    EMPTY
    ========================================================= */
 
@@ -2067,6 +2630,10 @@ defineOptions({
 
     .show-actions-footer .admin-btn {
         justify-content: center;
+    }
+
+    .sponsor-table {
+        min-width: 700px;
     }
 }
 </style>
