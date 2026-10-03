@@ -47,7 +47,7 @@ class RaceGalleryController extends Controller
     }
 
     /**
-     * Subir múltiples fotografías.
+     * Subir múltiples imágenes o videos.
      */
     public function store(
         Request $request,
@@ -60,20 +60,21 @@ class RaceGalleryController extends Controller
                 'min:1',
                 'max:50',
             ],
+
             'images.*' => [
                 'required',
-                'image',
-                'mimes:jpg,jpeg,png,webp',
-                'max:10240',
+                'file',
+                'mimes:jpg,jpeg,png,webp,mp4,webm,mov',
+                'max:51200',
             ],
         ], [
-            'images.required' => 'Selecciona al menos una fotografía.',
-            'images.array' => 'Las fotografías enviadas no son válidas.',
-            'images.min' => 'Selecciona al menos una fotografía.',
-            'images.max' => 'Puedes subir un máximo de 50 fotografías por carga.',
-            'images.*.image' => 'Todos los archivos deben ser imágenes.',
-            'images.*.mimes' => 'Las fotografías deben ser JPG, JPEG, PNG o WEBP.',
-            'images.*.max' => 'Cada fotografía puede pesar como máximo 10 MB.',
+            'images.required' => 'Selecciona al menos una imagen o video.',
+            'images.array' => 'Los archivos enviados no son válidos.',
+            'images.min' => 'Selecciona al menos una imagen o video.',
+            'images.max' => 'Puedes subir un máximo de 50 archivos por carga.',
+            'images.*.file' => 'Todos los archivos enviados deben ser válidos.',
+            'images.*.mimes' => 'Los archivos deben ser JPG, JPEG, PNG, WEBP, MP4, WEBM o MOV.',
+            'images.*.max' => 'Cada archivo puede pesar como máximo 50 MB.',
         ]);
 
         $directory = storage_path(
@@ -114,14 +115,16 @@ class RaceGalleryController extends Controller
             ]);
         }
 
-        return back()->with(
-            'success',
-            'Las fotografías se subieron correctamente.'
-        );
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Las imágenes y videos se subieron correctamente.',
+        ]);
+
+        return back();
     }
 
     /**
-     * Actualizar una fotografía.
+     * Actualizar una imagen o video.
      */
     public function update(
         Request $request,
@@ -143,11 +146,18 @@ class RaceGalleryController extends Controller
             'is_active' => $validated['is_active'],
         ]);
 
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => $validated['is_active']
+                ? 'El archivo se activó correctamente.'
+                : 'El archivo se desactivó correctamente.',
+        ]);
+
         return back();
     }
 
     /**
-     * Eliminar una fotografía.
+     * Eliminar una imagen o video.
      */
     public function destroy(
         Race $race,
@@ -168,14 +178,16 @@ class RaceGalleryController extends Controller
 
         $gallery->delete();
 
-        return back()->with(
-            'success',
-            'La fotografía se eliminó correctamente.'
-        );
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'El archivo se eliminó correctamente.',
+        ]);
+
+        return back();
     }
 
     /**
-     * Actualizar el orden de las fotografías.
+     * Actualizar el orden de las imágenes o videos.
      */
     public function updateOrder(
         Request $request,
@@ -187,10 +199,12 @@ class RaceGalleryController extends Controller
                 'array',
                 'min:1',
             ],
+
             'items.*.id' => [
                 'required',
                 'integer',
             ],
+
             'items.*.sort_order' => [
                 'required',
                 'integer',

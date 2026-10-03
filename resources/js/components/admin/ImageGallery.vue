@@ -1,7 +1,12 @@
-```vue
 <script setup>
 import { computed, ref } from 'vue';
-import { ImagePlus, GripVertical, Trash2, Upload } from 'lucide-vue-next';
+import {
+    FileVideo,
+    GripVertical,
+    ImagePlus,
+    Trash2,
+    Upload,
+} from 'lucide-vue-next';
 
 const props = defineProps({
     modelValue: {
@@ -89,12 +94,62 @@ function handleDropFiles(event) {
     addFiles(files);
 }
 
+function isAcceptedFile(file) {
+    const acceptedTypes = props.accept
+        .split(',')
+        .map((type) => type.trim().toLowerCase())
+        .filter(Boolean);
+
+    if (!acceptedTypes.length) {
+        return true;
+    }
+
+    return acceptedTypes.some((acceptedType) => {
+        if (acceptedType === '*/*') {
+            return true;
+        }
+
+        if (acceptedType.endsWith('/*')) {
+            const category = acceptedType.replace('/*', '');
+
+            return file.type.toLowerCase().startsWith(`${category}/`);
+        }
+
+        return file.type.toLowerCase() === acceptedType;
+    });
+}
+
+function isVideo(fileOrItem) {
+    const file = fileOrItem?.file ?? fileOrItem;
+
+    if (file?.type) {
+        return file.type.toLowerCase().startsWith('video/');
+    }
+
+    const image = fileOrItem?.image ?? '';
+
+    return /\.(mp4|webm|mov|m4v|avi|ogg)$/i.test(image);
+}
+
+function isImage(fileOrItem) {
+    const file = fileOrItem?.file ?? fileOrItem;
+
+    if (file?.type) {
+        return file.type.toLowerCase().startsWith('image/');
+    }
+
+    const image = fileOrItem?.image ?? '';
+
+    return /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(image);
+}
+
 function addFiles(files) {
-    const remainingSlots = props.maxImages - items.value.length;
+    const remainingSlots =
+        props.maxImages - items.value.length;
 
     if (remainingSlots <= 0) {
         showError(
-            `Solo puedes agregar un máximo de ${props.maxImages} imágenes.`
+            `Solo puedes agregar un máximo de ${props.maxImages} archivos.`,
         );
 
         return;
@@ -104,15 +159,18 @@ function addFiles(files) {
 
     if (files.length > remainingSlots) {
         showError(
-            `Solo se agregaron ${remainingSlots} imágenes porque el máximo es de ${props.maxImages}.`
+            `Solo se agregaron ${remainingSlots} archivos porque el máximo es de ${props.maxImages}.`,
         );
     }
 
     const newItems = [];
 
     filesToAdd.forEach((file) => {
-        if (!file.type.startsWith('image/')) {
-            showError(`${file.name} no es una imagen válida.`);
+        if (!isAcceptedFile(file)) {
+            showError(
+                `${file.name} no tiene un formato permitido.`,
+            );
+
             return;
         }
 
@@ -120,7 +178,7 @@ function addFiles(files) {
 
         if (file.size > maxBytes) {
             showError(
-                `${file.name} supera el tamaño máximo de ${props.maxSize} MB.`
+                `${file.name} supera el tamaño máximo de ${props.maxSize} MB.`,
             );
 
             return;
@@ -133,7 +191,9 @@ function addFiles(files) {
             image: null,
             file,
             preview,
-            sort_order: items.value.length + newItems.length,
+            media_type: file.type,
+            sort_order:
+                items.value.length + newItems.length,
             is_active: true,
             isNew: true,
         });
@@ -163,13 +223,10 @@ function removeItem(index) {
     }
 
     /*
-     * Las imágenes nuevas usan Object URLs (blob:).
+     * Los archivos nuevos usan Object URLs (blob:).
      *
      * Solo liberamos el Object URL cuando el usuario
-     * realmente elimina la imagen.
-     *
-     * No hacemos revoke al desmontar el componente porque
-     * la galería está dentro de pestañas con v-if.
+     * realmente elimina el archivo.
      */
     if (
         item.preview &&
@@ -218,6 +275,7 @@ function handleDropItem(index) {
         draggingIndex.value === index
     ) {
         resetDragState();
+
         return;
     }
 
@@ -225,15 +283,17 @@ function handleDropItem(index) {
 
     const draggedItem = updatedItems.splice(
         draggingIndex.value,
-        1
+        1,
     )[0];
 
     updatedItems.splice(index, 0, draggedItem);
 
-    const normalizedItems = updatedItems.map((item, itemIndex) => ({
-        ...item,
-        sort_order: itemIndex,
-    }));
+    const normalizedItems = updatedItems.map(
+        (item, itemIndex) => ({
+            ...item,
+            sort_order: itemIndex,
+        }),
+    );
 
     emit('update:modelValue', normalizedItems);
     emit('reorder', normalizedItems);
@@ -254,24 +314,18 @@ function showError(message) {
     emit('error', message);
 }
 
-function getImageUrl(item) {
+function getMediaUrl(item) {
     /*
-     * Imagen nueva:
-     * usa el preview temporal generado con URL.createObjectURL().
+     * Archivo nuevo:
+     * usa el preview temporal generado con
+     * URL.createObjectURL().
      */
     if (item.preview) {
         return item.preview;
     }
 
     /*
-     * Imagen existente:
-     * Laravel normalmente devuelve algo como:
-     *
-     * races/kits/archivo.webp
-     *
-     * Lo convertimos en:
-     *
-     * /storage/races/kits/archivo.webp
+     * Archivo existente.
      */
     if (item.image) {
         if (
@@ -288,12 +342,44 @@ function getImageUrl(item) {
     return '';
 }
 
-function getImageAlt(item, index) {
+function getMediaAlt(item, index) {
     if (item.file?.name) {
         return item.file.name;
     }
 
-    return `Imagen ${index + 1}`;
+    return `Archivo ${index + 1}`;
+}
+
+function getFileTypeLabel(item) {
+    if (isVideo(item)) {
+        return 'Video';
+    }
+
+    return 'Imagen';
+}
+
+function getAcceptedFormats() {
+    const acceptedTypes = props.accept
+        .split(',')
+        .map((type) => type.trim().toLowerCase());
+
+    const hasImages = acceptedTypes.some((type) =>
+        type.startsWith('image/'),
+    );
+
+    const hasVideos = acceptedTypes.some((type) =>
+        type.startsWith('video/'),
+    );
+
+    if (hasImages && hasVideos) {
+        return `JPG, PNG, WEBP, MP4, WEBM o MOV · Máximo ${props.maxSize} MB por archivo`;
+    }
+
+    if (hasVideos) {
+        return `MP4, WEBM o MOV · Máximo ${props.maxSize} MB por archivo`;
+    }
+
+    return `JPG, PNG o WEBP · Máximo ${props.maxSize} MB por archivo`;
 }
 </script>
 
@@ -324,11 +410,17 @@ function getImageAlt(item, index) {
         >
             <div
                 v-for="(item, index) in items"
-                :key="item.id ?? item.preview ?? `image-${index}`"
+                :key="
+                    item.id ??
+                    item.preview ??
+                    `image-${index}`
+                "
                 class="image-gallery-item"
                 :class="{
-                    'is-dragging': draggingIndex === index,
-                    'is-drag-over': dragOverIndex === index,
+                    'is-dragging':
+                        draggingIndex === index,
+                    'is-drag-over':
+                        dragOverIndex === index,
                 }"
                 draggable="true"
                 @dragstart="startDragging(index)"
@@ -340,10 +432,24 @@ function getImageAlt(item, index) {
             >
                 <div class="image-gallery-preview">
                     <img
-                        v-if="getImageUrl(item)"
-                        :src="getImageUrl(item)"
-                        :alt="getImageAlt(item, index)"
+                        v-if="
+                            getMediaUrl(item) &&
+                            isImage(item)
+                        "
+                        :src="getMediaUrl(item)"
+                        :alt="getMediaAlt(item, index)"
                     >
+
+                    <video
+                        v-else-if="
+                            getMediaUrl(item) &&
+                            isVideo(item)
+                        "
+                        :src="getMediaUrl(item)"
+                        muted
+                        playsinline
+                        preload="metadata"
+                    ></video>
 
                     <div
                         v-else
@@ -353,14 +459,16 @@ function getImageAlt(item, index) {
                     </div>
 
                     <div class="image-gallery-overlay">
-                        <div class="image-gallery-drag-handle">
+                        <div
+                            class="image-gallery-drag-handle"
+                        >
                             <GripVertical :size="20" />
                         </div>
 
                         <button
                             type="button"
                             class="image-gallery-delete"
-                            title="Eliminar imagen"
+                            title="Eliminar archivo"
                             @click.stop="removeItem(index)"
                         >
                             <Trash2 :size="17" />
@@ -369,6 +477,14 @@ function getImageAlt(item, index) {
 
                     <div class="image-gallery-position">
                         {{ index + 1 }}
+                    </div>
+
+                    <div
+                        v-if="isVideo(item)"
+                        class="image-gallery-type"
+                    >
+                        <FileVideo :size="12" />
+                        Video
                     </div>
 
                     <div
@@ -385,12 +501,19 @@ function getImageAlt(item, index) {
             v-if="canAddMore"
             class="image-gallery-upload"
             :class="{
-                'is-dragging-files': isDraggingFiles,
+                'is-dragging-files':
+                    isDraggingFiles,
             }"
             @click="openFileDialog"
-            @dragenter.prevent="isDraggingFiles = true"
-            @dragover.prevent="isDraggingFiles = true"
-            @dragleave.prevent="isDraggingFiles = false"
+            @dragenter.prevent="
+                isDraggingFiles = true
+            "
+            @dragover.prevent="
+                isDraggingFiles = true
+            "
+            @dragleave.prevent="
+                isDraggingFiles = false
+            "
             @drop.prevent="handleDropFiles"
         >
             <div class="image-gallery-upload-icon">
@@ -399,7 +522,7 @@ function getImageAlt(item, index) {
 
             <div class="image-gallery-upload-content">
                 <strong>
-                    Arrastra tus imágenes aquí
+                    Arrastra tus archivos aquí
                 </strong>
 
                 <span>
@@ -407,7 +530,7 @@ function getImageAlt(item, index) {
                 </span>
 
                 <small>
-                    JPG, PNG o WEBP · Máximo {{ maxSize }} MB por imagen
+                    {{ getAcceptedFormats() }}
                 </small>
             </div>
 
@@ -416,7 +539,7 @@ function getImageAlt(item, index) {
                 class="image-gallery-upload-button"
                 @click.stop="openFileDialog"
             >
-                Seleccionar imágenes
+                Seleccionar archivos
             </button>
 
             <input
@@ -433,7 +556,8 @@ function getImageAlt(item, index) {
             v-else
             class="image-gallery-limit"
         >
-            Has alcanzado el máximo de {{ maxImages }} imágenes.
+            Has alcanzado el máximo de
+            {{ maxImages }} archivos.
         </div>
 
         <div
@@ -445,11 +569,11 @@ function getImageAlt(item, index) {
             </div>
 
             <strong>
-                Aún no hay imágenes
+                Aún no hay archivos
             </strong>
 
             <span>
-                Agrega las fotografías del kit de la carrera.
+                Agrega las imágenes o videos de la galería.
             </span>
 
             <button
@@ -458,7 +582,7 @@ function getImageAlt(item, index) {
                 @click="openFileDialog"
             >
                 <ImagePlus :size="17" />
-                Agregar imágenes
+                Agregar archivos
             </button>
         </div>
     </div>
@@ -534,9 +658,12 @@ function getImageAlt(item, index) {
     transform: translateY(-3px);
 }
 
-.image-gallery-item.is-drag-over .image-gallery-preview {
+.image-gallery-item.is-drag-over
+    .image-gallery-preview {
     border-color: var(--sc-primary, #249edb);
-    box-shadow: 0 0 0 3px var(--sc-primary-light, #eaf6fc);
+    box-shadow:
+        0 0 0 3px
+        var(--sc-primary-light, #eaf6fc);
 }
 
 .image-gallery-preview {
@@ -551,11 +678,16 @@ function getImageAlt(item, index) {
         box-shadow 0.18s ease;
 }
 
-.image-gallery-preview img {
+.image-gallery-preview img,
+.image-gallery-preview video {
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+.image-gallery-preview video {
+    background: #111820;
 }
 
 .image-gallery-no-preview {
@@ -585,7 +717,8 @@ function getImageAlt(item, index) {
     transition: opacity 0.18s ease;
 }
 
-.image-gallery-item:hover .image-gallery-overlay {
+.image-gallery-item:hover
+    .image-gallery-overlay {
     opacity: 1;
 }
 
@@ -599,7 +732,9 @@ function getImageAlt(item, index) {
     background: rgba(255, 255, 255, 0.92);
     color: #52616b;
     cursor: grab;
-    box-shadow: 0 2px 8px rgba(23, 43, 77, 0.12);
+    box-shadow:
+        0 2px 8px
+        rgba(23, 43, 77, 0.12);
 }
 
 .image-gallery-delete {
@@ -614,7 +749,9 @@ function getImageAlt(item, index) {
     background: rgba(255, 255, 255, 0.94);
     color: var(--sc-danger, #e83e4d);
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(23, 43, 77, 0.12);
+    box-shadow:
+        0 2px 8px
+        rgba(23, 43, 77, 0.12);
     transition:
         background 0.15s ease,
         transform 0.15s ease;
@@ -654,6 +791,22 @@ function getImageAlt(item, index) {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.02em;
+}
+
+.image-gallery-type {
+    position: absolute;
+    left: 9px;
+    top: 50%;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 8px;
+    border-radius: 7px;
+    background: rgba(23, 43, 77, 0.78);
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    transform: translateY(-50%);
 }
 
 .image-gallery-upload {
@@ -789,19 +942,21 @@ function getImageAlt(item, index) {
     gap: 7px;
 }
 
-/* ---------------------------------------------------------
-   RESPONSIVE
-   --------------------------------------------------------- */
-
 @media (max-width: 1100px) {
     .image-gallery-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(
+            3,
+            minmax(0, 1fr)
+        );
     }
 }
 
 @media (max-width: 760px) {
     .image-gallery-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(
+            2,
+            minmax(0, 1fr)
+        );
     }
 
     .image-gallery-upload {
@@ -823,7 +978,10 @@ function getImageAlt(item, index) {
     }
 
     .image-gallery-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(
+            2,
+            minmax(0, 1fr)
+        );
         gap: 9px;
     }
 

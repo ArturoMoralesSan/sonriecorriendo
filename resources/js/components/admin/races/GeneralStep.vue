@@ -216,9 +216,10 @@ const emit = defineEmits<{
                 <ImageGallery
                     v-model="props.form.kit_images"
                     label="Galería del kit"
-                    hint="Agrega las imágenes del kit y arrástralas para cambiar su orden."
+                    hint="Agrega las imágenes y videos del kit y arrástralos para cambiar su orden."
+                    accept="image/jpeg,image/png,image/webp,image/jpg,video/mp4,video/webm,video/quicktime"
                     :max-images="20"
-                    :max-size="10"
+                    :max-size="50"
                     @error="emit('kit-gallery-error', $event)"
                 />
             </div>

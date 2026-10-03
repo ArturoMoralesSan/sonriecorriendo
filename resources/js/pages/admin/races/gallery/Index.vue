@@ -6,10 +6,11 @@ import {
     ImagePlus,
     Trash2,
     Upload,
-    X,
 } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
+import Swal from 'sweetalert2';
 
+import ImageGallery from '@/components/admin/ImageGallery.vue';
 import admin from '@/routes/admin';
 
 interface Race {
@@ -26,16 +27,26 @@ interface GalleryItem {
     created_at: string | null;
 }
 
+interface SelectedGalleryItem {
+    id: number | null;
+    image: string | null;
+    file?: File;
+    preview?: string;
+    media_type?: string;
+    sort_order: number;
+    is_active: boolean;
+    isNew?: boolean;
+}
+
 const props = defineProps<{
     race: Race;
     gallery: GalleryItem[];
 }>();
 
-const fileInput = ref<HTMLInputElement | null>(null);
-const selectedFiles = ref<File[]>([]);
-const isDragging = ref(false);
 const uploading = ref(false);
 const deletingId = ref<number | null>(null);
+
+const selectedGalleryItems = ref<SelectedGalleryItem[]>([]);
 
 const form = useForm<{
     images: File[];
@@ -43,75 +54,42 @@ const form = useForm<{
     images: [],
 });
 
-const previews = computed(() =>
-    selectedFiles.value.map((file) => ({
-        file,
-        url: URL.createObjectURL(file),
-    })),
-);
-
-function openFilePicker() {
-    fileInput.value?.click();
+function syncSelectedFiles() {
+    form.images = selectedGalleryItems.value
+        .filter((item) => item.file instanceof File)
+        .map((item) => item.file as File);
 }
 
-function handleFiles(files: FileList | File[]) {
-    const incomingFiles = Array.from(files).filter((file) =>
-        file.type.startsWith('image/'),
-    );
+function handleGalleryUpdate(
+    items: SelectedGalleryItem[],
+) {
+    selectedGalleryItems.value = items;
+    syncSelectedFiles();
+}
 
-    if (!incomingFiles.length) {
-        return;
-    }
-
-    selectedFiles.value = [
-        ...selectedFiles.value,
-        ...incomingFiles,
+function handleGalleryAdd(
+    items: SelectedGalleryItem[],
+) {
+    selectedGalleryItems.value = [
+        ...selectedGalleryItems.value,
     ];
 
-    form.images = selectedFiles.value;
-}
-
-function handleFileInput(event: Event) {
-    const target = event.target as HTMLInputElement;
-
-    if (!target.files) {
-        return;
-    }
-
-    handleFiles(target.files);
-
-    target.value = '';
-}
-
-function handleDrop(event: DragEvent) {
-    event.preventDefault();
-    isDragging.value = false;
-
-    if (!event.dataTransfer?.files) {
-        return;
-    }
-
-    handleFiles(event.dataTransfer.files);
-}
-
-function removeSelected(index: number) {
-    selectedFiles.value.splice(index, 1);
-    form.images = selectedFiles.value;
+    syncSelectedFiles();
 }
 
 function clearSelected() {
-    selectedFiles.value = [];
+    selectedGalleryItems.value = [];
     form.images = [];
 }
 
 function uploadImages() {
-    if (!selectedFiles.value.length || uploading.value) {
+    syncSelectedFiles();
+
+    if (!form.images.length || uploading.value) {
         return;
     }
 
     uploading.value = true;
-
-    form.images = selectedFiles.value;
 
     form.post(
         admin.races.gallery.store({
@@ -120,9 +98,11 @@ function uploadImages() {
         {
             forceFormData: true,
             preserveScroll: true,
+
             onSuccess: () => {
                 clearSelected();
             },
+
             onFinish: () => {
                 uploading.value = false;
             },
@@ -130,12 +110,22 @@ function uploadImages() {
     );
 }
 
-function deleteImage(gallery: GalleryItem) {
+async function deleteImage(gallery: GalleryItem) {
     if (deletingId.value !== null) {
         return;
     }
 
-    if (!confirm('¿Deseas eliminar esta imagen de la galería?')) {
+    const result = await Swal.fire({
+        icon: 'warning',
+        title: '¿Eliminar archivo?',
+        text: 'Este archivo se eliminará definitivamente de la galería.',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) {
         return;
     }
 
@@ -148,6 +138,7 @@ function deleteImage(gallery: GalleryItem) {
         }).url,
         {
             preserveScroll: true,
+
             onFinish: () => {
                 deletingId.value = null;
             },
@@ -168,6 +159,22 @@ function toggleActive(gallery: GalleryItem) {
             preserveScroll: true,
         },
     );
+}
+
+function isVideo(path: string): boolean {
+    return /\.(mp4|webm|mov|m4v|ogg)$/i.test(path);
+}
+
+function mediaUrl(path: string): string {
+    if (
+        path.startsWith('http://') ||
+        path.startsWith('https://') ||
+        path.startsWith('/')
+    ) {
+        return path;
+    }
+
+    return `/storage/${path}`;
 }
 
 defineOptions({
@@ -209,8 +216,8 @@ defineOptions({
                 </h1>
 
                 <p class="admin-page-subtitle">
-                    Administra las imágenes que se mostrarán en el
-                    carrusel de la página pública del evento.
+                    Administra las imágenes y videos que se mostrarán
+                    en el carrusel de la página pública del evento.
                 </p>
             </div>
 
@@ -245,8 +252,8 @@ defineOptions({
                     </h2>
 
                     <p class="show-card-description">
-                        Galería de imágenes asociada a esta carrera.
-                        Las imágenes activas estarán disponibles para
+                        Galería multimedia asociada a esta carrera.
+                        Los archivos activos estarán disponibles para
                         el carrusel de la página pública.
                     </p>
                 </div>
@@ -263,7 +270,7 @@ defineOptions({
                 <div class="gallery-info-grid">
                     <div class="show-info-box">
                         <span>
-                            Total de imágenes
+                            Total de archivos
                         </span>
 
                         <strong>
@@ -273,7 +280,7 @@ defineOptions({
 
                     <div class="show-info-box">
                         <span>
-                            Imágenes activas
+                            Archivos activos
                         </span>
 
                         <strong>
@@ -287,7 +294,7 @@ defineOptions({
 
                     <div class="show-info-box">
                         <span>
-                            Imágenes inactivas
+                            Archivos inactivos
                         </span>
 
                         <strong>
@@ -314,12 +321,12 @@ defineOptions({
                     </p>
 
                     <h2 class="show-card-title">
-                        Agregar imágenes
+                        Agregar imágenes y videos
                     </h2>
 
                     <p class="show-card-description">
-                        Selecciona una o varias imágenes para agregarlas
-                        a la galería de esta carrera.
+                        Selecciona una o varias imágenes o videos para
+                        agregarlos a la galería de esta carrera.
                     </p>
                 </div>
 
@@ -332,126 +339,38 @@ defineOptions({
             </div>
 
             <div class="show-card-body">
-                <div
-                    class="gallery-dropzone"
-                    :class="{
-                        'gallery-dropzone-active': isDragging,
-                    }"
-                    @dragenter.prevent="isDragging = true"
-                    @dragover.prevent="isDragging = true"
-                    @dragleave.prevent="isDragging = false"
-                    @drop="handleDrop"
-                    @click="openFilePicker"
-                >
-                    <input
-                        ref="fileInput"
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        multiple
-                        hidden
-                        @change="handleFileInput"
-                    />
+                <ImageGallery
+                    :model-value="selectedGalleryItems"
+                    label="Galería del kit"
+                    hint="Agrega las imágenes y videos del kit y arrástralos para cambiar su orden."
+                    accept="image/jpeg,image/png,image/webp,image/jpg,video/mp4,video/webm,video/quicktime"
+                    :max-images="20"
+                    :max-size="50"
+                    @update:model-value="handleGalleryUpdate"
+                    @add="handleGalleryAdd"
+                />
 
-                    <div class="gallery-dropzone-icon">
+                <div
+                    v-if="selectedGalleryItems.length"
+                    class="gallery-upload-actions"
+                >
+                    <button
+                        type="button"
+                        class="admin-btn admin-btn-primary"
+                        :disabled="uploading"
+                        @click="uploadImages"
+                    >
                         <Upload
-                            :size="21"
+                            :size="14"
                             :stroke-width="2"
                         />
-                    </div>
 
-                    <strong>
-                        Arrastra tus imágenes aquí
-                    </strong>
-
-                    <span>
-                        o haz clic para seleccionar archivos
-                    </span>
-
-                    <small>
-                        JPG, PNG o WEBP
-                    </small>
-                </div>
-
-                <!-- SELECTED FILES -->
-
-                <div
-                    v-if="previews.length"
-                    class="gallery-selected"
-                >
-                    <div class="gallery-section-header">
-                        <div>
-                            <p class="show-card-eyebrow">
-                                Preparadas
-                            </p>
-
-                            <h3>
-                                Imágenes seleccionadas
-                            </h3>
-                        </div>
-
-                        <button
-                            type="button"
-                            class="gallery-clear-btn"
-                            @click="clearSelected"
-                        >
-                            <X
-                                :size="14"
-                                :stroke-width="2"
-                            />
-
-                            Limpiar
-                        </button>
-                    </div>
-
-                    <div class="gallery-preview-grid">
-                        <div
-                            v-for="(preview, index) in previews"
-                            :key="`${preview.file.name}-${index}`"
-                            class="gallery-preview"
-                        >
-                            <div class="gallery-preview-image">
-                                <img
-                                    :src="preview.url"
-                                    :alt="preview.file.name"
-                                />
-
-                                <button
-                                    type="button"
-                                    class="gallery-preview-remove"
-                                    @click.stop="removeSelected(index)"
-                                >
-                                    <X
-                                        :size="13"
-                                        :stroke-width="2"
-                                    />
-                                </button>
-                            </div>
-
-                            <div class="gallery-preview-name">
-                                {{ preview.file.name }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="gallery-upload-actions">
-                        <button
-                            type="button"
-                            class="admin-btn admin-btn-primary"
-                            :disabled="uploading"
-                            @click="uploadImages"
-                        >
-                            <Upload
-                                :size="14"
-                                :stroke-width="2"
-                            />
-
-                            {{
-                                uploading
-                                    ? 'Subiendo...'
-                                    : 'Subir imágenes'
-                            }}
-                        </button>
-                    </div>
+                        {{
+                            uploading
+                                ? 'Subiendo...'
+                                : `Subir ${selectedGalleryItems.length} archivos`
+                        }}
+                    </button>
                 </div>
             </div>
         </section>
@@ -468,12 +387,12 @@ defineOptions({
                     </p>
 
                     <h2 class="show-card-title">
-                        Imágenes de la galería
+                        Archivos de la galería
                     </h2>
 
                     <p class="show-card-description">
-                        Imágenes disponibles para el carrusel de la
-                        página pública del evento.
+                        Imágenes y videos disponibles para el carrusel
+                        de la página pública del evento.
                     </p>
                 </div>
 
@@ -500,10 +419,30 @@ defineOptions({
                         }"
                     >
                         <div class="gallery-item-image">
+                            <video
+                                v-if="isVideo(item.image)"
+                                :src="mediaUrl(item.image)"
+                                muted
+                                controls
+                                playsinline
+                                preload="metadata"
+                            ></video>
+
                             <img
-                                :src="`/storage/${item.image}`"
+                                v-else
+                                :src="mediaUrl(item.image)"
                                 :alt="`Imagen ${item.id}`"
                             />
+
+                            <span
+                                class="gallery-item-type"
+                            >
+                                {{
+                                    isVideo(item.image)
+                                        ? 'Video'
+                                        : 'Imagen'
+                                }}
+                            </span>
 
                             <span
                                 class="gallery-item-status"
@@ -511,7 +450,9 @@ defineOptions({
                                     active: item.is_active,
                                 }"
                             >
-                                <span class="gallery-status-dot"></span>
+                                <span
+                                    class="gallery-status-dot"
+                                ></span>
 
                                 {{
                                     item.is_active
@@ -545,7 +486,9 @@ defineOptions({
                             <button
                                 type="button"
                                 class="gallery-item-delete"
-                                :disabled="deletingId === item.id"
+                                :disabled="
+                                    deletingId === item.id
+                                "
                                 @click="deleteImage(item)"
                             >
                                 <Trash2
@@ -573,12 +516,12 @@ defineOptions({
                     />
 
                     <strong>
-                        No hay imágenes en la galería
+                        No hay archivos en la galería
                     </strong>
 
                     <span>
-                        Esta carrera todavía no tiene imágenes
-                        configuradas para su carrusel.
+                        Esta carrera todavía no tiene imágenes o videos
+                        configurados para su carrusel.
                     </span>
                 </div>
             </div>
@@ -698,165 +641,13 @@ defineOptions({
 }
 
 /* =========================================================
-   UPLOAD
+   UPLOAD ACTION
    ========================================================= */
-
-.gallery-dropzone {
-    display: flex;
-    align-items: center;
-    flex-direction: column;
-    justify-content: center;
-    min-height: 190px;
-    padding: 25px;
-    border: 1px dashed #d6e3e9;
-    border-radius: 10px;
-    background: #fbfcfd;
-    cursor: pointer;
-    text-align: center;
-    transition:
-        border-color 0.2s ease,
-        background 0.2s ease;
-}
-
-.gallery-dropzone:hover,
-.gallery-dropzone-active {
-    border-color: #a9c7d5;
-    background: #f6fafc;
-}
-
-.gallery-dropzone-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    margin-bottom: 12px;
-    border: 1px solid #dce9ef;
-    border-radius: 9px;
-    background: #f5f9fb;
-    color: #718d9e;
-}
-
-.gallery-dropzone strong {
-    margin-bottom: 5px;
-    color: var(--sc-page-text);
-    font-size: 13px;
-    font-weight: 700;
-}
-
-.gallery-dropzone span {
-    margin-bottom: 6px;
-    color: #8999a4;
-    font-size: 12px;
-}
-
-.gallery-dropzone small {
-    color: #a0adb4;
-    font-size: 10px;
-}
-
-/* =========================================================
-   SELECTED
-   ========================================================= */
-
-.gallery-selected {
-    margin-top: 22px;
-    padding-top: 22px;
-    border-top: 1px solid var(--sc-page-border);
-}
-
-.gallery-section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-    margin-bottom: 14px;
-}
-
-.gallery-section-header h3 {
-    margin: 0;
-    color: var(--sc-page-text);
-    font-size: 14px;
-    font-weight: 700;
-}
-
-.gallery-clear-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: #8c777b;
-    cursor: pointer;
-    font-size: 11px;
-    font-weight: 650;
-}
-
-.gallery-clear-btn:hover {
-    color: #b15c66;
-}
-
-/* =========================================================
-   PREVIEWS
-   ========================================================= */
-
-.gallery-preview-grid {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 12px;
-}
-
-.gallery-preview {
-    overflow: hidden;
-    border: 1px solid #e2eaee;
-    border-radius: 9px;
-    background: #ffffff;
-}
-
-.gallery-preview-image {
-    position: relative;
-    overflow: hidden;
-    background: #f5f8fa;
-}
-
-.gallery-preview-image img {
-    display: block;
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    object-fit: cover;
-}
-
-.gallery-preview-remove {
-    position: absolute;
-    top: 7px;
-    right: 7px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 25px;
-    height: 25px;
-    padding: 0;
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    border-radius: 7px;
-    background: rgba(28, 43, 52, 0.72);
-    color: #ffffff;
-    cursor: pointer;
-}
-
-.gallery-preview-name {
-    overflow: hidden;
-    padding: 8px 9px;
-    color: #81919b;
-    font-size: 10px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
 
 .gallery-upload-actions {
     display: flex;
     justify-content: flex-end;
-    margin-top: 16px;
+    margin-top: 18px;
 }
 
 /* =========================================================
@@ -886,11 +677,16 @@ defineOptions({
     background: #f5f8fa;
 }
 
-.gallery-item-image img {
+.gallery-item-image img,
+.gallery-item-image video {
     display: block;
     width: 100%;
     aspect-ratio: 16 / 10;
     object-fit: cover;
+}
+
+.gallery-item-image video {
+    background: #111820;
 }
 
 .gallery-item-status {
@@ -920,6 +716,21 @@ defineOptions({
     flex: 0 0 5px;
     border-radius: 50%;
     background: currentColor;
+}
+
+.gallery-item-type {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    display: inline-flex;
+    align-items: center;
+    min-height: 25px;
+    padding: 0 8px;
+    border-radius: 7px;
+    background: rgba(27, 43, 52, 0.72);
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 650;
 }
 
 .gallery-item-footer {
@@ -1005,10 +816,6 @@ defineOptions({
     .gallery-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
-
-    .gallery-preview-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
 }
 
 @media (max-width: 700px) {
@@ -1032,15 +839,6 @@ defineOptions({
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .gallery-preview-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .gallery-section-header {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
     .gallery-upload-actions {
         justify-content: stretch;
     }
@@ -1054,10 +852,6 @@ defineOptions({
 @media (max-width: 500px) {
     .gallery-grid {
         grid-template-columns: 1fr;
-    }
-
-    .gallery-preview-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .gallery-item-footer {
