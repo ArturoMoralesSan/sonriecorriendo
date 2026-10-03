@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import {
     CalendarDays,
     ClipboardList,
@@ -10,10 +10,13 @@ import {
     Search,
     Trash2,
     Trophy,
+    Wallet,
 } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
 import { ref } from 'vue';
 
+import DataTable from '@/Components/Admin/DataTable.vue';
+import PageHeader from '@/Components/Admin/PageHeader.vue';
 import admin from '@/routes/admin';
 
 interface Race {
@@ -194,6 +197,76 @@ const getStatusClass = (status: string): string => {
     return classes[status] ?? 'status-draft';
 };
 
+const columns = [
+    {
+        key: 'race',
+        label: 'Carrera',
+    },
+    {
+        key: 'date',
+        label: 'Fecha',
+    },
+    {
+        key: 'location',
+        label: 'Ubicación',
+    },
+    {
+        key: 'distances',
+        label: 'Distancias',
+        headerClass: 'text-center',
+        class: 'text-center',
+    },
+    {
+        key: 'status',
+        label: 'Estado',
+    },
+];
+
+const actions = [
+    {
+        key: 'show',
+        label: 'Detalle',
+        icon: Eye,
+        class: 'action-btn-view',
+        href: (race: Record<string, any>) =>
+            admin.races.show(race.id).url,
+    },
+    {
+        key: 'checklist',
+        label: 'Checklist',
+        icon: ClipboardList,
+        class: 'action-btn-checklist',
+        href: (race: Record<string, any>) =>
+            admin.races.checklist.index(race.id).url,
+    },
+    {
+        key: 'expenses',
+        label: 'Gastos',
+        icon: Wallet,
+        class: 'action-btn-expenses',
+        href: (race: Record<string, any>) =>
+            admin.races.expenses.index({
+                race: race.id,
+            }).url,
+    },
+    {
+        key: 'edit',
+        label: 'Editar',
+        icon: Edit,
+        class: 'action-btn-edit',
+        href: (race: Record<string, any>) =>
+            admin.races.edit(race.id).url,
+    },
+    {
+        key: 'delete',
+        label: 'Eliminar',
+        icon: Trash2,
+        class: 'action-btn-delete',
+        onClick: (race: Record<string, any>) =>
+            deleteRace(race as Race),
+    },
+];
+
 defineOptions({
     layout: {
         breadcrumbs: [
@@ -214,362 +287,105 @@ defineOptions({
     <Head title="Carreras" />
 
     <div class="admin-page">
-        <header class="admin-page-header">
-            <div>
-                <p class="admin-page-eyebrow">
-                    Eventos
-                </p>
+        <PageHeader
+            eyebrow="Eventos"
+            title="Carreras"
+            subtitle="Administra las carreras, sus fechas, ubicaciones y distancias disponibles."
+            :actions="[
+                {
+                    label: 'Nueva carrera',
+                    href: admin.races.create().url,
+                    icon: Plus,
+                    variant: 'primary',
+                },
+            ]"
+        />
 
-                <h1 class="admin-page-title">
-                    Carreras
-                </h1>
-
-                <p class="admin-page-subtitle">
-                    Administra las carreras, sus fechas, ubicaciones y
-                    distancias disponibles.
-                </p>
-            </div>
-
-            <div class="admin-page-header-actions">
-                <Link
-                    :href="admin.races.create().url"
-                    class="admin-btn admin-btn-primary"
-                >
-                    <span class="admin-btn-icon">
-                        <Plus
-                            :size="14"
-                            :stroke-width="2.2"
+        <DataTable
+            :columns="columns"
+            :pagination="races"
+            :actions="actions"
+            :search="search"
+            search-placeholder="Buscar carrera..."
+            counter-label="carreras"
+            empty-title="No se encontraron carreras."
+            empty-description="Intenta cambiar el término de búsqueda."
+            :search-icon="Search"
+            :empty-icon="Trophy"
+            @update:search="search = $event"
+            @search="submitSearch"
+        >
+            <template #cell-race="{ row }">
+                <div class="race-cell">
+                    <div class="race-icon">
+                        <img
+                            v-if="getBannerUrl(row.banner)"
+                            :src="getBannerUrl(row.banner)!"
+                            :alt="row.name"
                         />
-                    </span>
 
-                    Nueva carrera
-                </Link>
-            </div>
-        </header>
-
-        <section class="admin-table-card">
-            <div class="admin-table-toolbar">
-                <form
-                    class="admin-search-form"
-                    @submit.prevent="submitSearch"
-                >
-                    <div class="admin-search-wrapper">
-                        <Search
-                            class="admin-search-icon"
-                            :size="16"
+                        <Trophy
+                            v-else
+                            :size="17"
                             :stroke-width="2"
-                        />
-
-                        <input
-                            v-model="search"
-                            type="search"
-                            placeholder="Buscar carrera..."
-                            class="admin-search-input"
                         />
                     </div>
 
-                    <button
-                        type="submit"
-                        class="admin-btn admin-btn-search"
-                    >
-                        <Search
-                            :size="14"
-                            :stroke-width="2"
-                        />
+                    <div class="race-info">
+                        <strong>
+                            {{ row.name }}
+                        </strong>
 
-                        Buscar
-                    </button>
-                </form>
+                        <span>
+                            ID: {{ row.id }}
+                        </span>
+                    </div>
+                </div>
+            </template>
 
-                <div class="admin-table-counter">
-                    <strong>
-                        {{ races.total }}
-                    </strong>
+            <template #cell-date="{ row }">
+                <div class="race-date-cell">
+                    <CalendarDays
+                        :size="15"
+                        :stroke-width="2"
+                    />
 
                     <span>
-                        carreras
+                        {{ formatDate(row.event_date) }}
                     </span>
                 </div>
-            </div>
+            </template>
 
-            <div class="admin-table-wrapper">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>
-                                Carrera
-                            </th>
+            <template #cell-location="{ row }">
+                <div class="race-location-cell">
+                    <MapPin
+                        :size="15"
+                        :stroke-width="2"
+                    />
 
-                            <th>
-                                Fecha
-                            </th>
-
-                            <th>
-                                Ubicación
-                            </th>
-
-                            <th class="text-center">
-                                Distancias
-                            </th>
-
-                            <th>
-                                Estado
-                            </th>
-
-                            <th class="text-right">
-                                Acciones
-                            </th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        <tr
-                            v-for="race in races.data"
-                            :key="race.id"
-                        >
-                            <td>
-                                <div class="race-cell">
-                                    <div class="race-icon">
-                                        <img
-                                            v-if="getBannerUrl(race.banner)"
-                                            :src="getBannerUrl(race.banner)!"
-                                            :alt="race.name"
-                                        />
-
-                                        <Trophy
-                                            v-else
-                                            :size="17"
-                                            :stroke-width="2"
-                                        />
-                                    </div>
-
-                                    <div class="race-info">
-                                        <strong>
-                                            {{ race.name }}
-                                        </strong>
-
-                                        <span>
-                                            ID: {{ race.id }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </td>
-
-                            <td>
-                                <div class="race-date-cell">
-                                    <CalendarDays
-                                        :size="15"
-                                        :stroke-width="2"
-                                    />
-
-                                    <span>
-                                        {{ formatDate(race.event_date) }}
-                                    </span>
-                                </div>
-                            </td>
-
-                            <td>
-                                <div class="race-location-cell">
-                                    <MapPin
-                                        :size="15"
-                                        :stroke-width="2"
-                                    />
-
-                                    <span>
-                                        {{ getLocation(race) }}
-                                    </span>
-                                </div>
-                            </td>
-
-                            <td class="text-center">
-                                <span class="distance-badge">
-                                    {{ race.distances_count }}
-                                </span>
-                            </td>
-
-                            <td>
-                                <span
-                                    class="status-badge"
-                                    :class="getStatusClass(race.status)"
-                                >
-                                    <span class="status-dot"></span>
-
-                                    {{ getStatusLabel(race.status) }}
-                                </span>
-                            </td>
-
-                            <td>
-                                <div class="table-actions">
-                                    <Link
-                                        :href="
-                                            admin.races.show(
-                                                race.id,
-                                            ).url
-                                        "
-                                        class="action-btn action-btn-view"
-                                        title="Ver detalles de la carrera"
-                                        aria-label="Ver detalles de la carrera"
-                                    >
-                                        <Eye
-                                            :size="14"
-                                            :stroke-width="2"
-                                        />
-
-                                        Detalle
-                                    </Link>
-
-                                    <Link
-                                        :href="
-                                            admin.races.checklist.index(
-                                                race.id,
-                                            ).url
-                                        "
-                                        class="action-btn action-btn-checklist"
-                                        title="Ver checklist de la carrera"
-                                        aria-label="Ver checklist de la carrera"
-                                    >
-                                        <ClipboardList
-                                            :size="14"
-                                            :stroke-width="2"
-                                        />
-
-                                        Checklist
-                                    </Link>
-                                    
-                                    <Link
-                                        :href="admin.races.expenses.index({
-                                            race: race.id,
-                                        }).url"
-                                        class="action-btn action-btn-expenses"
-                                        title="Controlar gastos de la carrera"
-                                        aria-label="Controlar gastos de la carrera"
-                                    >
-                                        <Wallet
-                                            :size="14"
-                                            :stroke-width="2"
-                                        />
-
-                                        Gastos
-                                    </Link>
-
-                                    <Link
-                                        :href="
-                                            admin.races.edit(
-                                                race.id,
-                                            ).url
-                                        "
-                                        class="action-btn action-btn-edit"
-                                        title="Editar carrera"
-                                        aria-label="Editar carrera"
-                                    >
-                                        <Edit
-                                            :size="14"
-                                            :stroke-width="2"
-                                        />
-
-                                        Editar
-                                    </Link>
-
-                                    <button
-                                        type="button"
-                                        class="action-btn action-btn-delete"
-                                        title="Eliminar carrera"
-                                        aria-label="Eliminar carrera"
-                                        @click="
-                                            deleteRace(
-                                                race,
-                                            )
-                                        "
-                                    >
-                                        <Trash2
-                                            :size="14"
-                                            :stroke-width="2"
-                                        />
-
-                                        Eliminar
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-
-                        <tr
-                            v-if="races.data.length === 0"
-                        >
-                            <td
-                                colspan="6"
-                                class="admin-table-empty"
-                            >
-                                <div class="empty-state">
-                                    <div class="empty-state-icon">
-                                        <Trophy
-                                            :size="20"
-                                            :stroke-width="2"
-                                        />
-                                    </div>
-
-                                    <strong>
-                                        No se encontraron carreras
-                                    </strong>
-
-                                    <span>
-                                        Intenta cambiar el término
-                                        de búsqueda.
-                                    </span>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div
-                v-if="races.last_page > 1"
-                class="admin-pagination-wrapper"
-            >
-                <div class="admin-pagination-info">
-                    Mostrando
-
-                    <strong>
-                        {{ races.from ?? 0 }}
-                    </strong>
-
-                    a
-
-                    <strong>
-                        {{ races.to ?? 0 }}
-                    </strong>
-
-                    de
-
-                    <strong>
-                        {{ races.total }}
-                    </strong>
+                    <span>
+                        {{ getLocation(row as Race) }}
+                    </span>
                 </div>
+            </template>
 
-                <nav class="admin-pagination">
-                    <template
-                        v-for="(link, index) in races.links"
-                        :key="index"
-                    >
-                        <Link
-                            v-if="link.url"
-                            :href="link.url"
-                            class="pagination-btn"
-                            :class="{
-                                active: link.active,
-                            }"
-                            v-html="link.label"
-                        />
+            <template #cell-distances="{ row }">
+                <span class="distance-badge">
+                    {{ row.distances_count }}
+                </span>
+            </template>
 
-                        <span
-                            v-else
-                            class="pagination-btn disabled"
-                            v-html="link.label"
-                        />
-                    </template>
-                </nav>
-            </div>
-        </section>
+            <template #cell-status="{ row }">
+                <span
+                    class="status-badge"
+                    :class="getStatusClass(row.status)"
+                >
+                    <span class="status-dot"></span>
+
+                    {{ getStatusLabel(row.status) }}
+                </span>
+            </template>
+        </DataTable>
     </div>
 </template>
 
@@ -701,19 +517,34 @@ defineOptions({
     color: #a6656d;
 }
 
+/*
+ * Acciones propias de Carreras.
+ * Detalle / Editar / Eliminar ya las controla DataTable.
+ */
+
+:global(.data-table-action.action-btn-checklist) {
+    background: #f7f5fc;
+    color: #6753a8;
+}
+
+:global(.data-table-action.action-btn-checklist:hover) {
+    background: #eeeaf8;
+    color: #594698;
+}
+
+:global(.data-table-action.action-btn-expenses) {
+    background: #f4f9f5;
+    color: #557d60;
+}
+
+:global(.data-table-action.action-btn-expenses:hover) {
+    background: #eaf5ec;
+    color: #83ac8e;
+}
+
 @media (max-width: 900px) {
     .race-location-cell {
         max-width: 180px;
-    }
-}
-
-@media (max-width: 760px) {
-    .admin-table-wrapper {
-        overflow-x: auto;
-    }
-
-    .admin-table {
-        min-width: 950px;
     }
 }
 </style>

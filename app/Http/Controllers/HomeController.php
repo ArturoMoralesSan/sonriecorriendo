@@ -108,55 +108,61 @@ class HomeController extends Controller
     }
 
     public function race(string $slug): Response
-    {
-        $race = Race::query()
-            ->with([
-                'distances' => function ($query) {
-                    $query
-                        ->where('is_active', true)
-                        ->orderBy('sort_order')
-                        ->with([
-                            'prices' => function ($query) {
-                                $query
-                                    ->where('is_active', true)
-                                    ->orderBy('sort_order')
-                                    ->orderBy('price');
-                            },
+{
+    $race = Race::query()
+        ->with([
+            'distances' => function ($query) {
+                $query
+                    ->where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->with([
+                        'prices' => function ($query) {
+                            $query
+                                ->where('is_active', true)
+                                ->orderBy('sort_order')
+                                ->orderBy('price');
+                        },
 
-                            'inclusions' => function ($query) {
-                                $query
-                                    ->where('included', true)
-                                    ->orderBy('sort_order');
-                            },
+                        'inclusions' => function ($query) {
+                            $query
+                                ->where('included', true)
+                                ->orderBy('sort_order');
+                        },
 
-                            'categories' => function ($query) {
-                                $query
-                                    ->where('is_active', true)
-                                    ->orderBy('sort_order');
-                            },
-                        ]);
-                },
+                        'categories' => function ($query) {
+                            $query
+                                ->where('is_active', true)
+                                ->orderBy('sort_order');
+                        },
+                    ]);
+            },
 
-                'gallery' => function ($query) {
-                    $query
-                        ->where('is_active', true)
-                        ->orderBy('sort_order')
-                        ->orderBy('id');
-                },
-            ])
-            ->where('slug', $slug)
-            ->whereIn('status', [
-                'published',
-                'registration_open',
-                'registration_closed',
-                'finished',
-            ])
-            ->firstOrFail();
+            'gallery' => function ($query) {
+                $query
+                    ->where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('id');
+            },
 
-        return Inertia::render('RaceShow', [
-            'race' => $race,
-        ]);
-    }
+            'kitImages' => function ($query) {
+                $query
+                    ->orderBy('sort_order')
+                    ->orderBy('id');
+            },
+        ])
+        ->where('slug', $slug)
+        ->whereIn('status', [
+            'published',
+            'registration_open',
+            'registration_closed',
+            'finished',
+        ])
+        ->firstOrFail();
+
+    return Inertia::render('RaceShow', [
+        'race' => $race,
+    ]);
+}
 
     public function galleries(): Response
     {

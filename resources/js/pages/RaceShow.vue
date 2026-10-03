@@ -16,7 +16,7 @@ import {
 import LandingFooter from '@/components/landing/LandingFooter.vue';
 import LandingHeader from '@/components/landing/LandingHeader.vue';
 
-defineProps<{
+const { race } = defineProps<{
     race: any;
 }>();
 
@@ -316,6 +316,16 @@ const imageUrl = (
     }
 
     return `/storage/${image}`;
+};
+
+/*
+|--------------------------------------------------------------------------
+| IMÁGENES DEL KIT
+|--------------------------------------------------------------------------
+*/
+
+const getKitImages = () => {
+    return race.kit_images ?? race.kitImages ?? [];
 };
 </script>
 
@@ -954,6 +964,58 @@ const imageUrl = (
             </section>
 
             <!-- =====================================================
+                 GALERÍA DEL KIT
+                 ===================================================== -->
+
+            <section
+                v-if="getKitImages().length"
+                class="race-section"
+            >
+                <div class="race-container">
+
+                    <div class="race-section-heading">
+
+                        <span class="race-section-kicker">
+                            Conoce tu kit
+                        </span>
+
+                        <h2>
+                            Kit de la carrera
+                        </h2>
+
+                        <p>
+                            Conoce los artículos que forman parte del kit
+                            de esta carrera.
+                        </p>
+
+                    </div>
+
+                    <div class="race-gallery-grid">
+
+                        <div
+                            v-for="(image, index) in getKitImages()"
+                            :key="image.id ?? index"
+                            class="race-gallery-item"
+                        >
+                            <img
+                                :src="
+                                    imageUrl(
+                                        image.image ??
+                                        image.path ??
+                                        image.image_path ??
+                                        image.url
+                                    )
+                                "
+                                :alt="`${race.name} - Kit ${index + 1}`"
+                            />
+                        </div>
+
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- =====================================================
                  GALERÍA
                  ===================================================== -->
 
@@ -997,6 +1059,8 @@ const imageUrl = (
 
                 </div>
             </section>
+
+            
 
             <!-- =====================================================
                  RESULTADOS

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import {
     Edit,
     Mail,
@@ -13,6 +13,8 @@ import {
 import Swal from 'sweetalert2';
 import { ref } from 'vue';
 
+import DataTable from '@/Components/Admin/DataTable.vue';
+import PageHeader from '@/Components/Admin/PageHeader.vue';
 import admin from '@/routes/admin';
 
 interface Role {
@@ -53,7 +55,7 @@ const props = defineProps<{
 
 const search = ref(props.filters?.search ?? '');
 
-const submitSearch = () => {
+const submitSearch = (): void => {
     router.get(
         admin.users.index().url,
         {
@@ -62,11 +64,11 @@ const submitSearch = () => {
         {
             preserveState: true,
             replace: true,
-        }
+        },
     );
 };
 
-const deleteUser = (user: User) => {
+const deleteUser = (user: User): void => {
     Swal.fire({
         title: '¿Eliminar usuario?',
         text: `Se eliminará a "${user.name}". Esta acción no se puede deshacer.`,
@@ -77,302 +79,232 @@ const deleteUser = (user: User) => {
         reverseButtons: true,
     }).then((result) => {
         if (result.isConfirmed) {
-            router.delete(admin.users.destroy(user.id).url, {
-                preserveScroll: true,
-            });
+            router.delete(
+                admin.users.destroy(user.id).url,
+                {
+                    preserveScroll: true,
+                },
+            );
         }
     });
 };
+
+const columns = [
+    {
+        key: 'user',
+        label: 'Usuario',
+    },
+    {
+        key: 'email',
+        label: 'Correo',
+    },
+    {
+        key: 'roles',
+        label: 'Rol',
+    },
+];
+
+const actions = [
+    {
+        key: 'edit',
+        label: 'Editar',
+        icon: Edit,
+        class: 'action-btn-edit',
+        href: (user: Record<string, any>) =>
+            admin.users.edit(user.id).url,
+    },
+    {
+        key: 'delete',
+        label: 'Eliminar',
+        icon: Trash2,
+        class: 'action-btn-delete',
+        onClick: (user: Record<string, any>) =>
+            deleteUser(user as User),
+    },
+];
+
+defineOptions({
+    layout: {
+        breadcrumbs: [
+            {
+                title: 'Panel',
+                href: admin.dashboard(),
+            },
+            {
+                title: 'Usuarios',
+                href: admin.users.index(),
+            },
+        ],
+    },
+});
 </script>
 
 <template>
     <Head title="Usuarios" />
 
     <div class="admin-page">
-        <!-- =================================================
-             HEADER
-        ================================================== -->
+        <PageHeader
+            eyebrow="Configuración"
+            title="Usuarios"
+            subtitle="Administra los usuarios y sus roles."
+            :actions="[
+                {
+                    label: 'Nuevo usuario',
+                    href: admin.users.create().url,
+                    icon: Plus,
+                    variant: 'primary',
+                },
+            ]"
+        />
 
-        <header class="admin-page-header">
-            <div>
-                <p class="admin-page-eyebrow">
-                    Configuración
-                </p>
+        <DataTable
+            :columns="columns"
+            :pagination="users"
+            :actions="actions"
+            :search="search"
+            search-placeholder="Buscar usuario..."
+            counter-label="usuarios"
+            empty-title="No se encontraron usuarios."
+            empty-description="Intenta realizar una búsqueda diferente."
+            :search-icon="Search"
+            :empty-icon="Users"
+            @update:search="search = $event"
+            @search="submitSearch"
+        >
+            <!-- USUARIO -->
 
-                <h1 class="admin-page-title">
-                    Usuarios
-                </h1>
-
-                <p class="admin-page-subtitle">
-                    Administra los usuarios y sus roles.
-                </p>
-            </div>
-
-            <div class="admin-page-header-actions">
-                <Link
-                    :href="admin.users.create().url"
-                    class="admin-btn admin-btn-primary"
-                >
-                    <Plus
-                        :size="14"
-                        :stroke-width="2"
-                    />
-
-                    Nuevo usuario
-                </Link>
-            </div>
-        </header>
-
-        <!-- =================================================
-             TABLE CARD
-        ================================================== -->
-
-        <div class="admin-table-card">
-            <!-- TOOLBAR -->
-
-            <div class="admin-table-toolbar">
-                <form
-                    class="admin-search-form"
-                    @submit.prevent="submitSearch"
-                >
-                    <div class="admin-search-wrapper">
-                        <Search
-                            class="admin-search-icon"
-                            :size="16"
+            <template #cell-user="{ row }">
+                <div class="user-cell">
+                    <div class="user-icon">
+                        <UserRound
+                            :size="18"
                             :stroke-width="2"
-                        />
-
-                        <input
-                            v-model="search"
-                            type="search"
-                            placeholder="Buscar usuario..."
-                            class="admin-search-input"
                         />
                     </div>
 
-                    <button
-                        type="submit"
-                        class="admin-btn admin-btn-search"
+                    <div class="user-info">
+                        <div class="user-name">
+                            {{ row.name }}
+                        </div>
+
+                        <div class="user-username">
+                            @{{ row.username }}
+                        </div>
+
+                        <div class="user-id">
+                            ID: {{ row.id }}
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- CORREO -->
+
+            <template #cell-email="{ row }">
+                <div class="user-email">
+                    <Mail
+                        :size="13"
+                        :stroke-width="2"
+                    />
+
+                    {{ row.email }}
+                </div>
+            </template>
+
+            <!-- ROLES -->
+
+            <template #cell-roles="{ row }">
+                <div class="roles-list">
+                    <span
+                        v-for="role in row.roles"
+                        :key="role.id"
+                        class="status-badge status-active"
                     >
-                        <Search
-                            :size="14"
+                        <ShieldCheck
+                            :size="12"
                             :stroke-width="2"
                         />
-                        Buscar
-                    </button>
-                </form>
 
-                <div class="admin-table-counter">
-                    {{ users.total }} usuarios
-                </div>
-            </div>
+                        {{ role.name }}
+                    </span>
 
-            <!-- TABLE -->
-
-            <div class="admin-table-wrapper">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>
-                                Usuario
-                            </th>
-
-                            <th>
-                                Correo
-                            </th>
-
-                            <th>
-                                Rol
-                            </th>
-
-                            <th class="text-right">
-                                Acciones
-                            </th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        <tr
-                            v-for="user in users.data"
-                            :key="user.id"
-                        >
-                            <!-- USER -->
-
-                            <td>
-                                <div class="payment-method-cell">
-                                    <div class="payment-method-icon">
-                                        <UserRound
-                                            :size="18"
-                                            :stroke-width="2"
-                                        />
-                                    </div>
-
-                                    <div class="payment-method-info">
-                                        <div class="font-medium">
-                                            {{ user.name }}
-                                        </div>
-
-                                        <div class="payment-description">
-                                            @{{ user.username }}
-                                        </div>
-
-                                        <div class="payment-description">
-                                            ID: {{ user.id }}
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-
-                            <!-- EMAIL -->
-
-                            <td>
-                                <div class="payment-method-cell">
-                                    <div class="payment-method-info">
-                                        <div class="payment-description flex items-center gap-1.5">
-                                            <Mail
-                                                :size="13"
-                                                :stroke-width="2"
-                                            />
-
-                                            {{ user.email }}
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-
-                            <!-- ROLES -->
-
-                            <td>
-                                <div class="flex flex-wrap gap-2">
-                                    <span
-                                        v-for="role in user.roles"
-                                        :key="role.id"
-                                        class="status-badge status-active"
-                                    >
-                                        <ShieldCheck
-                                            :size="12"
-                                            :stroke-width="2"
-                                        />
-
-                                        {{ role.name }}
-                                    </span>
-
-                                    <span
-                                        v-if="!user.roles.length"
-                                        class="status-badge status-inactive"
-                                    >
-                                        Sin rol
-                                    </span>
-                                </div>
-                            </td>
-
-                            <!-- ACTIONS -->
-
-                            <td>
-                                <div class="table-actions">
-                                    <Link
-                                        :href="admin.users.edit(user.id).url"
-                                        class="action-btn action-btn-edit"
-                                    >
-                                        <Edit
-                                            :size="14"
-                                            :stroke-width="2"
-                                        />
-
-                                        Editar
-                                    </Link>
-
-                                    <button
-                                        type="button"
-                                        class="action-btn action-btn-delete"
-                                        @click="deleteUser(user)"
-                                    >
-                                        <Trash2
-                                            :size="14"
-                                            :stroke-width="2"
-                                        />
-
-                                        Eliminar
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-
-                        <!-- =================================================
-                             EMPTY
-                        ================================================== -->
-
-                        <tr v-if="users.data.length === 0">
-                            <td
-                                colspan="4"
-                                class="admin-table-empty"
-                            >
-                                <div class="empty-state">
-                                    <div class="empty-state-icon">
-                                        <Users
-                                            :size="22"
-                                            :stroke-width="1.8"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <p>
-                                            No se encontraron usuarios.
-                                        </p>
-
-                                        <span>
-                                            Intenta realizar una búsqueda
-                                            diferente.
-                                        </span>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- =================================================
-                 PAGINATION
-            ================================================== -->
-
-            <div
-                v-if="users.last_page > 1"
-                class="admin-pagination-wrapper"
-            >
-                <div class="admin-pagination-info">
-                    Mostrando
-                    <strong>{{ users.from ?? 0 }}</strong>
-                    a
-                    <strong>{{ users.to ?? 0 }}</strong>
-                    de
-                    <strong>{{ users.total }}</strong>
-                    usuarios
-                </div>
-
-                <div class="admin-pagination">
-                    <template
-                        v-for="(link, index) in users.links"
-                        :key="index"
+                    <span
+                        v-if="!row.roles.length"
+                        class="status-badge status-inactive"
                     >
-                        <Link
-                            v-if="link.url"
-                            :href="link.url"
-                            class="pagination-btn"
-                            :class="{
-                                active: link.active,
-                            }"
-                            v-html="link.label"
-                        />
-
-                        <span
-                            v-else
-                            class="pagination-btn disabled"
-                            v-html="link.label"
-                        />
-                    </template>
+                        Sin rol
+                    </span>
                 </div>
-            </div>
-        </div>
+            </template>
+        </DataTable>
     </div>
 </template>
+
+<style scoped>
+.user-cell {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+.user-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--sc-page-light);
+    color: var(--sc-page-blue);
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 3px;
+}
+
+.user-name {
+    overflow: hidden;
+    color: var(--sc-page-text);
+    font-size: 13px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-username {
+    overflow: hidden;
+    color: var(--sc-page-text-secondary);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-id {
+    color: #8b9ba6;
+    font-size: 10px;
+}
+
+.user-email {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--sc-page-text-secondary);
+    font-size: 11px;
+}
+
+.user-email svg {
+    flex: 0 0 auto;
+    color: #7b8b97;
+}
+
+.roles-list {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+</style>

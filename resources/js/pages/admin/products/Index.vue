@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import {
     Edit,
     Package,
@@ -11,6 +11,8 @@ import {
 import Swal from 'sweetalert2';
 import { ref } from 'vue';
 
+import DataTable from '@/Components/Admin/DataTable.vue';
+import PageHeader from '@/Components/Admin/PageHeader.vue';
 import admin from '@/routes/admin';
 
 interface Product {
@@ -51,7 +53,7 @@ const props = defineProps<{
 
 const search = ref(props.filters?.search ?? '');
 
-const submitSearch = () => {
+const submitSearch = (): void => {
     router.get(
         admin.products.index().url,
         {
@@ -64,7 +66,9 @@ const submitSearch = () => {
     );
 };
 
-const getImageUrl = (image: string | null) => {
+const getImageUrl = (
+    image: string | null,
+): string | null => {
     if (!image) {
         return null;
     }
@@ -79,14 +83,18 @@ const getImageUrl = (image: string | null) => {
     return `/storage/${image}`;
 };
 
-const formatPrice = (price: string | number) => {
+const formatPrice = (
+    price: string | number,
+): string => {
     return new Intl.NumberFormat('es-MX', {
         style: 'currency',
         currency: 'MXN',
     }).format(Number(price));
 };
 
-const deleteProduct = (product: Product) => {
+const deleteProduct = (
+    product: Product,
+): void => {
     Swal.fire({
         title: '¿Eliminar producto?',
         text: `Se eliminará "${product.name}". Esta acción no se puede deshacer.`,
@@ -106,359 +114,193 @@ const deleteProduct = (product: Product) => {
         }
     });
 };
+
+const columns = [
+    {
+        key: 'product',
+        label: 'Producto',
+    },
+    {
+        key: 'type',
+        label: 'Tipo',
+    },
+    {
+        key: 'year',
+        label: 'Año',
+    },
+    {
+        key: 'price',
+        label: 'Precio',
+    },
+    {
+        key: 'stock',
+        label: 'Stock',
+    },
+    {
+        key: 'status',
+        label: 'Estado',
+    },
+];
+
+const actions = [
+    {
+        key: 'edit',
+        label: 'Editar',
+        icon: Edit,
+        class: 'action-btn-edit',
+        href: (product: Record<string, any>) =>
+            admin.products.edit(product.id).url,
+    },
+    {
+        key: 'delete',
+        label: 'Eliminar',
+        icon: Trash2,
+        class: 'action-btn-delete',
+        onClick: (product: Record<string, any>) =>
+            deleteProduct(product as Product),
+    },
+];
 </script>
 
 <template>
     <Head title="Productos" />
 
     <div class="admin-page">
-        <!-- =================================================
-             HEADER
-        ================================================== -->
+        <PageHeader
+            eyebrow="Catálogo"
+            title="Productos"
+            subtitle="Administra los productos y artículos de Sonríe Corriendo."
+            :actions="[
+                {
+                    label: 'Nuevo producto',
+                    href: admin.products.create().url,
+                    icon: Plus,
+                    variant: 'primary',
+                },
+            ]"
+        />
 
-        <header class="admin-page-header">
-            <div>
-                <p class="admin-page-eyebrow">
-                    Catálogo
-                </p>
-
-                <h1 class="admin-page-title">
-                    Productos
-                </h1>
-
-                <p class="admin-page-subtitle">
-                    Administra los productos y artículos de Sonríe Corriendo.
-                </p>
-            </div>
-
-            <div class="admin-page-header-actions">
-                <Link
-                    :href="admin.products.create().url"
-                    class="admin-btn admin-btn-primary"
-                >
-                    <Plus
-                        :size="14"
-                        :stroke-width="2"
-                    />
-
-                    Nuevo producto
-                </Link>
-            </div>
-        </header>
-
-        <!-- =================================================
-             TABLE CARD
-        ================================================== -->
-
-        <div class="admin-table-card">
-            <!-- TOOLBAR -->
-
-            <div class="admin-table-toolbar">
-                <form
-                    class="admin-search-form"
-                    @submit.prevent="submitSearch"
-                >
-                    <div class="admin-search-wrapper">
-                        <Search
-                            class="admin-search-icon"
-                            :size="16"
-                            :stroke-width="2"
+        <DataTable
+            :columns="columns"
+            :pagination="products"
+            :actions="actions"
+            :search="search"
+            search-placeholder="Buscar producto..."
+            counter-label="productos"
+            empty-title="No se encontraron productos."
+            empty-description="Intenta realizar una búsqueda diferente."
+            :search-icon="Search"
+            :empty-icon="ShoppingBag"
+            @update:search="search = $event"
+            @search="submitSearch"
+        >
+            <!-- PRODUCTO -->
+            <template #cell-product="{ row }">
+                <div class="product-cell">
+                    <div class="product-icon">
+                        <img
+                            v-if="getImageUrl(row.image)"
+                            :src="getImageUrl(row.image)!"
+                            :alt="row.name"
+                            class="product-image"
                         />
 
-                        <input
-                            v-model="search"
-                            type="search"
-                            placeholder="Buscar producto..."
-                            class="admin-search-input"
+                        <Package
+                            v-else
+                            :size="18"
+                            :stroke-width="2"
                         />
                     </div>
 
-                    <button
-                        type="submit"
-                        class="admin-btn admin-btn-search"
-                    >
-                        <Search
-                            :size="14"
-                            :stroke-width="2"
-                        />
+                    <div class="product-info">
+                        <div class="font-medium">
+                            {{ row.name }}
+                        </div>
 
-                        Buscar
-                    </button>
-                </form>
+                        <div class="payment-description">
+                            {{ row.slug }}
+                        </div>
 
-                <div class="admin-table-counter">
-                    {{ products.total }} productos
+                        <div class="payment-description">
+                            ID: {{ row.id }}
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </template>
 
-            <!-- TABLE -->
+            <!-- TIPO -->
+            <template #cell-type="{ row }">
+                <span class="payment-description">
+                    {{ row.type || 'Sin tipo' }}
+                </span>
+            </template>
 
-            <div class="admin-table-wrapper">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>
-                                Producto
-                            </th>
+            <!-- AÑO -->
+            <template #cell-year="{ row }">
+                <span class="payment-description">
+                    {{ row.year || 'Sin año' }}
+                </span>
+            </template>
 
-                            <th>
-                                Tipo
-                            </th>
-
-                            <th>
-                                Año
-                            </th>
-
-                            <th>
-                                Precio
-                            </th>
-
-                            <th>
-                                Stock
-                            </th>
-
-                            <th>
-                                Estado
-                            </th>
-
-                            <th class="text-right">
-                                Acciones
-                            </th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        <tr
-                            v-for="product in products.data"
-                            :key="product.id"
-                        >
-                            <!-- PRODUCT -->
-
-                            <td>
-                                <div class="payment-method-cell">
-                                    <div class="payment-method-icon">
-                                        <img
-                                            v-if="getImageUrl(product.image)"
-                                            :src="getImageUrl(product.image)!"
-                                            :alt="product.name"
-                                            class="product-image"
-                                        />
-
-                                        <Package
-                                            v-else
-                                            :size="18"
-                                            :stroke-width="2"
-                                        />
-                                    </div>
-
-                                    <div class="payment-method-info">
-                                        <div class="font-medium">
-                                            {{ product.name }}
-                                        </div>
-
-                                        <div class="payment-description">
-                                            {{ product.slug }}
-                                        </div>
-
-                                        <div class="payment-description">
-                                            ID: {{ product.id }}
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-
-                            <!-- TYPE -->
-
-                            <td>
-                                <span
-                                    v-if="product.type"
-                                    class="payment-description"
-                                >
-                                    {{ product.type }}
-                                </span>
-
-                                <span
-                                    v-else
-                                    class="payment-description"
-                                >
-                                    Sin tipo
-                                </span>
-                            </td>
-
-                            <!-- YEAR -->
-
-                            <td>
-                                <span
-                                    v-if="product.year"
-                                    class="payment-description"
-                                >
-                                    {{ product.year }}
-                                </span>
-
-                                <span
-                                    v-else
-                                    class="payment-description"
-                                >
-                                    Sin año
-                                </span>
-                            </td>
-
-                            <!-- PRICE -->
-
-                            <td>
-                                <div class="font-medium">
-                                    {{ formatPrice(product.price) }}
-                                </div>
-                            </td>
-
-                            <!-- STOCK -->
-
-                            <td>
-                                <span
-                                    v-if="product.stock > 0"
-                                    class="payment-description"
-                                >
-                                    {{ product.stock }} unidades
-                                </span>
-
-                                <span
-                                    v-else
-                                    class="payment-description"
-                                >
-                                    Sin stock
-                                </span>
-                            </td>
-
-                            <!-- STATUS -->
-
-                            <td>
-                                <span
-                                    v-if="product.is_active"
-                                    class="status-badge status-active"
-                                >
-                                    Activo
-                                </span>
-
-                                <span
-                                    v-else
-                                    class="status-badge status-inactive"
-                                >
-                                    Inactivo
-                                </span>
-                            </td>
-
-                            <!-- ACTIONS -->
-
-                            <td>
-                                <div class="table-actions">
-                                    <Link
-                                        :href="admin.products.edit(product.id).url"
-                                        class="action-btn action-btn-edit"
-                                    >
-                                        <Edit
-                                            :size="14"
-                                            :stroke-width="2"
-                                        />
-
-                                        Editar
-                                    </Link>
-
-                                    <button
-                                        type="button"
-                                        class="action-btn action-btn-delete"
-                                        @click="deleteProduct(product)"
-                                    >
-                                        <Trash2
-                                            :size="14"
-                                            :stroke-width="2"
-                                        />
-
-                                        Eliminar
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-
-                        <!-- =================================================
-                             EMPTY
-                        ================================================== -->
-
-                        <tr v-if="products.data.length === 0">
-                            <td
-                                colspan="7"
-                                class="admin-table-empty"
-                            >
-                                <div class="empty-state">
-                                    <div class="empty-state-icon">
-                                        <ShoppingBag
-                                            :size="22"
-                                            :stroke-width="1.8"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <strong>
-                                            No se encontraron productos.
-                                        </strong>
-
-                                        <p>
-                                            Intenta realizar una búsqueda
-                                            diferente.
-                                        </p>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- =================================================
-                 PAGINATION
-            ================================================== -->
-
-            <div
-                v-if="products.last_page > 1"
-                class="admin-pagination-wrapper"
-            >
-                <div class="admin-pagination-info">
-                    Mostrando
-                    <strong>{{ products.from ?? 0 }}</strong>
-                    a
-                    <strong>{{ products.to ?? 0 }}</strong>
-                    de
-                    <strong>{{ products.total }}</strong>
-                    productos
+            <!-- PRECIO -->
+            <template #cell-price="{ row }">
+                <div class="font-medium">
+                    {{ formatPrice(row.price) }}
                 </div>
+            </template>
 
-                <div class="admin-pagination">
-                    <template
-                        v-for="(link, index) in products.links"
-                        :key="index"
-                    >
-                        <Link
-                            v-if="link.url"
-                            :href="link.url"
-                            class="pagination-btn"
-                            :class="{
-                                active: link.active,
-                            }"
-                            v-html="link.label"
-                        />
+            <!-- STOCK -->
+            <template #cell-stock="{ row }">
+                <span class="payment-description">
+                    {{
+                        row.stock > 0
+                            ? `${row.stock} unidades`
+                            : 'Sin stock'
+                    }}
+                </span>
+            </template>
 
-                        <span
-                            v-else
-                            class="pagination-btn disabled"
-                            v-html="link.label"
-                        />
-                    </template>
-                </div>
-            </div>
-        </div>
+            <!-- ESTADO -->
+            <template #cell-status="{ row }">
+                <span
+                    class="status-badge"
+                    :class="
+                        row.is_active
+                            ? 'status-active'
+                            : 'status-inactive'
+                    "
+                >
+                    {{
+                        row.is_active
+                            ? 'Activo'
+                            : 'Inactivo'
+                    }}
+                </span>
+            </template>
+        </DataTable>
     </div>
 </template>
 
 <style scoped>
+.product-cell {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+.product-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    overflow: hidden;
+    border-radius: 10px;
+    background: var(--sc-page-light);
+    color: var(--sc-page-blue);
+}
+
 .product-image {
     width: 40px;
     height: 40px;
@@ -467,7 +309,48 @@ const deleteProduct = (product: Product) => {
     background: #ffffff;
 }
 
-.payment-method-icon {
+.product-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 3px;
+}
+
+.font-medium {
     overflow: hidden;
+    color: var(--sc-page-text);
+    font-size: 13px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.payment-description {
+    overflow: hidden;
+    color: #718096;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 9px;
+    border-radius: 7px;
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.status-active {
+    background: var(--sc-page-green-light);
+    color: #159c83;
+}
+
+.status-inactive {
+    background: #feecee;
+    color: #c93645;
 }
 </style>

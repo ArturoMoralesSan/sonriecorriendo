@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import {
     CalendarDays,
     Eye,
@@ -11,6 +11,8 @@ import {
 } from 'lucide-vue-next';
 import { ref } from 'vue';
 
+import DataTable from '@/Components/Admin/DataTable.vue';
+import PageHeader from '@/Components/Admin/PageHeader.vue';
 import admin from '@/routes/admin';
 
 interface Customer {
@@ -119,28 +121,18 @@ const submitSearch = (): void => {
     );
 };
 
-const clearSearch = (): void => {
-    search.value = '';
-
-    router.get(
-        admin.sales.index().url,
-        {},
-        {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        },
-    );
-};
-
-const formatCurrency = (value: number | string): string => {
+const formatCurrency = (
+    value: number | string,
+): string => {
     return Number(value).toLocaleString('es-MX', {
         style: 'currency',
         currency: 'MXN',
     });
 };
 
-const formatDate = (value: string | null): string => {
+const formatDate = (
+    value: string | null,
+): string => {
     if (!value) {
         return '—';
     }
@@ -151,7 +143,9 @@ const formatDate = (value: string | null): string => {
     });
 };
 
-const getStatusLabel = (status: string): string => {
+const getStatusLabel = (
+    status: string,
+): string => {
     const labels: Record<string, string> = {
         pending: 'Pendiente',
         paid: 'Pagada',
@@ -163,7 +157,23 @@ const getStatusLabel = (status: string): string => {
     return labels[status] ?? status;
 };
 
-const getChannelLabel = (channel: string): string => {
+const getStatusClass = (
+    status: string,
+): string => {
+    const classes: Record<string, string> = {
+        paid: 'status-active',
+        pending: 'status-pending',
+        partially_paid: 'status-pending',
+        cancelled: 'status-inactive',
+        refunded: 'status-inactive',
+    };
+
+    return classes[status] ?? 'status-neutral';
+};
+
+const getChannelLabel = (
+    channel: string,
+): string => {
     const labels: Record<string, string> = {
         counter: 'Ventanilla',
         branch: 'Sucursal',
@@ -173,376 +183,191 @@ const getChannelLabel = (channel: string): string => {
 
     return labels[channel] ?? channel;
 };
+
+const columns = [
+    {
+        key: 'sale',
+        label: 'Venta',
+    },
+    {
+        key: 'customer',
+        label: 'Cliente',
+    },
+    {
+        key: 'date',
+        label: 'Fecha',
+    },
+    {
+        key: 'channel',
+        label: 'Canal',
+    },
+    {
+        key: 'total',
+        label: 'Total',
+    },
+    {
+        key: 'status',
+        label: 'Estado',
+    },
+];
+
+const actions = [
+    {
+        key: 'show',
+        label: 'Detalle',
+        icon: Eye,
+        class: 'action-btn-view',
+        href: (sale: Record<string, any>) =>
+            admin.sales.show(sale.id).url,
+    },
+];
 </script>
 
 <template>
     <Head title="Ventas" />
 
     <div class="admin-page">
-        <!-- =================================================
-             HEADER
-        ================================================== -->
+        <PageHeader
+            eyebrow="Comercio"
+            title="Ventas"
+            subtitle="Consulta y administra las ventas realizadas."
+            :actions="[
+                {
+                    label: 'Nueva venta',
+                    href: admin.sales.create().url,
+                    icon: Plus,
+                    variant: 'primary',
+                },
+            ]"
+        />
 
-        <header class="admin-page-header">
-            <div>
-                <p class="admin-page-eyebrow">
-                    Comercio
-                </p>
+        <DataTable
+            :columns="columns"
+            :pagination="sales"
+            :actions="actions"
+            :search="search"
+            search-placeholder="Buscar por folio, cliente, estado..."
+            counter-label="ventas"
+            empty-title="No se encontraron ventas."
+            empty-description="Intenta realizar una búsqueda diferente."
+            :search-icon="Search"
+            :empty-icon="ShoppingCart"
+            @update:search="search = $event"
+            @search="submitSearch"
+        >
+            <!-- VENTA -->
+            <template #cell-sale="{ row }">
+                <div class="sale-cell">
+                    <div class="sale-icon">
+                        <FileText
+                            :size="18"
+                            :stroke-width="2"
+                        />
+                    </div>
 
-                <h1 class="admin-page-title">
-                    Ventas
-                </h1>
+                    <div class="sale-info">
+                        <div class="font-medium">
+                            {{ row.folio }}
+                        </div>
 
-                <p class="admin-page-subtitle">
-                    Consulta y administra las ventas realizadas.
-                </p>
-            </div>
+                        <div class="payment-description">
+                            {{ row.items?.length ?? 0 }}
 
-            <div class="admin-page-header-actions">
-                <Link
-                    :href="admin.sales.create().url"
-                    class="admin-btn admin-btn-primary"
-                >
-                    <Plus
+                            {{
+                                (row.items?.length ?? 0) === 1
+                                    ? 'producto'
+                                    : 'productos'
+                            }}
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- CLIENTE -->
+            <template #cell-customer="{ row }">
+                <div class="customer-cell">
+                    <div class="customer-icon">
+                        <UserRound
+                            :size="17"
+                            :stroke-width="2"
+                        />
+                    </div>
+
+                    <div class="customer-info">
+                        <div
+                            v-if="row.customer"
+                            class="font-medium"
+                        >
+                            {{ row.customer.name }}
+                        </div>
+
+                        <div
+                            v-if="row.customer?.email"
+                            class="payment-description"
+                        >
+                            {{ row.customer.email }}
+                        </div>
+
+                        <span
+                            v-else-if="!row.customer"
+                            class="payment-description"
+                        >
+                            Venta mostrador
+                        </span>
+                    </div>
+                </div>
+            </template>
+
+            <!-- FECHA -->
+            <template #cell-date="{ row }">
+                <div class="date-cell">
+                    <CalendarDays
                         :size="14"
                         :stroke-width="2"
                     />
 
-                    Nueva venta
-                </Link>
-            </div>
-        </header>
+                    <span>
+                        {{ formatDate(row.sold_at) }}
+                    </span>
+                </div>
+            </template>
 
-        <!-- =================================================
-             TABLE CARD
-        ================================================== -->
+            <!-- CANAL -->
+            <template #cell-channel="{ row }">
+                <span class="channel-badge">
+                    {{ getChannelLabel(row.sales_channel) }}
+                </span>
+            </template>
 
-        <div class="admin-table-card">
-            <!-- TOOLBAR -->
+            <!-- TOTAL -->
+            <template #cell-total="{ row }">
+                <strong class="sale-total">
+                    {{ formatCurrency(row.total) }}
+                </strong>
 
-            <div class="admin-table-toolbar">
-                <form
-                    class="admin-search-form"
-                    @submit.prevent="submitSearch"
+                <span
+                    v-if="Number(row.discount) > 0"
+                    class="discount-text"
                 >
-                    <div class="admin-search-wrapper">
-                        <Search
-                            class="admin-search-icon"
-                            :size="16"
-                            :stroke-width="2"
-                        />
+                    Descuento:
+                    {{ formatCurrency(row.discount) }}
+                </span>
+            </template>
 
-                        <input
-                            v-model="search"
-                            type="search"
-                            placeholder="Buscar por folio, cliente, estado..."
-                            class="admin-search-input"
-                        />
-                    </div>
-
-                    <button
-                        type="submit"
-                        class="admin-btn admin-btn-search"
-                    >
-                        <Search
-                            :size="14"
-                            :stroke-width="2"
-                        />
-
-                        Buscar
-                    </button>
-
-                    <button
-                        v-if="search"
-                        type="button"
-                        class="admin-btn admin-btn-secondary"
-                        @click="clearSearch"
-                    >
-                        Limpiar
-                    </button>
-                </form>
-
-                <div class="admin-table-counter">
-                    {{ sales.total }}
-                    {{ sales.total === 1 ? 'venta' : 'ventas' }}
-                </div>
-            </div>
-
-            <!-- TABLE -->
-
-            <div class="admin-table-wrapper">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>
-                                Venta
-                            </th>
-
-                            <th>
-                                Cliente
-                            </th>
-
-                            <th>
-                                Fecha
-                            </th>
-
-                            <th>
-                                Canal
-                            </th>
-
-                            <th>
-                                Total
-                            </th>
-
-                            <th>
-                                Estado
-                            </th>
-
-                            <th class="text-right">
-                                Acciones
-                            </th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        <tr
-                            v-for="sale in sales.data"
-                            :key="sale.id"
-                        >
-                            <!-- VENTA -->
-
-                            <td>
-                                <div class="sale-cell">
-                                    <div class="sale-icon">
-                                        <FileText
-                                            :size="18"
-                                            :stroke-width="2"
-                                        />
-                                    </div>
-
-                                    <div class="sale-info">
-                                        <div class="font-medium">
-                                            {{ sale.folio }}
-                                        </div>
-
-                                        <div class="payment-description">
-                                            {{ sale.items.length }}
-
-                                            {{
-                                                sale.items.length === 1
-                                                    ? 'producto'
-                                                    : 'productos'
-                                            }}
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-
-                            <!-- CLIENTE -->
-
-                            <td>
-                                <div class="customer-cell">
-                                    <div class="customer-icon">
-                                        <UserRound
-                                            :size="17"
-                                            :stroke-width="2"
-                                        />
-                                    </div>
-
-                                    <div class="customer-info">
-                                        <div
-                                            v-if="sale.customer"
-                                            class="font-medium"
-                                        >
-                                            {{ sale.customer.name }}
-                                        </div>
-
-                                        <div
-                                            v-if="sale.customer?.email"
-                                            class="payment-description"
-                                        >
-                                            {{ sale.customer.email }}
-                                        </div>
-
-                                        <span
-                                            v-else-if="!sale.customer"
-                                            class="payment-description"
-                                        >
-                                            Venta mostrador
-                                        </span>
-                                    </div>
-                                </div>
-                            </td>
-
-                            <!-- FECHA -->
-
-                            <td>
-                                <div class="date-cell">
-                                    <CalendarDays
-                                        :size="14"
-                                        :stroke-width="2"
-                                    />
-
-                                    <span>
-                                        {{ formatDate(sale.sold_at) }}
-                                    </span>
-                                </div>
-                            </td>
-
-                            <!-- CANAL -->
-
-                            <td>
-                                <span class="channel-badge">
-                                    {{ getChannelLabel(sale.sales_channel) }}
-                                </span>
-                            </td>
-
-                            <!-- TOTAL -->
-
-                            <td>
-                                <strong class="sale-total">
-                                    {{ formatCurrency(sale.total) }}
-                                </strong>
-
-                                <span
-                                    v-if="Number(sale.discount) > 0"
-                                    class="discount-text"
-                                >
-                                    Descuento:
-                                    {{ formatCurrency(sale.discount) }}
-                                </span>
-                            </td>
-
-                            <!-- ESTADO -->
-
-                            <td>
-                                <span
-                                    class="status-badge"
-                                    :class="{
-                                        'status-active':
-                                            sale.status === 'paid',
-
-                                        'status-pending':
-                                            sale.status === 'pending'
-                                            || sale.status === 'partially_paid',
-
-                                        'status-inactive':
-                                            sale.status === 'cancelled'
-                                            || sale.status === 'refunded',
-                                    }"
-                                >
-                                    {{ getStatusLabel(sale.status) }}
-                                </span>
-                            </td>
-
-                            <!-- ACCIONES -->
-
-                            <td>
-                                <div class="table-actions">
-                                    <Link
-                                        :href="admin.sales.show(sale.id).url"
-                                        class="action-btn action-btn-view"
-                                        title="Ver venta"
-                                    >
-                                        <Eye
-                                            :size="14"
-                                            :stroke-width="2"
-                                        />
-                                    </Link>
-                                </div>
-                            </td>
-                        </tr>
-
-                        <!-- =================================================
-                             EMPTY
-                        ================================================== -->
-
-                        <tr v-if="sales.data.length === 0">
-                            <td
-                                colspan="7"
-                                class="admin-table-empty"
-                            >
-                                <div class="empty-state">
-                                    <div class="empty-state-icon">
-                                        <ShoppingCart
-                                            :size="22"
-                                            :stroke-width="1.8"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <strong>
-                                            No se encontraron ventas.
-                                        </strong>
-
-                                        <p>
-                                            Intenta realizar una búsqueda
-                                            diferente.
-                                        </p>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- =================================================
-                 PAGINATION
-            ================================================== -->
-
-            <div
-                v-if="sales.last_page > 1"
-                class="admin-pagination-wrapper"
-            >
-                <div class="admin-pagination-info">
-                    Mostrando
-                    <strong>{{ sales.from ?? 0 }}</strong>
-                    a
-                    <strong>{{ sales.to ?? 0 }}</strong>
-                    de
-                    <strong>{{ sales.total }}</strong>
-                    ventas
-                </div>
-
-                <div class="admin-pagination">
-                    <template
-                        v-for="(link, index) in sales.links"
-                        :key="index"
-                    >
-                        <Link
-                            v-if="link.url"
-                            :href="link.url"
-                            class="pagination-btn"
-                            :class="{
-                                active: link.active,
-                            }"
-                            preserve-scroll
-                            preserve-state
-                            v-html="link.label"
-                        />
-
-                        <span
-                            v-else
-                            class="pagination-btn disabled"
-                            v-html="link.label"
-                        />
-                    </template>
-                </div>
-            </div>
-        </div>
+            <!-- ESTADO -->
+            <template #cell-status="{ row }">
+                <span
+                    class="status-badge"
+                    :class="getStatusClass(row.status)"
+                >
+                    {{ getStatusLabel(row.status) }}
+                </span>
+            </template>
+        </DataTable>
     </div>
 </template>
 
 <style scoped>
-/* =========================================================
-   PAGE
-   ========================================================= */
-
-.admin-page {
-    width: 100%;
-}
-
 /* =========================================================
    SALE
    ========================================================= */
@@ -700,84 +525,8 @@ const getChannelLabel = (channel: string): string => {
     color: #c93645;
 }
 
-/* =========================================================
-   ACTIONS
-   ========================================================= */
-
-.text-right {
-    text-align: right;
-}
-
-.action-btn-view {
-    color: var(--sc-page-blue);
-    background: var(--sc-page-light);
-}
-
-.action-btn-view:hover {
-    background: #dff1fb;
-}
-
-/* =========================================================
-   RESPONSIVE
-   ========================================================= */
-
-@media (max-width: 1100px) {
-    .admin-table-wrapper {
-        overflow-x: auto;
-    }
-
-    .admin-table {
-        min-width: 1050px;
-    }
-}
-
-@media (max-width: 768px) {
-    .admin-page-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 18px;
-    }
-
-    .admin-page-header-actions {
-        width: 100%;
-    }
-
-    .admin-page-header-actions .admin-btn {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .admin-table-toolbar {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
-    }
-
-    .admin-search-form {
-        flex-wrap: wrap;
-    }
-
-    .admin-search-wrapper {
-        width: 100%;
-    }
-
-    .admin-btn-search {
-        flex: 1;
-    }
-
-    .admin-table-counter {
-        align-self: flex-start;
-    }
-
-    .admin-pagination-wrapper {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-    }
-
-    .admin-pagination {
-        width: 100%;
-        overflow-x: auto;
-    }
+.status-neutral {
+    background: #f1f5f9;
+    color: #64748b;
 }
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import {
     Building2,
     Edit,
@@ -14,6 +14,8 @@ import {
 import Swal from 'sweetalert2';
 import { ref } from 'vue';
 
+import DataTable from '@/Components/Admin/DataTable.vue';
+import PageHeader from '@/Components/Admin/PageHeader.vue';
 import admin from '@/routes/admin';
 
 interface Sponsor {
@@ -172,6 +174,71 @@ defineOptions({
         ],
     },
 });
+
+/* =========================================================
+   COLUMNS
+========================================================= */
+
+const columns = [
+    {
+        key: 'sponsor',
+        label: 'Patrocinador',
+    },
+    {
+        key: 'contact',
+        label: 'Contacto',
+    },
+    {
+        key: 'website',
+        label: 'Sitio web',
+    },
+    {
+        key: 'races',
+        label: 'Carreras',
+    },
+    {
+        key: 'status',
+        label: 'Estado',
+    },
+];
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+const actions = [
+    {
+        key: 'show',
+        label: 'Detalle',
+        icon: Eye,
+        class: 'action-btn-view',
+        href: (
+            sponsor: Record<string, any>,
+        ): string =>
+            admin.sponsors.show(sponsor.id).url,
+    },
+    {
+        key: 'edit',
+        label: 'Editar',
+        icon: Edit,
+        class: 'action-btn-edit',
+        href: (
+            sponsor: Record<string, any>,
+        ): string =>
+            admin.sponsors.edit(sponsor.id).url,
+    },
+    {
+        key: 'delete',
+        label: 'Eliminar',
+        icon: Trash2,
+        class: 'action-btn-delete',
+        onClick: (
+            sponsor: Record<string, any>,
+        ): void => {
+            deleteSponsor(sponsor as Sponsor);
+        },
+    },
+];
 </script>
 
 <template>
@@ -182,429 +249,179 @@ defineOptions({
              HEADER
         ================================================== -->
 
-        <header class="admin-page-header">
-            <div>
-                <p class="admin-page-eyebrow">
-                    Carreras
-                </p>
-
-                <h1 class="admin-page-title">
-                    Patrocinadores
-                </h1>
-
-                <p class="admin-page-subtitle">
-                    Administra los patrocinadores disponibles
-                    para las carreras.
-                </p>
-            </div>
-
-            <div class="admin-page-header-actions">
-                <Link
-                    :href="admin.sponsors.create().url"
-                    class="admin-btn admin-btn-primary"
-                >
-                    <span class="admin-btn-icon">
-                        <Plus
-                            :size="14"
-                            :stroke-width="2.2"
-                        />
-                    </span>
-
-                    Nuevo patrocinador
-                </Link>
-            </div>
-        </header>
+        <PageHeader
+            eyebrow="Carreras"
+            title="Patrocinadores"
+            subtitle="Administra los patrocinadores disponibles para las carreras."
+            :actions="[
+                {
+                    label: 'Nuevo patrocinador',
+                    href: admin.sponsors.create().url,
+                    icon: Plus,
+                    variant: 'primary',
+                },
+            ]"
+        />
 
         <!-- =================================================
-             MAIN CARD
+             TABLE
         ================================================== -->
 
-        <section class="admin-table-card">
-            <!-- TOOLBAR -->
+        <DataTable
+            :columns="columns"
+            :pagination="sponsors"
+            :actions="actions"
+            :search="search"
+            search-placeholder="Buscar patrocinador..."
+            counter-label="patrocinadores"
+            empty-title="No hay patrocinadores"
+            :empty-description="
+                search
+                    ? 'No se encontraron patrocinadores con ese término de búsqueda.'
+                    : 'Todavía no has registrado ningún patrocinador.'
+            "
+            :search-icon="Search"
+            :empty-icon="Building2"
+            @update:search="search = $event"
+            @search="submitSearch"
+        >
+            <!-- =================================================
+                 PATROCINADOR
+            ================================================== -->
 
-            <div class="admin-table-toolbar">
-                <form
-                    class="admin-search-form"
-                    @submit.prevent="submitSearch"
-                >
-                    <div class="admin-search-wrapper">
-                        <Search
-                            class="admin-search-icon"
-                            :size="16"
-                            :stroke-width="2"
+            <template #cell-sponsor="{ row }">
+                <div class="payment-method-cell">
+                    <div
+                        class="payment-method-icon sponsor-logo"
+                    >
+                        <img
+                            v-if="getLogoUrl(row.logo)"
+                            :src="getLogoUrl(row.logo) ?? undefined"
+                            :alt="`Logo de ${row.name}`"
                         />
 
-                        <input
-                            v-model="search"
-                            type="search"
-                            placeholder="Buscar patrocinador..."
-                            class="admin-search-input"
+                        <Building2
+                            v-else
+                            :size="17"
+                            :stroke-width="2"
                         />
                     </div>
 
-                    <button
-                        type="submit"
-                        class="admin-btn admin-btn-search"
+                    <div class="payment-method-info">
+                        <strong>
+                            {{ row.name }}
+                        </strong>
+
+                        <span>
+                            ID: {{ row.id }}
+                        </span>
+                    </div>
+                </div>
+            </template>
+
+            <!-- =================================================
+                 CONTACTO
+            ================================================== -->
+
+            <template #cell-contact="{ row }">
+                <div
+                    v-if="
+                        row.contact_name ||
+                        row.email
+                    "
+                    class="sponsor-contact"
+                >
+                    <div
+                        v-if="row.contact_name"
+                        class="contact-line contact-primary"
                     >
-                        <Search
-                            :size="14"
+                        <UserRound
+                            :size="12"
                             :stroke-width="2"
                         />
 
-                        Buscar
-                    </button>
-                </form>
+                        {{ row.contact_name }}
+                    </div>
 
-                <div class="admin-table-counter">
-                    <strong>
-                        {{ sponsors.total }}
-                    </strong>
-
-                    <span>
-                        patrocinadores
-                    </span>
-                </div>
-            </div>
-
-            <!-- TABLE -->
-
-            <div class="admin-table-wrapper">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>
-                                Patrocinador
-                            </th>
-
-                            <th>
-                                Contacto
-                            </th>
-
-                            <th>
-                                Sitio web
-                            </th>
-
-                            <th>
-                                Carreras
-                            </th>
-
-                            <th>
-                                Estado
-                            </th>
-
-                            <th class="text-right">
-                                Acciones
-                            </th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        <tr
-                            v-for="sponsor in sponsors.data"
-                            :key="sponsor.id"
-                        >
-                            <!-- PATROCINADOR -->
-
-                            <td>
-                                <div class="payment-method-cell">
-                                    <div class="payment-method-icon sponsor-logo">
-                                        <img
-                                            v-if="
-                                                getLogoUrl(
-                                                    sponsor.logo,
-                                                )
-                                            "
-                                            :src="
-                                                getLogoUrl(
-                                                    sponsor.logo,
-                                                ) ?? undefined
-                                            "
-                                            :alt="
-                                                `Logo de ${sponsor.name}`
-                                            "
-                                        />
-
-                                        <Building2
-                                            v-else
-                                            :size="17"
-                                            :stroke-width="2"
-                                        />
-                                    </div>
-
-                                    <div class="payment-method-info">
-                                        <strong>
-                                            {{ sponsor.name }}
-                                        </strong>
-
-                                        <span>
-                                            ID: {{ sponsor.id }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </td>
-
-                            <!-- CONTACTO -->
-
-                            <td>
-                                <div
-                                    v-if="
-                                        sponsor.contact_name ||
-                                        sponsor.email
-                                    "
-                                    class="sponsor-contact"
-                                >
-                                    <div
-                                        v-if="
-                                            sponsor.contact_name
-                                        "
-                                        class="contact-line contact-primary"
-                                    >
-                                        <UserRound
-                                            :size="12"
-                                            :stroke-width="2"
-                                        />
-
-                                        {{
-                                            sponsor.contact_name
-                                        }}
-                                    </div>
-
-                                    <div
-                                        v-if="
-                                            sponsor.email
-                                        "
-                                        class="contact-line"
-                                    >
-                                        <Mail
-                                            :size="12"
-                                            :stroke-width="2"
-                                        />
-
-                                        {{ sponsor.email }}
-                                    </div>
-                                </div>
-
-                                <div
-                                    v-else
-                                    class="payment-description empty"
-                                >
-                                    Sin contacto
-                                </div>
-                            </td>
-
-                            <!-- SITIO WEB -->
-
-                            <td>
-                                <a
-                                    v-if="sponsor.website"
-                                    :href="sponsor.website"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="website-link"
-                                >
-                                    <Globe
-                                        :size="13"
-                                        :stroke-width="2"
-                                    />
-
-                                    {{
-                                        formatWebsite(
-                                            sponsor.website,
-                                        )
-                                    }}
-                                </a>
-
-                                <div
-                                    v-else
-                                    class="payment-description empty"
-                                >
-                                    Sin sitio web
-                                </div>
-                            </td>
-
-                            <!-- CARRERAS -->
-
-                            <td>
-                                <span class="order-badge">
-                                    {{
-                                        sponsor.race_sponsors_count
-                                    }}
-                                </span>
-                            </td>
-
-                            <!-- ESTADO -->
-
-                            <td>
-                                <span
-                                    :class="
-                                        defineStatusClass(
-                                            sponsor.is_active,
-                                        )
-                                    "
-                                >
-                                    <span
-                                        class="status-dot"
-                                    ></span>
-
-                                    {{
-                                        defineStatusLabel(
-                                            sponsor.is_active,
-                                        )
-                                    }}
-                                </span>
-                            </td>
-
-                            <!-- ACCIONES -->
-
-                            <td>
-                                <div class="table-actions">
-                                    <Link
-                                        :href="
-                                            admin.sponsors.show(
-                                                sponsor.id,
-                                            ).url
-                                        "
-                                        class="action-btn action-btn-view"
-                                        title="Ver patrocinador"
-                                        aria-label="Ver patrocinador"
-                                    >
-                                        <Eye
-                                            :size="14"
-                                            :stroke-width="2"
-                                        />
-
-                                        Detalle
-                                    </Link>
-
-                                    <Link
-                                        :href="
-                                            admin.sponsors.edit(
-                                                sponsor.id,
-                                            ).url
-                                        "
-                                        class="action-btn action-btn-edit"
-                                        title="Editar patrocinador"
-                                        aria-label="Editar patrocinador"
-                                    >
-                                        <Edit
-                                            :size="14"
-                                            :stroke-width="2"
-                                        />
-
-                                        Editar
-                                    </Link>
-
-                                    <button
-                                        type="button"
-                                        class="action-btn action-btn-delete"
-                                        title="Eliminar patrocinador"
-                                        aria-label="Eliminar patrocinador"
-                                        @click="
-                                            deleteSponsor(
-                                                sponsor,
-                                            )
-                                        "
-                                    >
-                                        <Trash2
-                                            :size="14"
-                                            :stroke-width="2"
-                                        />
-
-                                        Eliminar
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-
-                        <!-- EMPTY -->
-
-                        <tr
-                            v-if="
-                                sponsors.data.length === 0
-                            "
-                        >
-                            <td
-                                colspan="6"
-                                class="admin-table-empty"
-                            >
-                                <div class="empty-state">
-                                    <div class="empty-state-icon">
-                                        <Building2
-                                            :size="20"
-                                            :stroke-width="2"
-                                        />
-                                    </div>
-
-                                    <strong>
-                                        No hay patrocinadores
-                                    </strong>
-
-                                    <span>
-                                        {{
-                                            search
-                                                ? 'No se encontraron patrocinadores con ese término de búsqueda.'
-                                                : 'Todavía no has registrado ningún patrocinador.'
-                                        }}
-                                    </span>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- PAGINATION -->
-
-            <div
-                v-if="sponsors.last_page > 1"
-                class="admin-pagination-wrapper"
-            >
-                <div class="admin-pagination-info">
-                    Mostrando
-
-                    <strong>
-                        {{ sponsors.from ?? 0 }}
-                    </strong>
-
-                    a
-
-                    <strong>
-                        {{ sponsors.to ?? 0 }}
-                    </strong>
-
-                    de
-
-                    <strong>
-                        {{ sponsors.total }}
-                    </strong>
-                </div>
-
-                <nav class="admin-pagination">
-                    <template
-                        v-for="(
-                            link, index
-                        ) in sponsors.links"
-                        :key="index"
+                    <div
+                        v-if="row.email"
+                        class="contact-line"
                     >
-                        <Link
-                            v-if="link.url"
-                            :href="link.url"
-                            class="pagination-btn"
-                            :class="{
-                                active: link.active,
-                            }"
-                            v-html="link.label"
-                        />
 
-                        <span
-                            v-else
-                            class="pagination-btn disabled"
-                            v-html="link.label"
-                        />
-                    </template>
-                </nav>
-            </div>
-        </section>
+                    </div>
+                </div>
+
+                <div
+                    v-else
+                    class="payment-description empty"
+                >
+                    Sin contacto
+                </div>
+            </template>
+
+            <!-- =================================================
+                 SITIO WEB
+            ================================================== -->
+
+            <template #cell-website="{ row }">
+                <a
+                    v-if="row.website"
+                    :href="row.website"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="website-link"
+                    @click.stop
+                >
+                    <Globe
+                        :size="13"
+                        :stroke-width="2"
+                    />
+
+                    {{
+                        formatWebsite(
+                            row.website,
+                        )
+                    }}
+                </a>
+
+                <div
+                    v-else
+                    class="payment-description empty"
+                >
+                    Sin sitio web
+                </div>
+            </template>
+
+            <!-- =================================================
+                 CARRERAS
+            ================================================== -->
+
+            <template #cell-races="{ row }">
+                <span class="order-badge">
+                    {{ row.race_sponsors_count }}
+                </span>
+            </template>
+
+            <!-- =================================================
+                 ESTADO
+            ================================================== -->
+
+            <template #cell-status="{ row }">
+                <span
+                    :class="
+                        defineStatusClass(
+                            row.is_active,
+                        )
+                    "
+                >
+                    {{
+                        defineStatusLabel(
+                            row.is_active,
+                        )
+                    }}
+                </span>
+            </template>
+        </DataTable>
     </div>
 </template>
 

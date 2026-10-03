@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import {
     CreditCard,
     Edit,
@@ -11,6 +11,8 @@ import {
 import Swal from 'sweetalert2';
 import { ref } from 'vue';
 
+import DataTable from '@/Components/Admin/DataTable.vue';
+import PageHeader from '@/Components/Admin/PageHeader.vue';
 import admin from '@/routes/admin';
 
 interface PaymentMethod {
@@ -105,6 +107,50 @@ const deletePaymentMethod = async (
     );
 };
 
+const columns = [
+    {
+        key: 'payment_method',
+        label: 'Método de pago',
+    },
+    {
+        key: 'code',
+        label: 'Código',
+    },
+    {
+        key: 'description',
+        label: 'Descripción',
+    },
+    {
+        key: 'sort_order',
+        label: 'Orden',
+        headerClass: 'text-center',
+        class: 'text-center',
+    },
+    {
+        key: 'status',
+        label: 'Estado',
+    },
+];
+
+const actions = [
+    {
+        key: 'edit',
+        label: 'Editar',
+        icon: Edit,
+        class: 'action-btn-edit',
+        href: (paymentMethod: Record<string, any>) =>
+            admin.paymentMethods.edit(paymentMethod.id).url,
+    },
+    {
+        key: 'delete',
+        label: 'Eliminar',
+        icon: Trash2,
+        class: 'action-btn-delete',
+        onClick: (paymentMethod: Record<string, any>) =>
+            deletePaymentMethod(paymentMethod as PaymentMethod),
+    },
+];
+
 defineOptions({
     layout: {
         breadcrumbs: [
@@ -125,332 +171,227 @@ defineOptions({
     <Head title="Métodos de pago" />
 
     <div class="admin-page">
-        <!-- =================================================
-             HEADER
-        ================================================== -->
+        <PageHeader
+            eyebrow="Configuración"
+            title="Métodos de pago"
+            subtitle="Administra los métodos de pago disponibles para las órdenes de boletos."
+            :actions="[
+                {
+                    label: 'Nuevo método de pago',
+                    href: admin.paymentMethods.create().url,
+                    icon: Plus,
+                    variant: 'primary',
+                },
+            ]"
+        />
 
-        <header class="admin-page-header">
-            <div>
-                <p class="admin-page-eyebrow">
-                    Configuración
-                </p>
+        <DataTable
+            :columns="columns"
+            :pagination="paymentMethods"
+            :actions="actions"
+            :search="search"
+            search-placeholder="Buscar método de pago..."
+            counter-label="métodos"
+            empty-title="No se encontraron métodos de pago."
+            empty-description="Intenta cambiar el término de búsqueda."
+            :search-icon="Search"
+            :empty-icon="CreditCard"
+            @update:search="search = $event"
+            @search="submitSearch"
+        >
+            <!-- MÉTODO DE PAGO -->
 
-                <h1 class="admin-page-title">
-                    Métodos de pago
-                </h1>
-
-                <p class="admin-page-subtitle">
-                    Administra los métodos de pago disponibles para
-                    las órdenes de boletos.
-                </p>
-            </div>
-
-            <div class="admin-page-header-actions">
-                <Link
-                    :href="admin.paymentMethods.create().url"
-                    class="admin-btn admin-btn-primary"
-                >
-                    <span class="admin-btn-icon">
-                        <Plus :size="14" :stroke-width="2.2" />
-                    </span>
-
-                    Nuevo método de pago
-                </Link>
-            </div>
-        </header>
-
-        <!-- =================================================
-             MAIN CARD
-        ================================================== -->
-
-        <section class="admin-table-card">
-            <!-- TOOLBAR -->
-
-            <div class="admin-table-toolbar">
-                <form
-                    class="admin-search-form"
-                    @submit.prevent="submitSearch"
-                >
-                    <div class="admin-search-wrapper">
-                        <Search
-                            class="admin-search-icon"
-                            :size="16"
+            <template #cell-payment_method="{ row }">
+                <div class="payment-method-cell">
+                    <div class="payment-method-icon">
+                        <WalletCards
+                            :size="17"
                             :stroke-width="2"
-                        />
-
-                        <input
-                            v-model="search"
-                            type="search"
-                            placeholder="Buscar método de pago..."
-                            class="admin-search-input"
                         />
                     </div>
 
-                    <button
-                        type="submit"
-                        class="admin-btn admin-btn-search"
-                    >
-                        <Search :size="14" :stroke-width="2" />
+                    <div class="payment-method-info">
+                        <strong>
+                            {{ row.name }}
+                        </strong>
 
-                        Buscar
-                    </button>
-                </form>
-
-                <div class="admin-table-counter">
-                    <strong>
-                        {{ paymentMethods.total }}
-                    </strong>
-
-                    <span>
-                        métodos
-                    </span>
+                        <span>
+                            ID: {{ row.id }}
+                        </span>
+                    </div>
                 </div>
-            </div>
+            </template>
 
-            <!-- TABLE -->
+            <!-- CÓDIGO -->
 
-            <div class="admin-table-wrapper">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>
-                                Método de pago
-                            </th>
+            <template #cell-code="{ row }">
+                <code class="payment-code">
+                    {{ row.code }}
+                </code>
+            </template>
 
-                            <th>
-                                Código
-                            </th>
+            <!-- DESCRIPCIÓN -->
 
-                            <th>
-                                Descripción
-                            </th>
-
-                            <th class="text-center">
-                                Orden
-                            </th>
-
-                            <th>
-                                Estado
-                            </th>
-
-                            <th class="text-right">
-                                Acciones
-                            </th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        <tr
-                            v-for="paymentMethod in paymentMethods.data"
-                            :key="paymentMethod.id"
-                        >
-                            <!-- MÉTODO -->
-
-                            <td>
-                                <div class="payment-method-cell">
-                                    <div class="payment-method-icon">
-                                        <WalletCards
-                                            :size="17"
-                                            :stroke-width="2"
-                                        />
-                                    </div>
-
-                                    <div class="payment-method-info">
-                                        <strong>
-                                            {{ paymentMethod.name }}
-                                        </strong>
-
-                                        <span>
-                                            ID: {{ paymentMethod.id }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </td>
-
-                            <!-- CÓDIGO -->
-
-                            <td>
-                                <code class="payment-code">
-                                    {{ paymentMethod.code }}
-                                </code>
-                            </td>
-
-                            <!-- DESCRIPCIÓN -->
-
-                            <td>
-                                <div
-                                    v-if="paymentMethod.description"
-                                    class="payment-description"
-                                >
-                                    {{ paymentMethod.description }}
-                                </div>
-
-                                <div
-                                    v-else
-                                    class="payment-description empty"
-                                >
-                                    Sin descripción
-                                </div>
-                            </td>
-
-                            <!-- ORDEN -->
-
-                            <td class="text-center">
-                                <span class="order-badge">
-                                    {{ paymentMethod.sort_order }}
-                                </span>
-                            </td>
-
-                            <!-- ESTADO -->
-
-                            <td>
-                                <span
-                                    v-if="paymentMethod.is_active"
-                                    class="status-badge status-active"
-                                >
-                                    <span class="status-dot"></span>
-
-                                    Activo
-                                </span>
-
-                                <span
-                                    v-else
-                                    class="status-badge status-inactive"
-                                >
-                                    <span class="status-dot"></span>
-
-                                    Inactivo
-                                </span>
-                            </td>
-
-                            <!-- ACCIONES -->
-
-                            <td>
-                                <div class="table-actions">
-                                    <Link
-                                        :href="
-                                            admin.paymentMethods.edit(
-                                                paymentMethod.id,
-                                            ).url
-                                        "
-                                        class="action-btn action-btn-edit"
-                                        title="Editar método de pago"
-                                        aria-label="Editar método de pago"
-                                    >
-                                        <Edit
-                                            :size="14"
-                                            :stroke-width="2"
-                                        />
-                                        
-                                        Editar
-                                    </Link>
-
-                                    <button
-                                        type="button"
-                                        class="action-btn action-btn-delete"
-                                        title="Eliminar método de pago"
-                                        aria-label="Eliminar método de pago"
-                                        @click="
-                                            deletePaymentMethod(
-                                                paymentMethod,
-                                            )
-                                        "
-                                    >
-                                        <Trash2
-                                            :size="14"
-                                            :stroke-width="2"
-                                        />
-
-                                        Eliminar
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-
-                        <!-- EMPTY -->
-
-                        <tr
-                            v-if="
-                                paymentMethods.data.length === 0
-                            "
-                        >
-                            <td
-                                colspan="6"
-                                class="admin-table-empty"
-                            >
-                                <div class="empty-state">
-                                    <div class="empty-state-icon">
-                                        <CreditCard
-                                            :size="20"
-                                            :stroke-width="2"
-                                        />
-                                    </div>
-
-                                    <strong>
-                                        No se encontraron métodos
-                                        de pago
-                                    </strong>
-
-                                    <span>
-                                        Intenta cambiar el término
-                                        de búsqueda.
-                                    </span>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- PAGINATION -->
-
-            <div
-                v-if="paymentMethods.last_page > 1"
-                class="admin-pagination-wrapper"
-            >
-                <div class="admin-pagination-info">
-                    Mostrando
-
-                    <strong>
-                        {{ paymentMethods.from ?? 0 }}
-                    </strong>
-
-                    a
-
-                    <strong>
-                        {{ paymentMethods.to ?? 0 }}
-                    </strong>
-
-                    de
-
-                    <strong>
-                        {{ paymentMethods.total }}
-                    </strong>
+            <template #cell-description="{ row }">
+                <div
+                    v-if="row.description"
+                    class="payment-description"
+                >
+                    {{ row.description }}
                 </div>
 
-                <nav class="admin-pagination">
-                    <template
-                        v-for="(link, index) in paymentMethods.links"
-                        :key="index"
-                    >
-                        <Link
-                            v-if="link.url"
-                            :href="link.url"
-                            class="pagination-btn"
-                            :class="{
-                                active: link.active,
-                            }"
-                            v-html="link.label"
-                        />
+                <div
+                    v-else
+                    class="payment-description empty"
+                >
+                    Sin descripción
+                </div>
+            </template>
 
-                        <span
-                            v-else
-                            class="pagination-btn disabled"
-                            v-html="link.label"
-                        />
-                    </template>
-                </nav>
-            </div>
-        </section>
+            <!-- ORDEN -->
+
+            <template #cell-sort_order="{ row }">
+                <span class="order-badge">
+                    {{ row.sort_order }}
+                </span>
+            </template>
+
+            <!-- ESTADO -->
+
+            <template #cell-status="{ row }">
+                <span
+                    v-if="row.is_active"
+                    class="status-badge status-active"
+                >
+                    Activo
+                </span>
+
+                <span
+                    v-else
+                    class="status-badge status-inactive"
+                >
+
+
+                    Inactivo
+                </span>
+            </template>
+        </DataTable>
     </div>
 </template>
+
+<style scoped>
+.payment-method-cell {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+.payment-method-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--sc-page-light);
+    color: var(--sc-page-blue);
+}
+
+.payment-method-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 3px;
+}
+
+.payment-method-info strong {
+    overflow: hidden;
+    color: var(--sc-page-text);
+    font-size: 13px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.payment-method-info span {
+    color: #8b9ba6;
+    font-size: 10px;
+}
+
+.payment-code {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 8px;
+    border: 1px solid #e5eaee;
+    border-radius: 6px;
+    background: #f8fafb;
+    color: #5f707c;
+    font-family: monospace;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.payment-description {
+    max-width: 360px;
+    overflow: hidden;
+    color: var(--sc-page-text-secondary);
+    font-size: 11px;
+    line-height: 1.45;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.payment-description.empty {
+    color: #9aa7b0;
+    font-style: italic;
+}
+
+.order-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    height: 26px;
+    padding: 0 8px;
+    border-radius: 7px;
+    background: #f3f6f8;
+    color: #687983;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 9px;
+    border-radius: 7px;
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.status-active {
+    background: var(--sc-page-green-light);
+    color: #159c83;
+}
+
+.status-inactive {
+    background: #feecee;
+    color: #c93645;
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    flex: 0 0 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+:global(.data-table th.text-center),
+:global(.data-table td.text-center) {
+    text-align: center;
+}
+</style>
