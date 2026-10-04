@@ -147,20 +147,6 @@ const formatPrice = (
 const getDistanceTitle = (
     distance: any,
 ): string => {
-    /*
-     * Si la distancia tiene nombre, usamos ese nombre.
-     *
-     * Ejemplo:
-     * name = "5K"
-     * distance = 5.00
-     *
-     * Resultado:
-     * 5K
-     *
-     * Así evitamos mostrar:
-     * 5K
-     * 5.00 KM
-     */
     if (
         distance?.name &&
         String(distance.name).trim()
@@ -217,10 +203,6 @@ const getPriceLabel = (
         return 'Venta';
     }
 
-    /*
-     * Si tiene otro nombre configurado
-     * lo respetamos.
-     */
     return name;
 };
 
@@ -316,6 +298,28 @@ const imageUrl = (
     }
 
     return `/storage/${image}`;
+};
+
+/*
+|--------------------------------------------------------------------------
+| VIDEOS
+|--------------------------------------------------------------------------
+*/
+
+const isVideo = (
+    media: string | null | undefined,
+): boolean => {
+    if (!media) {
+        return false;
+    }
+
+    return /\.(mp4|webm|mov|m4v|ogg)$/i.test(media);
+};
+
+const mediaUrl = (
+    media: string | null | undefined,
+): string => {
+    return imageUrl(media);
 };
 
 /*
@@ -997,7 +1001,31 @@ const getKitImages = () => {
                             :key="image.id ?? index"
                             class="race-gallery-item"
                         >
+
+                            <video
+                                v-if="
+                                    isVideo(
+                                        image.image ??
+                                        image.path ??
+                                        image.image_path ??
+                                        image.url
+                                    )
+                                "
+                                :src="
+                                    mediaUrl(
+                                        image.image ??
+                                        image.path ??
+                                        image.image_path ??
+                                        image.url
+                                    )
+                                "
+                                controls
+                                playsinline
+                                preload="metadata"
+                            />
+
                             <img
+                                v-else
                                 :src="
                                     imageUrl(
                                         image.image ??
@@ -1008,6 +1036,7 @@ const getKitImages = () => {
                                 "
                                 :alt="`${race.name} - Kit ${index + 1}`"
                             />
+
                         </div>
 
                     </div>
@@ -1049,18 +1078,42 @@ const getKitImages = () => {
                             :key="image.id"
                             class="race-gallery-item"
                         >
+
+                            <video
+                                v-if="
+                                    isVideo(
+                                        image.image ??
+                                        image.url
+                                    )
+                                "
+                                :src="
+                                    mediaUrl(
+                                        image.image ??
+                                        image.url
+                                    )
+                                "
+                                controls
+                                playsinline
+                                preload="metadata"
+                            />
+
                             <img
-                                :src="imageUrl(image.image)"
+                                v-else
+                                :src="
+                                    imageUrl(
+                                        image.image ??
+                                        image.url
+                                    )
+                                "
                                 :alt="race.name"
                             />
+
                         </div>
 
                     </div>
 
                 </div>
             </section>
-
-            
 
             <!-- =====================================================
                  RESULTADOS
@@ -2178,14 +2231,17 @@ const getKitImages = () => {
         );
 }
 
-.race-gallery-item img {
+.race-gallery-item img,
+.race-gallery-item video {
     width: 100%;
     height: 100%;
 
     display: block;
 
     object-fit: cover;
+}
 
+.race-gallery-item img {
     transition:
         transform 0.4s ease,
         filter 0.4s ease;
@@ -2195,6 +2251,10 @@ const getKitImages = () => {
     transform: scale(1.06);
 
     filter: saturate(1.06);
+}
+
+.race-gallery-item video {
+    background: #0f172a;
 }
 
 

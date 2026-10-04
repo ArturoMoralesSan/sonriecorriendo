@@ -14,6 +14,7 @@ import LandingRoutes from '@/components/landing/LandingRoutes.vue';
 import LandingShop from '@/components/landing/LandingShop.vue';
 import LandingSponsors from '@/components/landing/LandingSponsors.vue';
 import LandingWinners from '@/components/landing/LandingWinners.vue';
+import WhatsAppButton from '@/components/landing/WhatsAppButton.vue';
 
 defineProps<{
     races: Array<any>;
@@ -81,6 +82,10 @@ defineProps<{
             />
 
             <LandingCta />
+            <WhatsAppButton
+                phone="526181234567"
+                message="Hola, quiero obtener información sobre una carrera."
+            />
         </main>
 
         <LandingFooter />

@@ -1,7 +1,17 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft, Camera, ChevronLeft, ChevronRight, X } from 'lucide-vue-next';
-import { computed, onBeforeUnmount, ref } from 'vue';
+import {
+    ArrowLeft,
+    Camera,
+    ChevronLeft,
+    ChevronRight,
+    X,
+} from 'lucide-vue-next';
+import {
+    computed,
+    onBeforeUnmount,
+    ref,
+} from 'vue';
 
 import LandingFooter from '@/components/landing/LandingFooter.vue';
 import LandingHeader from '@/components/landing/LandingHeader.vue';
@@ -40,7 +50,9 @@ const selectedImage = computed(() => {
     return images.value[selectedIndex.value] ?? null;
 });
 
-const imageUrl = (image: string | null | undefined) => {
+const imageUrl = (
+    image: string | null | undefined,
+) => {
     if (!image) {
         return '';
     }
@@ -56,6 +68,22 @@ const imageUrl = (image: string | null | undefined) => {
     return `/storage/${image}`;
 };
 
+const isVideo = (
+    media: string | null | undefined,
+): boolean => {
+    if (!media) {
+        return false;
+    }
+
+    return /\.(mp4|webm|mov|m4v|ogg)$/i.test(media);
+};
+
+const mediaUrl = (
+    media: string | null | undefined,
+): string => {
+    return imageUrl(media);
+};
+
 const openImage = (index: number) => {
     selectedIndex.value = index;
     document.body.style.overflow = 'hidden';
@@ -67,7 +95,10 @@ const closeImage = () => {
 };
 
 const previousImage = () => {
-    if (selectedIndex.value === null || images.value.length === 0) {
+    if (
+        selectedIndex.value === null ||
+        images.value.length === 0
+    ) {
         return;
     }
 
@@ -78,7 +109,10 @@ const previousImage = () => {
 };
 
 const nextImage = () => {
-    if (selectedIndex.value === null || images.value.length === 0) {
+    if (
+        selectedIndex.value === null ||
+        images.value.length === 0
+    ) {
         return;
     }
 
@@ -88,7 +122,9 @@ const nextImage = () => {
             : selectedIndex.value + 1;
 };
 
-const handleKeydown = (event: KeyboardEvent) => {
+const handleKeydown = (
+    event: KeyboardEvent,
+) => {
     if (selectedIndex.value === null) {
         return;
     }
@@ -106,11 +142,18 @@ const handleKeydown = (event: KeyboardEvent) => {
     }
 };
 
-window.addEventListener('keydown', handleKeydown);
+window.addEventListener(
+    'keydown',
+    handleKeydown,
+);
 
 onBeforeUnmount(() => {
     document.body.style.overflow = '';
-    window.removeEventListener('keydown', handleKeydown);
+
+    window.removeEventListener(
+        'keydown',
+        handleKeydown,
+    );
 });
 </script>
 
@@ -118,7 +161,7 @@ onBeforeUnmount(() => {
     <Head :title="`Galería - ${race.name}`">
         <meta
             name="description"
-            :content="`Galería de fotos de ${race.name} - Sonríe Corriendo.`"
+            :content="`Galería de fotos y videos de ${race.name} - Sonríe Corriendo.`"
         />
     </Head>
 
@@ -130,12 +173,15 @@ onBeforeUnmount(() => {
             <section class="gallery-hero">
                 <div class="gallery-hero-background"></div>
 
-                <div class="gallery-container gallery-hero-content">
+                <div
+                    class="gallery-container gallery-hero-content"
+                >
                     <Link
                         :href="`/carreras/${race.slug}`"
                         class="gallery-back"
                     >
                         <ArrowLeft :size="17" />
+
                         Volver a la carrera
                     </Link>
 
@@ -147,7 +193,9 @@ onBeforeUnmount(() => {
                         Galería de la carrera
                     </span>
 
-                    <h1>{{ race.name }}</h1>
+                    <h1>
+                        {{ race.name }}
+                    </h1>
 
                     <p>
                         Revive los mejores momentos de esta carrera.
@@ -158,10 +206,16 @@ onBeforeUnmount(() => {
             <!-- GALLERY -->
             <section class="gallery-section">
                 <div class="gallery-container">
+
                     <div class="gallery-heading">
                         <div>
-                            <span>Momentos</span>
-                            <h2>Fotos de la carrera</h2>
+                            <span>
+                                Momentos
+                            </span>
+
+                            <h2>
+                                Fotos y videos de la carrera
+                            </h2>
                         </div>
 
                         <div
@@ -169,7 +223,12 @@ onBeforeUnmount(() => {
                             class="gallery-count"
                         >
                             {{ images.length }}
-                            {{ images.length === 1 ? 'foto' : 'fotos' }}
+
+                            {{
+                                images.length === 1
+                                    ? 'archivo'
+                                    : 'archivos'
+                            }}
                         </div>
                     </div>
 
@@ -177,6 +236,7 @@ onBeforeUnmount(() => {
                         v-if="images.length"
                         class="gallery-grid"
                     >
+
                         <button
                             v-for="(item, index) in images"
                             :key="item.id"
@@ -184,16 +244,44 @@ onBeforeUnmount(() => {
                             class="gallery-item"
                             @click="openImage(index)"
                         >
+
+                            <!-- IMAGEN -->
                             <img
-                                :src="imageUrl(item.image)"
-                                :alt="`${race.name} - Foto ${index + 1}`"
+                                v-if="
+                                    !isVideo(item.image)
+                                "
+                                :src="
+                                    imageUrl(
+                                        item.image,
+                                    )
+                                "
+                                :alt="
+                                    `${race.name} - Foto ${index + 1}`
+                                "
                                 loading="lazy"
                             />
 
-                            <span class="gallery-item-overlay">
+                            <!-- VIDEO -->
+                            <video
+                                v-else
+                                :src="
+                                    mediaUrl(
+                                        item.image,
+                                    )
+                                "
+                                muted
+                                playsinline
+                                preload="metadata"
+                            />
+
+                            <span
+                                class="gallery-item-overlay"
+                            >
                                 <Camera :size="20" />
                             </span>
+
                         </button>
+
                     </div>
 
                     <div
@@ -204,11 +292,14 @@ onBeforeUnmount(() => {
                             <Camera :size="27" />
                         </div>
 
-                        <h3>Aún no hay fotografías</h3>
+                        <h3>
+                            Aún no hay fotografías
+                        </h3>
 
                         <p>
-                            Las fotografías de esta carrera estarán
-                            disponibles próximamente.
+                            Las fotografías y videos de esta
+                            carrera estarán disponibles
+                            próximamente.
                         </p>
 
                         <Link
@@ -218,6 +309,7 @@ onBeforeUnmount(() => {
                             Volver a la carrera
                         </Link>
                     </div>
+
                 </div>
             </section>
         </main>
@@ -226,11 +318,14 @@ onBeforeUnmount(() => {
 
         <!-- LIGHTBOX -->
         <Teleport to="body">
+
             <div
                 v-if="selectedImage"
                 class="gallery-lightbox"
                 @click.self="closeImage"
             >
+
+                <!-- CERRAR -->
                 <button
                     type="button"
                     class="lightbox-close"
@@ -240,38 +335,72 @@ onBeforeUnmount(() => {
                     <X :size="23" />
                 </button>
 
+                <!-- ANTERIOR -->
                 <button
                     v-if="images.length > 1"
                     type="button"
                     class="lightbox-arrow lightbox-arrow-left"
-                    aria-label="Imagen anterior"
+                    aria-label="Archivo anterior"
                     @click="previousImage"
                 >
                     <ChevronLeft :size="28" />
                 </button>
 
+                <!-- CONTENIDO -->
                 <div class="lightbox-content">
+
+                    <!-- IMAGEN -->
                     <img
-                        :src="imageUrl(selectedImage.image)"
-                        :alt="`${race.name} - Fotografía`"
+                        v-if="
+                            !isVideo(
+                                selectedImage.image,
+                            )
+                        "
+                        :src="
+                            imageUrl(
+                                selectedImage.image,
+                            )
+                        "
+                        :alt="
+                            `${race.name} - Fotografía`
+                        "
+                    />
+
+                    <!-- VIDEO -->
+                    <video
+                        v-else
+                        :src="
+                            mediaUrl(
+                                selectedImage.image,
+                            )
+                        "
+                        controls
+                        autoplay
+                        playsinline
+                        preload="metadata"
                     />
 
                     <div class="lightbox-counter">
-                        {{ (selectedIndex ?? 0) + 1 }} /
+                        {{ (selectedIndex ?? 0) + 1 }}
+                        /
                         {{ images.length }}
                     </div>
+
                 </div>
 
+                <!-- SIGUIENTE -->
                 <button
                     v-if="images.length > 1"
                     type="button"
                     class="lightbox-arrow lightbox-arrow-right"
-                    aria-label="Siguiente imagen"
+                    aria-label="Siguiente archivo"
                     @click="nextImage"
                 >
                     <ChevronRight :size="28" />
                 </button>
+
             </div>
+
         </Teleport>
     </div>
 </template>
