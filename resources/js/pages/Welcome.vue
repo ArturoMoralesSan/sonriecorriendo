@@ -83,7 +83,7 @@ defineProps<{
 
             <LandingCta />
             <WhatsAppButton
-                phone="526181234567"
+                phone="526181323209"
                 message="Hola, quiero obtener información sobre una carrera."
             />
         </main>
