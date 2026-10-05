@@ -147,6 +147,31 @@ class MenuSeeder extends Seeder
 
         /*
         |--------------------------------------------------------------------------
+        | Banners
+        |--------------------------------------------------------------------------
+        */
+
+        $banners = Menu::updateOrCreate(
+            ['name' => 'Banners'],
+            [
+                'icon' => 'Images',
+                'order' => 6,
+                'route' => null,
+                'is_submenu' => true,
+            ]
+        );
+
+        $this->link(
+            $banners,
+            'Listado de banners',
+            'Image',
+            1,
+            'admin.banners.index',
+            'banners.view'
+        );
+
+        /*
+        |--------------------------------------------------------------------------
         | Administración
         |--------------------------------------------------------------------------
         */
@@ -155,7 +180,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Administración'],
             [
                 'icon' => 'Settings',
-                'order' => 6,
+                'order' => 7,
                 'route' => null,
                 'is_submenu' => true,
             ]
