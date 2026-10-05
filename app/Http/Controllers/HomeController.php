@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Banner;
 use App\Models\Club;
 use App\Models\Product;
 use App\Models\Race;
@@ -70,12 +71,20 @@ class HomeController extends Controller
             ->limit(12)
             ->get();
 
+        $banners = Banner::query()
+            ->where('page', 'home')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
         return Inertia::render('Welcome', [
             'races' => $races,
             'clubs' => $clubs,
             'products' => $products,
             'gallery' => $gallery,
             'sponsors' => $sponsors,
+            'banners' => $banners,
         ]);
     }
 
@@ -102,67 +111,71 @@ class HomeController extends Controller
             ->orderBy('event_date')
             ->get();
 
+        $banners = Banner::query()
+            ->where('page', 'eventos')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
         return Inertia::render('Races', [
             'events' => $races,
+            'banners' => $banners,
         ]);
     }
 
     public function race(string $slug): Response
-{
-    $race = Race::query()
-        ->with([
-            'distances' => function ($query) {
-                $query
-                    ->where('is_active', true)
-                    ->orderBy('sort_order')
-                    ->with([
-                        'prices' => function ($query) {
-                            $query
-                                ->where('is_active', true)
-                                ->orderBy('sort_order')
-                                ->orderBy('price');
-                        },
+    {
+        $race = Race::query()
+            ->with([
+                'distances' => function ($query) {
+                    $query
+                        ->where('is_active', true)
+                        ->orderBy('sort_order')
+                        ->with([
+                            'prices' => function ($query) {
+                                $query
+                                    ->where('is_active', true)
+                                    ->orderBy('sort_order')
+                                    ->orderBy('price');
+                            },
+                            'inclusions' => function ($query) {
+                                $query
+                                    ->where('included', true)
+                                    ->orderBy('sort_order');
+                            },
+                            'categories' => function ($query) {
+                                $query
+                                    ->where('is_active', true)
+                                    ->orderBy('sort_order');
+                            },
+                        ]);
+                },
+                'gallery' => function ($query) {
+                    $query
+                        ->where('is_active', true)
+                        ->orderBy('sort_order')
+                        ->orderBy('id');
+                },
+                'kitImages' => function ($query) {
+                    $query
+                        ->orderBy('sort_order')
+                        ->orderBy('id');
+                },
+            ])
+            ->where('slug', $slug)
+            ->whereIn('status', [
+                'published',
+                'registration_open',
+                'registration_closed',
+                'finished',
+            ])
+            ->firstOrFail();
 
-                        'inclusions' => function ($query) {
-                            $query
-                                ->where('included', true)
-                                ->orderBy('sort_order');
-                        },
-
-                        'categories' => function ($query) {
-                            $query
-                                ->where('is_active', true)
-                                ->orderBy('sort_order');
-                        },
-                    ]);
-            },
-
-            'gallery' => function ($query) {
-                $query
-                    ->where('is_active', true)
-                    ->orderBy('sort_order')
-                    ->orderBy('id');
-            },
-
-            'kitImages' => function ($query) {
-                $query
-                    ->orderBy('sort_order')
-                    ->orderBy('id');
-            },
-        ])
-        ->where('slug', $slug)
-        ->whereIn('status', [
-            'published',
-            'registration_open',
-            'registration_closed',
-            'finished',
-        ])
-        ->firstOrFail();
-
-    return Inertia::render('RaceShow', [
-        'race' => $race,
-    ]);
-}
+        return Inertia::render('RaceShow', [
+            'race' => $race,
+        ]);
+    }
 
     public function galleries(): Response
     {
@@ -182,8 +195,16 @@ class HomeController extends Controller
             ->orderByDesc('id')
             ->get();
 
+        $banners = Banner::query()
+            ->where('page', 'galeria')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
         return Inertia::render('Gallery', [
             'gallery' => $gallery,
+            'banners' => $banners,
         ]);
     }
 
@@ -228,8 +249,16 @@ class HomeController extends Controller
             ->orderBy('name')
             ->get();
 
+        $banners = Banner::query()
+            ->where('page', 'productos')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
         return Inertia::render('Shop', [
             'products' => $products,
+            'banners' => $banners,
         ]);
     }
 
@@ -247,6 +276,13 @@ class HomeController extends Controller
 
     public function clubs(): Response
     {
+        $banners = Banner::query()
+            ->where('page', 'clubes')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
         $clubs = Club::query()
             ->where('is_active', true)
             ->orderBy('name')
@@ -254,6 +290,7 @@ class HomeController extends Controller
 
         return Inertia::render('Clubs', [
             'clubs' => $clubs,
+            'banners' => $banners,
         ]);
     }
 
@@ -266,6 +303,20 @@ class HomeController extends Controller
 
         return Inertia::render('ClubShow', [
             'club' => $club,
+        ]);
+    }
+
+    public function results(): Response
+    {
+        $banners = Banner::query()
+            ->where('page', 'resultados')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
+        return Inertia::render('Results', [
+            'banners' => $banners,
         ]);
     }
 }

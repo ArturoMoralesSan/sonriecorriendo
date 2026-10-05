@@ -19,6 +19,7 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\MercadoPagoController;
+use App\Http\Controllers\Admin\BannerController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -455,6 +456,17 @@ Route::middleware(['auth', 'verified'])
                 'edit' => 'permission:sales.edit',
                 'update' => 'permission:sales.edit',
                 'destroy' => 'permission:sales.delete',
+            ]);
+
+        Route::resource('banners', BannerController::class)
+            ->middleware([
+                'index' => 'permission:banners.view',
+                'create' => 'permission:banners.create',
+                'store' => 'permission:banners.create',
+                'show' => 'permission:banners.view',
+                'edit' => 'permission:banners.edit',
+                'update' => 'permission:banners.edit',
+                'destroy' => 'permission:banners.delete',
             ]);
     });
 

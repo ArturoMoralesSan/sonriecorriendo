@@ -2,7 +2,10 @@
 import { Head } from '@inertiajs/vue3';
 import {
     CalendarDays,
+    Camera,
     Check,
+    ChevronLeft,
+    ChevronRight,
     Clock3,
     ExternalLink,
     MapPin,
@@ -11,7 +14,13 @@ import {
     Ticket,
     Trophy,
     Users,
+    X,
 } from 'lucide-vue-next';
+import {
+    computed,
+    onBeforeUnmount,
+    ref,
+} from 'vue';
 
 import LandingFooter from '@/components/landing/LandingFooter.vue';
 import LandingHeader from '@/components/landing/LandingHeader.vue';
@@ -19,6 +28,12 @@ import LandingHeader from '@/components/landing/LandingHeader.vue';
 const { race } = defineProps<{
     race: any;
 }>();
+
+/*
+|--------------------------------------------------------------------------
+| FECHAS
+|--------------------------------------------------------------------------
+*/
 
 const safeDate = (
     value: string | null | undefined,
@@ -106,7 +121,13 @@ const formatTime = (
         return normalized;
     }
 
-    const date = new Date(1970, 0, 1, hours, minutes);
+    const date = new Date(
+        1970,
+        0,
+        1,
+        hours,
+        minutes,
+    );
 
     return new Intl.DateTimeFormat('es-MX', {
         hour: 'numeric',
@@ -179,9 +200,6 @@ const getPriceLabel = (
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '');
 
-    /*
-     * Preventa
-     */
     if (
         normalized.includes('preventa') ||
         normalized.includes('pre-venta') ||
@@ -190,9 +208,6 @@ const getPriceLabel = (
         return 'Preventa';
     }
 
-    /*
-     * Venta
-     */
     if (
         normalized === 'venta' ||
         normalized.includes('venta regular') ||
@@ -331,6 +346,229 @@ const mediaUrl = (
 const getKitImages = () => {
     return race.kit_images ?? race.kitImages ?? [];
 };
+
+/*
+|--------------------------------------------------------------------------
+| LIGHTBOX - GALERÍA
+|--------------------------------------------------------------------------
+*/
+
+const selectedGalleryIndex = ref<number | null>(null);
+
+const galleryImages = computed(() => {
+    return race.gallery ?? [];
+});
+
+const selectedGalleryImage = computed(() => {
+    if (selectedGalleryIndex.value === null) {
+        return null;
+    }
+
+    return (
+        galleryImages.value[
+            selectedGalleryIndex.value
+        ] ?? null
+    );
+});
+
+const openGalleryImage = (
+    index: number,
+) => {
+    if (!galleryImages.value.length) {
+        return;
+    }
+
+    selectedGalleryIndex.value = index;
+
+    document.body.style.overflow = 'hidden';
+};
+
+const closeGalleryImage = () => {
+    selectedGalleryIndex.value = null;
+
+    if (selectedKitIndex.value === null) {
+        document.body.style.overflow = '';
+    }
+};
+
+const previousGalleryImage = () => {
+    if (
+        selectedGalleryIndex.value === null ||
+        galleryImages.value.length <= 1
+    ) {
+        return;
+    }
+
+    selectedGalleryIndex.value =
+        selectedGalleryIndex.value === 0
+            ? galleryImages.value.length - 1
+            : selectedGalleryIndex.value - 1;
+};
+
+const nextGalleryImage = () => {
+    if (
+        selectedGalleryIndex.value === null ||
+        galleryImages.value.length <= 1
+    ) {
+        return;
+    }
+
+    selectedGalleryIndex.value =
+        selectedGalleryIndex.value ===
+        galleryImages.value.length - 1
+            ? 0
+            : selectedGalleryIndex.value + 1;
+};
+
+/*
+|--------------------------------------------------------------------------
+| LIGHTBOX - KIT
+|--------------------------------------------------------------------------
+*/
+
+const selectedKitIndex = ref<number | null>(null);
+
+const kitImages = computed(() => {
+    return getKitImages();
+});
+
+const selectedKitImage = computed(() => {
+    if (selectedKitIndex.value === null) {
+        return null;
+    }
+
+    return (
+        kitImages.value[
+            selectedKitIndex.value
+        ] ?? null
+    );
+});
+
+const getKitMedia = (
+    image: any,
+): string => {
+    return (
+        image?.image ??
+        image?.path ??
+        image?.image_path ??
+        image?.url ??
+        ''
+    );
+};
+
+const openKitImage = (
+    index: number,
+) => {
+    if (!kitImages.value.length) {
+        return;
+    }
+
+    selectedKitIndex.value = index;
+
+    document.body.style.overflow = 'hidden';
+};
+
+const closeKitImage = () => {
+    selectedKitIndex.value = null;
+
+    if (selectedGalleryIndex.value === null) {
+        document.body.style.overflow = '';
+    }
+};
+
+const previousKitImage = () => {
+    if (
+        selectedKitIndex.value === null ||
+        kitImages.value.length <= 1
+    ) {
+        return;
+    }
+
+    selectedKitIndex.value =
+        selectedKitIndex.value === 0
+            ? kitImages.value.length - 1
+            : selectedKitIndex.value - 1;
+};
+
+const nextKitImage = () => {
+    if (
+        selectedKitIndex.value === null ||
+        kitImages.value.length <= 1
+    ) {
+        return;
+    }
+
+    selectedKitIndex.value =
+        selectedKitIndex.value ===
+        kitImages.value.length - 1
+            ? 0
+            : selectedKitIndex.value + 1;
+};
+
+/*
+|--------------------------------------------------------------------------
+| TECLADO
+|--------------------------------------------------------------------------
+*/
+
+const handleLightboxKeydown = (
+    event: KeyboardEvent,
+) => {
+    /*
+     * GALERÍA
+     */
+    if (selectedGalleryIndex.value !== null) {
+        if (event.key === 'Escape') {
+            closeGalleryImage();
+            return;
+        }
+
+        if (event.key === 'ArrowLeft') {
+            previousGalleryImage();
+            return;
+        }
+
+        if (event.key === 'ArrowRight') {
+            nextGalleryImage();
+            return;
+        }
+
+        return;
+    }
+
+    /*
+     * KIT
+     */
+    if (selectedKitIndex.value !== null) {
+        if (event.key === 'Escape') {
+            closeKitImage();
+            return;
+        }
+
+        if (event.key === 'ArrowLeft') {
+            previousKitImage();
+            return;
+        }
+
+        if (event.key === 'ArrowRight') {
+            nextKitImage();
+        }
+    }
+};
+
+window.addEventListener(
+    'keydown',
+    handleLightboxKeydown,
+);
+
+onBeforeUnmount(() => {
+    document.body.style.overflow = '';
+
+    window.removeEventListener(
+        'keydown',
+        handleLightboxKeydown,
+    );
+});
 </script>
 
 <template>
@@ -363,11 +601,7 @@ const getKitImages = () => {
         <LandingHeader />
 
         <main>
-
-            <!-- =====================================================
-                 HERO
-                 ===================================================== -->
-
+            <!-- HERO -->
             <section
                 class="race-hero"
                 :style="
@@ -393,14 +627,10 @@ const getKitImages = () => {
                 </div>
             </section>
 
-            <!-- =====================================================
-                 RESUMEN
-                 ===================================================== -->
-
+            <!-- RESUMEN -->
             <section class="race-summary">
                 <div class="race-container">
                     <div class="race-summary-grid">
-
                         <div class="race-summary-card">
                             <CalendarDays :size="24" />
 
@@ -457,24 +687,20 @@ const getKitImages = () => {
 
                                 <strong>
                                     {{
-                                        race.distances?.length || 0
+                                        race.distances?.length ||
+                                        0
                                     }}
                                     opciones
                                 </strong>
                             </div>
                         </div>
-
                     </div>
                 </div>
             </section>
 
-            <!-- =====================================================
-                 DETALLES GENERALES
-                 ===================================================== -->
-
+            <!-- DETALLES GENERALES -->
             <section class="race-section">
                 <div class="race-container">
-
                     <div class="race-section-heading">
                         <span class="race-section-kicker">
                             Conoce el evento
@@ -486,11 +712,8 @@ const getKitImages = () => {
                     </div>
 
                     <div class="race-details-grid">
-
                         <div class="race-description-card">
-                            <h3>
-                                Descripción
-                            </h3>
+                            <h3>Descripción</h3>
 
                             <div
                                 v-if="race.description"
@@ -509,15 +732,12 @@ const getKitImages = () => {
                         </div>
 
                         <div class="race-location-card">
-
                             <div class="race-location-icon">
                                 <MapPin :size="26" />
                             </div>
 
                             <div>
-                                <h3>
-                                    Ubicación
-                                </h3>
+                                <h3>Ubicación</h3>
 
                                 <p v-if="race.location">
                                     {{ race.location }}
@@ -556,31 +776,90 @@ const getKitImages = () => {
                                     Ubicación por confirmar.
                                 </p>
                             </div>
-
                         </div>
-
                     </div>
                 </div>
             </section>
 
             <!-- =====================================================
-                 DISTANCIAS
+                 GALERÍA DEL KIT
                  ===================================================== -->
+            <section
+                v-if="getKitImages().length"
+                class="race-section"
+            >
+                <div class="race-container">
+                    <div class="race-section-heading">
+                        <span class="race-section-kicker">
+                            Conoce tu kit
+                        </span>
 
+                        <h2>
+                            Kit de la carrera
+                        </h2>
+
+                        <p>
+                            Conoce los artículos que forman parte del kit
+                            de esta carrera.
+                        </p>
+                    </div>
+
+                    <div class="race-gallery-grid">
+                        <button
+                            v-for="(image, index) in getKitImages()"
+                            :key="image.id ?? index"
+                            type="button"
+                            class="race-gallery-item race-gallery-button"
+                            :aria-label="`Abrir imagen del kit ${index + 1}`"
+                            @click="openKitImage(index)"
+                        >
+                            <video
+                                v-if="
+                                    isVideo(
+                                        getKitMedia(image),
+                                    )
+                                "
+                                :src="
+                                    mediaUrl(
+                                        getKitMedia(image),
+                                    )
+                                "
+                                muted
+                                playsinline
+                                preload="metadata"
+                            />
+
+                            <img
+                                v-else
+                                :src="
+                                    imageUrl(
+                                        getKitMedia(image),
+                                    )
+                                "
+                                :alt="`${race.name} - Kit ${index + 1}`"
+                                loading="lazy"
+                            />
+
+                            <span class="race-gallery-overlay">
+                                <Camera :size="21" />
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DISTANCIAS -->
             <section
                 v-if="race.distances?.length"
                 class="race-section race-section-light"
             >
                 <div class="race-container">
-
                     <div class="race-section-heading">
                         <span class="race-section-kicker">
                             Elige tu reto
                         </span>
 
-                        <h2>
-                            Distancias
-                        </h2>
+                        <h2>Distancias</h2>
 
                         <p>
                             Selecciona la distancia que mejor se adapte
@@ -589,17 +868,12 @@ const getKitImages = () => {
                     </div>
 
                     <div class="distance-grid">
-
                         <article
                             v-for="distance in race.distances"
                             :key="distance.id"
                             class="distance-card"
                         >
-
-                            <!-- CABECERA -->
-
                             <div class="distance-card-top">
-
                                 <div class="distance-icon">
                                     <Trophy :size="25" />
                                 </div>
@@ -613,16 +887,11 @@ const getKitImages = () => {
                                     {{ distance.capacity }}
                                     lugares
                                 </span>
-
                             </div>
-
-                            <!-- NOMBRE DE DISTANCIA -->
 
                             <h3>
                                 {{ getDistanceTitle(distance) }}
                             </h3>
-
-                            <!-- SALIDA -->
 
                             <div
                                 v-if="distance.start_time"
@@ -631,7 +900,6 @@ const getKitImages = () => {
                                 <Clock3 :size="16" />
 
                                 Salida:
-
                                 {{
                                     formatTime(
                                         distance.start_time,
@@ -639,29 +907,24 @@ const getKitImages = () => {
                                 }}
                             </div>
 
-                            <!-- =================================================
-                                 PRECIOS
-                                 ================================================= -->
-
                             <div
                                 v-if="distance.prices?.length"
                                 class="distance-prices"
                             >
-
-                                <h4>
-                                    Inscripciones
-                                </h4>
+                                <h4>Inscripciones</h4>
 
                                 <div
                                     v-for="price in distance.prices"
                                     :key="price.id"
                                     class="price-row"
                                 >
-
                                     <div>
-
                                         <strong class="price-name">
-                                            {{ getPriceLabel(price) }}
+                                            {{
+                                                getPriceLabel(
+                                                    price,
+                                                )
+                                            }}
                                         </strong>
 
                                         <span
@@ -670,7 +933,6 @@ const getKitImages = () => {
                                                 price.ends_at
                                             "
                                         >
-
                                             <template
                                                 v-if="
                                                     price.starts_at
@@ -705,9 +967,7 @@ const getKitImages = () => {
                                                     )
                                                 }}
                                             </template>
-
                                         </span>
-
                                     </div>
 
                                     <strong class="price-value">
@@ -717,14 +977,8 @@ const getKitImages = () => {
                                             )
                                         }}
                                     </strong>
-
                                 </div>
-
                             </div>
-
-                            <!-- =================================================
-                                 INCLUSIONES
-                                 ================================================= -->
 
                             <div
                                 v-if="
@@ -732,26 +986,19 @@ const getKitImages = () => {
                                 "
                                 class="distance-inclusions"
                             >
-
-                                <h4>
-                                    Incluye
-                                </h4>
+                                <h4>Incluye</h4>
 
                                 <ul>
-
                                     <li
                                         v-for="
                                             inclusion in distance.inclusions
                                         "
                                         :key="inclusion.id"
                                     >
-
                                         <Check :size="16" />
 
                                         <span>
-                                            {{
-                                                inclusion.name
-                                            }}
+                                            {{ inclusion.name }}
 
                                             <small
                                                 v-if="
@@ -763,16 +1010,9 @@ const getKitImages = () => {
                                                 }}
                                             </small>
                                         </span>
-
                                     </li>
-
                                 </ul>
-
                             </div>
-
-                            <!-- =================================================
-                                 CATEGORÍAS
-                                 ================================================= -->
 
                             <div
                                 v-if="
@@ -780,13 +1020,9 @@ const getKitImages = () => {
                                 "
                                 class="distance-categories"
                             >
-
-                                <h4>
-                                    Categorías
-                                </h4>
+                                <h4>Categorías</h4>
 
                                 <div class="category-list">
-
                                     <span
                                         v-for="
                                             category in distance.categories
@@ -794,7 +1030,6 @@ const getKitImages = () => {
                                         :key="category.id"
                                         class="category-tag"
                                     >
-
                                         <Tag :size="14" />
 
                                         {{ category.name }}
@@ -808,16 +1043,13 @@ const getKitImages = () => {
                                                 category.gender
                                             "
                                         >
-
                                             <template
                                                 v-if="
                                                     category.min_age !==
                                                     null
                                                 "
                                             >
-                                                {{
-                                                    category.min_age
-                                                }}
+                                                {{ category.min_age }}
                                             </template>
 
                                             <template
@@ -837,15 +1069,11 @@ const getKitImages = () => {
                                                     null
                                                 "
                                             >
-                                                {{
-                                                    category.max_age
-                                                }}
+                                                {{ category.max_age }}
                                             </template>
 
                                             <template
-                                                v-if="
-                                                    category.gender
-                                                "
+                                                v-if="category.gender"
                                             >
                                                 ·
                                                 {{
@@ -854,18 +1082,10 @@ const getKitImages = () => {
                                                     )
                                                 }}
                                             </template>
-
                                         </small>
-
                                     </span>
-
                                 </div>
-
                             </div>
-
-                            <!-- =================================================
-                                 BOTÓN
-                                 ================================================= -->
 
                             <a
                                 v-if="
@@ -875,23 +1095,16 @@ const getKitImages = () => {
                                 href="#"
                                 class="distance-button"
                             >
-
                                 <Ticket :size="18" />
 
                                 Inscribirme
-
                             </a>
-
                         </article>
-
                     </div>
                 </div>
             </section>
 
-            <!-- =====================================================
-                 INSCRIPCIONES
-                 ===================================================== -->
-
+            <!-- INSCRIPCIONES -->
             <section
                 v-if="
                     race.registration_opens_at ||
@@ -900,15 +1113,12 @@ const getKitImages = () => {
                 class="race-section"
             >
                 <div class="race-container">
-
                     <div class="registration-card">
-
                         <div class="registration-icon">
                             <Ticket :size="28" />
                         </div>
 
                         <div class="registration-content">
-
                             <span class="race-section-kicker">
                                 Inscripciones
                             </span>
@@ -918,15 +1128,12 @@ const getKitImages = () => {
                             </h2>
 
                             <div class="registration-dates">
-
                                 <div
                                     v-if="
                                         race.registration_opens_at
                                     "
                                 >
-                                    <span>
-                                        Apertura
-                                    </span>
+                                    <span>Apertura</span>
 
                                     <strong>
                                         {{
@@ -944,9 +1151,7 @@ const getKitImages = () => {
                                         race.registration_closes_at
                                     "
                                 >
-                                    <span>
-                                        Cierre
-                                    </span>
+                                    <span>Cierre</span>
 
                                     <strong>
                                         {{
@@ -958,141 +1163,58 @@ const getKitImages = () => {
                                         }}
                                     </strong>
                                 </div>
-
                             </div>
-
                         </div>
-
                     </div>
-                </div>
-            </section>
-
-            <!-- =====================================================
-                 GALERÍA DEL KIT
-                 ===================================================== -->
-
-            <section
-                v-if="getKitImages().length"
-                class="race-section"
-            >
-                <div class="race-container">
-
-                    <div class="race-section-heading">
-
-                        <span class="race-section-kicker">
-                            Conoce tu kit
-                        </span>
-
-                        <h2>
-                            Kit de la carrera
-                        </h2>
-
-                        <p>
-                            Conoce los artículos que forman parte del kit
-                            de esta carrera.
-                        </p>
-
-                    </div>
-
-                    <div class="race-gallery-grid">
-
-                        <div
-                            v-for="(image, index) in getKitImages()"
-                            :key="image.id ?? index"
-                            class="race-gallery-item"
-                        >
-
-                            <video
-                                v-if="
-                                    isVideo(
-                                        image.image ??
-                                        image.path ??
-                                        image.image_path ??
-                                        image.url
-                                    )
-                                "
-                                :src="
-                                    mediaUrl(
-                                        image.image ??
-                                        image.path ??
-                                        image.image_path ??
-                                        image.url
-                                    )
-                                "
-                                controls
-                                playsinline
-                                preload="metadata"
-                            />
-
-                            <img
-                                v-else
-                                :src="
-                                    imageUrl(
-                                        image.image ??
-                                        image.path ??
-                                        image.image_path ??
-                                        image.url
-                                    )
-                                "
-                                :alt="`${race.name} - Kit ${index + 1}`"
-                            />
-
-                        </div>
-
-                    </div>
-
                 </div>
             </section>
 
             <!-- =====================================================
                  GALERÍA
                  ===================================================== -->
-
             <section
                 v-if="race.gallery?.length"
                 class="race-section race-section-light"
             >
                 <div class="race-container">
-
                     <div class="race-section-heading">
-
                         <span class="race-section-kicker">
                             Vive la experiencia
                         </span>
 
-                        <h2>
-                            Galería
-                        </h2>
+                        <h2>Galería</h2>
 
                         <p>
                             Revive algunos momentos de nuestras
                             carreras.
                         </p>
-
                     </div>
 
                     <div class="race-gallery-grid">
-
-                        <div
-                            v-for="image in race.gallery"
-                            :key="image.id"
-                            class="race-gallery-item"
+                        <button
+                            v-for="(image, index) in race.gallery"
+                            :key="image.id ?? index"
+                            type="button"
+                            class="race-gallery-item race-gallery-button"
+                            :aria-label="`Abrir imagen ${index + 1}`"
+                            @click="
+                                openGalleryImage(index)
+                            "
                         >
-
                             <video
                                 v-if="
                                     isVideo(
                                         image.image ??
-                                        image.url
+                                        image.url,
                                     )
                                 "
                                 :src="
                                     mediaUrl(
                                         image.image ??
-                                        image.url
+                                        image.url,
                                     )
                                 "
-                                controls
+                                muted
                                 playsinline
                                 preload="metadata"
                             />
@@ -1102,37 +1224,33 @@ const getKitImages = () => {
                                 :src="
                                     imageUrl(
                                         image.image ??
-                                        image.url
+                                        image.url,
                                     )
                                 "
-                                :alt="race.name"
+                                :alt="`${race.name} - Foto ${index + 1}`"
+                                loading="lazy"
                             />
 
-                        </div>
-
+                            <span class="race-gallery-overlay">
+                                <Camera :size="21" />
+                            </span>
+                        </button>
                     </div>
-
                 </div>
             </section>
 
-            <!-- =====================================================
-                 RESULTADOS
-                 ===================================================== -->
-
+            <!-- RESULTADOS -->
             <section
                 v-if="race.results_url"
                 class="race-section"
             >
                 <div class="race-container">
-
                     <div class="results-card">
-
                         <div class="results-icon">
                             <Trophy :size="30" />
                         </div>
 
                         <div class="results-content">
-
                             <span class="race-section-kicker">
                                 Resultados
                             </span>
@@ -1145,7 +1263,6 @@ const getKitImages = () => {
                                 Los resultados de esta carrera están
                                 disponibles en un sitio externo.
                             </p>
-
                         </div>
 
                         <a
@@ -1158,16 +1275,11 @@ const getKitImages = () => {
 
                             <ExternalLink :size="18" />
                         </a>
-
                     </div>
-
                 </div>
             </section>
 
-            <!-- =====================================================
-                 TÉRMINOS Y NOTAS
-                 ===================================================== -->
-
+            <!-- TÉRMINOS Y NOTAS -->
             <section
                 v-if="
                     race.terms_and_conditions ||
@@ -1176,14 +1288,11 @@ const getKitImages = () => {
                 class="race-section race-section-light"
             >
                 <div class="race-container">
-
                     <div class="race-extra-grid">
-
                         <div
                             v-if="race.terms_and_conditions"
                             class="race-extra-card"
                         >
-
                             <h3>
                                 Términos y condiciones
                             </h3>
@@ -1193,14 +1302,12 @@ const getKitImages = () => {
                                     race.terms_and_conditions
                                 }}
                             </div>
-
                         </div>
 
                         <div
                             v-if="race.notes"
                             class="race-extra-card"
                         >
-
                             <h3>
                                 Información adicional
                             </h3>
@@ -1208,25 +1315,16 @@ const getKitImages = () => {
                             <div>
                                 {{ race.notes }}
                             </div>
-
                         </div>
-
                     </div>
-
                 </div>
             </section>
 
-            <!-- =====================================================
-                 CTA
-                 ===================================================== -->
-
+            <!-- CTA -->
             <section class="race-cta">
                 <div class="race-container">
-
                     <div class="race-cta-content">
-
                         <div>
-
                             <span>
                                 {{ race.name }}
                             </span>
@@ -1239,7 +1337,6 @@ const getKitImages = () => {
                                 Forma parte de esta experiencia
                                 Sonríe Corriendo.
                             </p>
-
                         </div>
 
                         <a
@@ -1261,19 +1358,449 @@ const getKitImages = () => {
                         >
                             {{ statusLabel(race.status) }}
                         </span>
-
                     </div>
-
                 </div>
             </section>
-
         </main>
 
         <LandingFooter />
+
+        <!-- =====================================================
+             LIGHTBOX GALERÍA
+             ===================================================== -->
+
+        <Teleport to="body">
+            <div
+                v-if="selectedGalleryImage"
+                class="race-gallery-lightbox"
+                @click.self="closeGalleryImage"
+            >
+                <!-- CERRAR -->
+                <button
+                    type="button"
+                    class="race-lightbox-close"
+                    aria-label="Cerrar galería"
+                    @click="closeGalleryImage"
+                >
+                    <X :size="24" />
+                </button>
+
+                <!-- ANTERIOR -->
+                <button
+                    v-if="galleryImages.length > 1"
+                    type="button"
+                    class="race-lightbox-arrow race-lightbox-arrow-left"
+                    aria-label="Imagen anterior"
+                    @click="previousGalleryImage"
+                >
+                    <ChevronLeft :size="30" />
+                </button>
+
+                <!-- CONTENIDO -->
+                <div class="race-lightbox-content">
+                    <img
+                        v-if="
+                            !isVideo(
+                                selectedGalleryImage.image ??
+                                selectedGalleryImage.url,
+                            )
+                        "
+                        :src="
+                            imageUrl(
+                                selectedGalleryImage.image ??
+                                selectedGalleryImage.url,
+                            )
+                        "
+                        :alt="`${race.name} - Fotografía`"
+                    />
+
+                    <video
+                        v-else
+                        :src="
+                            mediaUrl(
+                                selectedGalleryImage.image ??
+                                selectedGalleryImage.url,
+                            )
+                        "
+                        controls
+                        autoplay
+                        playsinline
+                        preload="metadata"
+                    />
+
+                    <div class="race-lightbox-counter">
+                        {{
+                            (selectedGalleryIndex ?? 0) + 1
+                        }}
+                        /
+                        {{ galleryImages.length }}
+                    </div>
+                </div>
+
+                <!-- SIGUIENTE -->
+                <button
+                    v-if="galleryImages.length > 1"
+                    type="button"
+                    class="race-lightbox-arrow race-lightbox-arrow-right"
+                    aria-label="Siguiente imagen"
+                    @click="nextGalleryImage"
+                >
+                    <ChevronRight :size="30" />
+                </button>
+            </div>
+        </Teleport>
+
+        <!-- =====================================================
+             LIGHTBOX KIT
+             ===================================================== -->
+
+        <Teleport to="body">
+            <div
+                v-if="selectedKitImage"
+                class="race-gallery-lightbox"
+                @click.self="closeKitImage"
+            >
+                <!-- CERRAR -->
+                <button
+                    type="button"
+                    class="race-lightbox-close"
+                    aria-label="Cerrar kit"
+                    @click="closeKitImage"
+                >
+                    <X :size="24" />
+                </button>
+
+                <!-- ANTERIOR -->
+                <button
+                    v-if="kitImages.length > 1"
+                    type="button"
+                    class="race-lightbox-arrow race-lightbox-arrow-left"
+                    aria-label="Kit anterior"
+                    @click="previousKitImage"
+                >
+                    <ChevronLeft :size="30" />
+                </button>
+
+                <!-- CONTENIDO -->
+                <div class="race-lightbox-content">
+                    <img
+                        v-if="
+                            !isVideo(
+                                getKitMedia(
+                                    selectedKitImage,
+                                ),
+                            )
+                        "
+                        :src="
+                            imageUrl(
+                                getKitMedia(
+                                    selectedKitImage,
+                                ),
+                            )
+                        "
+                        :alt="`${race.name} - Kit`"
+                    />
+
+                    <video
+                        v-else
+                        :src="
+                            mediaUrl(
+                                getKitMedia(
+                                    selectedKitImage,
+                                ),
+                            )
+                        "
+                        controls
+                        autoplay
+                        playsinline
+                        preload="metadata"
+                    />
+
+                    <div class="race-lightbox-counter">
+                        {{
+                            (selectedKitIndex ?? 0) + 1
+                        }}
+                        /
+                        {{ kitImages.length }}
+                    </div>
+                </div>
+
+                <!-- SIGUIENTE -->
+                <button
+                    v-if="kitImages.length > 1"
+                    type="button"
+                    class="race-lightbox-arrow race-lightbox-arrow-right"
+                    aria-label="Siguiente elemento del kit"
+                    @click="nextKitImage"
+                >
+                    <ChevronRight :size="30" />
+                </button>
+            </div>
+        </Teleport>
     </div>
 </template>
 
 <style scoped>
+/*
+|--------------------------------------------------------------------------
+| BOTONES DE GALERÍA
+|--------------------------------------------------------------------------
+*/
+
+.race-gallery-button {
+    position: relative;
+
+    display: block;
+
+    width: 100%;
+
+    padding: 0;
+
+    overflow: hidden;
+
+    border: 0;
+
+    cursor: pointer;
+
+    font: inherit;
+}
+
+.race-gallery-button img,
+.race-gallery-button video {
+    width: 100%;
+    height: 100%;
+
+    display: block;
+
+    object-fit: cover;
+
+    transition:
+        transform 0.45s ease,
+        filter 0.45s ease;
+}
+
+.race-gallery-button:hover img,
+.race-gallery-button:hover video {
+    transform: scale(1.06);
+
+    filter: saturate(1.07);
+}
+
+.race-gallery-overlay {
+    position: absolute;
+
+    inset: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(18, 85, 140, 0.2),
+            rgba(217, 76, 154, 0.2)
+        );
+
+    color: #fff;
+
+    opacity: 0;
+
+    transition: opacity 0.25s ease;
+
+    pointer-events: none;
+}
+
+.race-gallery-button:hover .race-gallery-overlay,
+.race-gallery-button:focus-visible .race-gallery-overlay {
+    opacity: 1;
+}
+
+.race-gallery-overlay svg {
+    width: 45px;
+    height: 45px;
+
+    padding: 10px;
+
+    border-radius: 50%;
+
+    background: rgba(255, 255, 255, 0.18);
+
+    backdrop-filter: blur(8px);
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| LIGHTBOX
+|--------------------------------------------------------------------------
+*/
+
+.race-gallery-lightbox {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 9999;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 35px;
+
+    background: rgba(8, 25, 42, 0.92);
+
+    backdrop-filter: blur(8px);
+}
+
+.race-lightbox-content {
+    position: relative;
+
+    max-width: min(1100px, 90vw);
+    max-height: 88vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.race-lightbox-content img,
+.race-lightbox-content video {
+    display: block;
+
+    max-width: 100%;
+    max-height: 82vh;
+
+    object-fit: contain;
+
+    border-radius: 8px;
+
+    box-shadow:
+        0 25px 80px rgba(0, 0, 0, 0.35);
+}
+
+.race-lightbox-counter {
+    position: absolute;
+
+    left: 50%;
+    bottom: -32px;
+
+    transform: translateX(-50%);
+
+    padding: 5px 10px;
+
+    border-radius: 999px;
+
+    background: rgba(255, 255, 255, 0.1);
+
+    color: rgba(255, 255, 255, 0.8);
+
+    font-size: 11px;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+.race-lightbox-close,
+.race-lightbox-arrow {
+    position: absolute;
+
+    z-index: 2;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 45px;
+    height: 45px;
+
+    padding: 0;
+
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+
+    background: rgba(255, 255, 255, 0.1);
+
+    color: #fff;
+
+    cursor: pointer;
+
+    backdrop-filter: blur(8px);
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+.race-lightbox-close:hover,
+.race-lightbox-arrow:hover {
+    background: rgba(255, 255, 255, 0.2);
+
+    transform: scale(1.05);
+}
+
+.race-lightbox-close {
+    top: 22px;
+    right: 22px;
+}
+
+.race-lightbox-arrow-left {
+    left: 24px;
+    top: 50%;
+
+    transform: translateY(-50%);
+}
+
+.race-lightbox-arrow-right {
+    right: 24px;
+    top: 50%;
+
+    transform: translateY(-50%);
+}
+
+.race-lightbox-arrow-left:hover,
+.race-lightbox-arrow-right:hover {
+    transform: translateY(-50%) scale(1.05);
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| RESPONSIVE LIGHTBOX
+|--------------------------------------------------------------------------
+*/
+
+@media (max-width: 520px) {
+    .race-gallery-lightbox {
+        padding: 15px;
+    }
+
+    .race-lightbox-close {
+        top: 15px;
+        right: 15px;
+    }
+
+    .race-lightbox-arrow {
+        width: 40px;
+        height: 40px;
+    }
+
+    .race-lightbox-arrow-left {
+        left: 10px;
+    }
+
+    .race-lightbox-arrow-right {
+        right: 10px;
+    }
+
+    .race-lightbox-content img,
+    .race-lightbox-content video {
+        max-width: 94vw;
+        max-height: 78vh;
+    }
+}
+
 /* =========================================================
    BASE
    ========================================================= */
@@ -1431,75 +1958,6 @@ const getKitImages = () => {
     text-shadow: 0 7px 30px rgba(9, 45, 76, 0.2);
 }
 
-.race-hero-description {
-    max-width: 700px;
-
-    margin: 22px 0 0;
-
-    color: rgba(255, 255, 255, 0.9);
-
-    font-size: 16px;
-    line-height: 1.65;
-}
-
-.race-hero-info {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 9px;
-
-    margin-top: 28px;
-}
-
-.race-hero-info-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-
-    min-width: 180px;
-
-    padding: 12px 15px;
-
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 13px;
-
-    background: rgba(255, 255, 255, 0.1);
-
-    box-shadow:
-        0 9px 28px rgba(5, 39, 69, 0.08),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
-
-    backdrop-filter: blur(12px);
-
-    color: #fff;
-}
-
-.race-hero-info-item svg {
-    flex-shrink: 0;
-    color: #fff;
-}
-
-.race-hero-info-item div {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.race-hero-info-item small {
-    color: rgba(255, 255, 255, 0.65);
-
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: 0.7px;
-    text-transform: uppercase;
-}
-
-.race-hero-info-item strong {
-    color: #fff;
-
-    font-size: 13px;
-    font-weight: 700;
-}
-
 
 /* =========================================================
    SUMMARY
@@ -1514,7 +1972,9 @@ const getKitImages = () => {
 
 .race-summary-grid {
     display: grid;
+
     grid-template-columns: repeat(4, 1fr);
+
     gap: 12px;
 }
 
@@ -1523,6 +1983,7 @@ const getKitImages = () => {
 
     display: flex;
     align-items: center;
+
     gap: 13px;
 
     padding: 17px;
@@ -1561,6 +2022,7 @@ const getKitImages = () => {
 .race-summary-card div {
     display: flex;
     flex-direction: column;
+
     gap: 4px;
 
     min-width: 0;
@@ -1571,6 +2033,7 @@ const getKitImages = () => {
 
     font-size: 10px;
     font-weight: 800;
+
     letter-spacing: 0.45px;
     text-transform: uppercase;
 }
@@ -1615,6 +2078,7 @@ const getKitImages = () => {
 
     font-size: 11px;
     font-weight: 800;
+
     letter-spacing: 1px;
     text-transform: uppercase;
 }
@@ -1826,6 +2290,7 @@ const getKitImages = () => {
 .distance-capacity {
     display: inline-flex;
     align-items: center;
+
     gap: 4px;
 
     padding: 5px 8px;
@@ -1852,6 +2317,7 @@ const getKitImages = () => {
 .distance-start {
     display: flex;
     align-items: center;
+
     gap: 6px;
 
     margin-top: 8px;
@@ -1903,6 +2369,7 @@ const getKitImages = () => {
 .price-row > div {
     display: flex;
     flex-direction: column;
+
     gap: 2px;
 
     min-width: 0;
@@ -1934,6 +2401,7 @@ const getKitImages = () => {
 .distance-inclusions ul {
     display: flex;
     flex-direction: column;
+
     gap: 7px;
 
     padding: 0;
@@ -1965,6 +2433,7 @@ const getKitImages = () => {
 .distance-inclusions li span {
     display: flex;
     flex-direction: column;
+
     gap: 1px;
 }
 
@@ -2215,6 +2684,38 @@ const getKitImages = () => {
         0 9px 24px rgba(23, 43, 77, 0.05);
 }
 
+.race-gallery-button {
+    display: block;
+
+    width: 100%;
+
+    padding: 0;
+
+    appearance: none;
+
+    cursor: pointer;
+
+    text-align: left;
+
+    font: inherit;
+
+    transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease;
+}
+
+.race-gallery-button:hover {
+    transform: translateY(-3px);
+
+    box-shadow:
+        0 15px 35px rgba(23, 43, 77, 0.11);
+}
+
+.race-gallery-button:focus-visible {
+    outline: 3px solid rgba(36, 158, 219, 0.35);
+    outline-offset: 3px;
+}
+
 .race-gallery-item::after {
     content: '';
 
@@ -2247,7 +2748,7 @@ const getKitImages = () => {
         filter 0.4s ease;
 }
 
-.race-gallery-item:hover img {
+.race-gallery-button:hover img {
     transform: scale(1.06);
 
     filter: saturate(1.06);
@@ -2255,6 +2756,188 @@ const getKitImages = () => {
 
 .race-gallery-item video {
     background: #0f172a;
+}
+
+.race-gallery-overlay {
+    position: absolute;
+    inset: 0;
+
+    z-index: 2;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #fff;
+
+    opacity: 0;
+
+    transition: opacity 0.25s ease;
+
+    pointer-events: none;
+}
+
+.race-gallery-overlay svg {
+    width: 46px;
+    height: 46px;
+
+    padding: 11px;
+
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+
+    background: rgba(18, 85, 140, 0.35);
+
+    backdrop-filter: blur(8px);
+
+    box-shadow:
+        0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.race-gallery-button:hover .race-gallery-overlay {
+    opacity: 1;
+}
+
+
+/* =========================================================
+   LIGHTBOX
+   ========================================================= */
+
+.race-gallery-lightbox {
+    position: fixed;
+    inset: 0;
+
+    z-index: 99999;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 35px;
+
+    background: rgba(8, 25, 42, 0.92);
+
+    backdrop-filter: blur(8px);
+}
+
+.race-lightbox-content {
+    position: relative;
+
+    max-width: min(1100px, 90vw);
+    max-height: 88vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.race-lightbox-content img,
+.race-lightbox-content video {
+    display: block;
+
+    max-width: 100%;
+    max-height: 82vh;
+
+    object-fit: contain;
+
+    border-radius: 8px;
+
+    box-shadow:
+        0 25px 80px rgba(0, 0, 0, 0.35);
+}
+
+.race-lightbox-content video {
+    background: #000;
+}
+
+.race-lightbox-counter {
+    position: absolute;
+
+    left: 50%;
+    bottom: -32px;
+
+    transform: translateX(-50%);
+
+    padding: 5px 10px;
+
+    border-radius: 999px;
+
+    background: rgba(255, 255, 255, 0.1);
+
+    color: rgba(255, 255, 255, 0.8);
+
+    font-size: 11px;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+.race-lightbox-close,
+.race-lightbox-arrow {
+    position: absolute;
+
+    z-index: 3;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 45px;
+    height: 45px;
+
+    padding: 0;
+
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+
+    background: rgba(255, 255, 255, 0.1);
+
+    color: #fff;
+
+    cursor: pointer;
+
+    backdrop-filter: blur(8px);
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+.race-lightbox-close:hover,
+.race-lightbox-arrow:hover {
+    background: rgba(255, 255, 255, 0.2);
+
+    transform: scale(1.05);
+}
+
+.race-lightbox-close {
+    top: 22px;
+    right: 22px;
+}
+
+.race-lightbox-arrow-left {
+    left: 24px;
+    top: 50%;
+
+    transform: translateY(-50%);
+}
+
+.race-lightbox-arrow-right {
+    right: 24px;
+    top: 50%;
+
+    transform: translateY(-50%);
+}
+
+.race-lightbox-arrow-left:hover,
+.race-lightbox-arrow-right:hover {
+    transform: translateY(-50%) scale(1.05);
+}
+
+.race-lightbox-close:focus-visible,
+.race-lightbox-arrow:focus-visible {
+    outline: 3px solid rgba(255, 255, 255, 0.35);
+    outline-offset: 3px;
 }
 
 
@@ -2634,6 +3317,7 @@ const getKitImages = () => {
 
     .results-card {
         align-items: flex-start;
+
         flex-direction: column;
     }
 
@@ -2645,7 +3329,16 @@ const getKitImages = () => {
 
     .race-cta-content {
         align-items: flex-start;
+
         flex-direction: column;
+    }
+
+    .race-lightbox-arrow-left {
+        left: 12px;
+    }
+
+    .race-lightbox-arrow-right {
+        right: 12px;
     }
 }
 
@@ -2665,28 +3358,6 @@ const getKitImages = () => {
     .race-hero h1 {
         font-size: 42px;
         letter-spacing: -1.8px;
-    }
-
-    .race-hero-description {
-        margin-top: 18px;
-
-        font-size: 15px;
-        line-height: 1.6;
-    }
-
-    .race-hero-info {
-        flex-direction: column;
-
-        gap: 8px;
-
-        margin-top: 23px;
-    }
-
-    .race-hero-info-item {
-        width: 100%;
-        min-width: 0;
-
-        padding: 11px 14px;
     }
 
     .race-summary {
@@ -2792,6 +3463,38 @@ const getKitImages = () => {
 
     .race-cta-button {
         width: 100%;
+    }
+
+    .race-gallery-lightbox {
+        padding: 15px;
+    }
+
+    .race-lightbox-close {
+        top: 15px;
+        right: 15px;
+    }
+
+    .race-lightbox-arrow {
+        width: 40px;
+        height: 40px;
+    }
+
+    .race-lightbox-arrow-left {
+        left: 8px;
+    }
+
+    .race-lightbox-arrow-right {
+        right: 8px;
+    }
+
+    .race-lightbox-content {
+        max-width: 94vw;
+    }
+
+    .race-lightbox-content img,
+    .race-lightbox-content video {
+        max-width: 94vw;
+        max-height: 78vh;
     }
 }
 </style>

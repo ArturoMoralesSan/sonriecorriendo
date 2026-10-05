@@ -22,6 +22,7 @@ defineProps<{
     products: Array<any>;
     gallery: Array<any>;
     sponsors: Array<any>;
+    banners: Array<any>;
 }>();
 </script>
 
@@ -52,7 +53,7 @@ defineProps<{
         <LandingHeader />
 
         <main>
-            <LandingHero />
+            <LandingHero :banners="banners" />
 
             <LandingBenefits />
 
@@ -67,7 +68,10 @@ defineProps<{
 
             <LandingWinners />
 
-            <LandingGallery :gallery="gallery" :show-all-link="true" />
+            <LandingGallery
+                :gallery="gallery"
+                :show-all-link="true"
+            />
 
             <LandingShop
                 :products="products"
@@ -82,6 +86,7 @@ defineProps<{
             />
 
             <LandingCta />
+
             <WhatsAppButton
                 phone="526181323209"
                 message="Hola, quiero obtener información sobre una carrera."
