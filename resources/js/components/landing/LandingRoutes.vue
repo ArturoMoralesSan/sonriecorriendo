@@ -88,6 +88,7 @@ function getRouteUrl(route: RouteItem): string {
 
 <template>
     <section
+        v-if="props.routes.length"
         id="rutas"
         class="landing-experience-section"
     >
@@ -98,90 +99,89 @@ function getRouteUrl(route: RouteItem): string {
                         CONOCE Y REVIVE TODAS LAS RUTAS
                     </span>
 
-                <h2 class="landing-section-title">
-                    Rutas
-                </h2>
+                    <h2 class="landing-section-title">
+                        Rutas
+                    </h2>
 
-                <p class="landing-section-subtitle">
-                    Elige tu reto y sé parte de la experiencia.
-                </p>
+                    <p class="landing-section-subtitle">
+                        Elige tu reto y sé parte de la experiencia.
+                    </p>
+                </div>
+
+                <a
+                    v-if="props.showAllLink"
+                    href="/rutas"
+                    class="landing-see-all"
+                >
+                    Ver todas las rutas
+
+                    <ArrowRight
+                        :size="17"
+                        :stroke-width="2"
+                    />
+                </a>
             </div>
 
-            <a
-                v-if="props.showAllLink"
-                href="/rutas"
-                class="landing-see-all"
+            <div
+                class="landing-experience-grid"
+                style="
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    row-gap: 80px;
+                "
             >
-                Ver todas las rutas
-
-                <ArrowRight
-                    :size="17"
-                    :stroke-width="2"
-                />
-            </a>
-        </div>
-
-        <div
-            class="landing-experience-grid"
-            style="
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                row-gap: 80px;
-            "
-        >
-            <a
-                v-for="route in props.routes"
-                :key="route.id"
-                :href="getRouteUrl(route)"
-                class="landing-experience-visual"
-                style="text-decoration: none; color: inherit;"
-            >
-                <div class="experience-image-main">
-                    <img
-                        v-if="getFirstImage(route)"
-                        :src="getMediaUrl(getFirstImage(route)!.file)"
-                        :alt="route.title"
-                    />
-
-                    <div
-                        v-else
-                        class="landing-route-image-empty"
-                    >
-                        Sin imagen
-                    </div>
-                </div>
-
-                <div class="experience-floating-card">
-                    <div class="experience-floating-icon">
-                        <Play
-                            v-if="hasVideo(route)"
-                            :size="22"
-                            fill="currentColor"
+                <a
+                    v-for="route in props.routes"
+                    :key="route.id"
+                    :href="getRouteUrl(route)"
+                    class="landing-experience-visual"
+                    style="text-decoration: none; color: inherit;"
+                >
+                    <div class="experience-image-main">
+                        <img
+                            v-if="getFirstImage(route)"
+                            :src="getMediaUrl(getFirstImage(route)!.file)"
+                            :alt="route.title"
                         />
 
-                        <Star
+                        <div
                             v-else
-                            :size="22"
-                            fill="currentColor"
-                        />
+                            class="landing-route-image-empty"
+                        >
+                            Sin imagen
+                        </div>
                     </div>
 
-                    <div>
-                        <strong>
-                            {{ route.title }}
-                        </strong>
+                    <div class="experience-floating-card">
+                        <div class="experience-floating-icon">
+                            <Play
+                                v-if="hasVideo(route)"
+                                :size="22"
+                                fill="currentColor"
+                            />
 
-                        <span v-if="route.description">
-                            {{ route.description }}
-                        </span>
+                            <Star
+                                v-else
+                                :size="22"
+                                fill="currentColor"
+                            />
+                        </div>
 
-                        <span v-else>
-                            Descubre esta ruta.
-                        </span>
+                        <div>
+                            <strong>
+                                {{ route.title }}
+                            </strong>
+
+                            <span v-if="route.description">
+                                {{ route.description }}
+                            </span>
+
+                            <span v-else>
+                                Descubre esta ruta.
+                            </span>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </a>
+            </div>
         </div>
-    </div>
-</section>
-
+    </section>
 </template>
