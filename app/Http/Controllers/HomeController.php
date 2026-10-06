@@ -11,6 +11,7 @@ use App\Models\Sponsor;
 use Carbon\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Models\Route;
 
 class HomeController extends Controller
 {
@@ -78,6 +79,38 @@ class HomeController extends Controller
             ->orderBy('id')
             ->get();
 
+        $routes = Route::query()
+            ->with([
+                'media' => function ($query) {
+                    $query
+                        ->orderBy('sort_order')
+                        ->orderBy('id');
+                },
+            ])
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->limit(2)
+            ->get();
+
+         
+        $winnerRace = Race::query()
+            ->where('status', 'finished')
+            ->whereNotNull('event_date')
+            ->where('event_date', '<=', now())
+            ->whereNotNull('results_url')
+            ->where('results_url', '!=', '')
+            ->orderByDesc('event_date')
+            ->orderByDesc('id')
+            ->first([
+                'id',
+                'name',
+                'event_date',
+                'results_url',
+            ]);
+
+
+
         return Inertia::render('Welcome', [
             'races' => $races,
             'clubs' => $clubs,
@@ -85,6 +118,8 @@ class HomeController extends Controller
             'gallery' => $gallery,
             'sponsors' => $sponsors,
             'banners' => $banners,
+            'routes' => $routes,
+            'winnerRace' => $winnerRace,
         ]);
     }
 
@@ -317,6 +352,43 @@ class HomeController extends Controller
 
         return Inertia::render('Results', [
             'banners' => $banners,
+        ]);
+    }
+
+    public function routes(): Response
+    {
+        $routes = Route::query()
+            ->with([
+                'media' => function ($query) {
+                    $query
+                        ->orderBy('sort_order')
+                        ->orderBy('id');
+                },
+            ])
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
+        return Inertia::render('Routes', [
+            'routes' => $routes,
+        ]);
+    }
+
+    public function route(Route $route): Response
+    {
+        abort_unless($route->is_active, 404);
+
+        $route->load([
+            'media' => function ($query) {
+                $query
+                    ->orderBy('sort_order')
+                    ->orderBy('id');
+            },
+        ]);
+
+        return Inertia::render('RouteShow', [
+            'route' => $route,
         ]);
     }
 }

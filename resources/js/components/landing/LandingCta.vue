@@ -49,11 +49,6 @@ import { register } from '@/routes';
 
                 <ArrowRight :size="17" />
             </a>
-
-            <div class="landing-cta-message">
-                <span>Sonrie corriendo,</span>
-                <strong>IMAX.</strong>
-            </div>
         </div>
     </section>
 </template>

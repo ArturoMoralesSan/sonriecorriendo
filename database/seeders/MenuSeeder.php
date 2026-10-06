@@ -54,6 +54,31 @@ class MenuSeeder extends Seeder
 
         /*
         |--------------------------------------------------------------------------
+        | Rutas
+        |--------------------------------------------------------------------------
+        */
+
+        $routes = Menu::updateOrCreate(
+            ['name' => 'Rutas'],
+            [
+                'icon' => 'Route',
+                'order' => 3,
+                'route' => null,
+                'is_submenu' => true,
+            ]
+        );
+
+        $this->link(
+            $routes,
+            'Listado de rutas',
+            'Map',
+            1,
+            'admin.routes.index',
+            'routes.view'
+        );
+
+        /*
+        |--------------------------------------------------------------------------
         | Patrocinadores
         |--------------------------------------------------------------------------
         */
@@ -62,7 +87,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Patrocinadores'],
             [
                 'icon' => 'Handshake',
-                'order' => 3,
+                'order' => 4,
                 'route' => null,
                 'is_submenu' => true,
             ]
@@ -87,7 +112,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Clubes'],
             [
                 'icon' => 'UsersRound',
-                'order' => 4,
+                'order' => 5,
                 'route' => null,
                 'is_submenu' => true,
             ]
@@ -112,7 +137,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Venta'],
             [
                 'icon' => 'ShoppingCart',
-                'order' => 5,
+                'order' => 6,
                 'route' => null,
                 'is_submenu' => true,
             ]
@@ -155,7 +180,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Banners'],
             [
                 'icon' => 'Images',
-                'order' => 6,
+                'order' => 7,
                 'route' => null,
                 'is_submenu' => true,
             ]
@@ -180,7 +205,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Administración'],
             [
                 'icon' => 'Settings',
-                'order' => 7,
+                'order' => 8,
                 'route' => null,
                 'is_submenu' => true,
             ]

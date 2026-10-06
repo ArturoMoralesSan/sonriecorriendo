@@ -20,6 +20,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\MercadoPagoController;
 use App\Http\Controllers\Admin\BannerController;
+use App\Http\Controllers\Admin\RouteController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -79,6 +80,14 @@ Route::get('/clubes', [HomeController::class, 'clubs'])
 Route::get('/clubes/{slug}', [HomeController::class, 'club'])
     ->name('clubs.show');
 
+
+
+
+Route::get('/rutas', [HomeController::class, 'routes'])
+    ->name('routes.index');
+
+Route::get('/rutas/{route}', [HomeController::class, 'route'])
+    ->name('routes.show');
 /*
 |--------------------------------------------------------------------------
 | Carrito
@@ -468,6 +477,19 @@ Route::middleware(['auth', 'verified'])
                 'update' => 'permission:banners.edit',
                 'destroy' => 'permission:banners.delete',
             ]);
+        
+       
+        Route::resource('routes', RouteController::class)
+            ->middleware([
+                'index' => 'permission:routes.view',
+                'create' => 'permission:routes.create',
+                'store' => 'permission:routes.create',
+                'show' => 'permission:routes.view',
+                'edit' => 'permission:routes.edit',
+                'update' => 'permission:routes.edit',
+                'destroy' => 'permission:routes.delete',
+            ]);
+
     });
 
 require __DIR__.'/settings.php';

@@ -118,12 +118,6 @@ const mobileImageCss = mobileImage
                     </a>
                 </div>
             </div>
-
-            <div class="landing-hero-message">
-                <p>
-                    Sonríe Corriendo <strong>IMAX</strong>
-                </p>
-            </div>
         </div>
     </section>
 </template>

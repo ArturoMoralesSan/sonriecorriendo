@@ -1,97 +1,187 @@
 <script setup lang="ts">
 import {
     ArrowRight,
-    MapPin,
     Play,
+    Star,
 } from 'lucide-vue-next';
 
-const routes = [
+interface RouteMedia {
+    id: number;
+    route_id: number;
+    type: 'image' | 'video';
+    file: string;
+    title: string | null;
+    sort_order: number;
+}
+
+interface RouteItem {
+    id: number;
+    title: string;
+    description: string | null;
+    is_active: boolean;
+    sort_order: number;
+    media: RouteMedia[];
+}
+
+const props = withDefaults(
+    defineProps<{
+        routes: RouteItem[];
+        showAllLink?: boolean;
+    }>(),
     {
-        id: 1,
-        name: 'Ruta 5K',
-        distance: '5 kilómetros',
-        image:
-            'https://images.pexels.com/photos/2402777/pexels-photo-2402777.jpeg?auto=compress&cs=tinysrgb&w=1200',
+        showAllLink: true,
     },
-    {
-        id: 2,
-        name: 'Ruta 10K',
-        distance: '10 kilómetros',
-        image:
-            'https://images.pexels.com/photos/3768916/pexels-photo-3768916.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    },
-];
+);
+
+function getMediaUrl(file: string): string {
+    const cleanFile = file
+        .replace(/^\/+/, '')
+        .replace(/^storage\//, '');
+
+    return `/storage/${cleanFile}`;
+}
+
+function getMediaType(
+    file: string,
+): 'image' | 'video' {
+    const extension = file
+        .split('?')[0]
+        .split('.')
+        .pop()
+        ?.toLowerCase();
+
+    const videoExtensions = [
+        'mp4',
+        'webm',
+        'mov',
+        'm4v',
+        'ogg',
+    ];
+
+    return videoExtensions.includes(
+        extension ?? '',
+    )
+        ? 'video'
+        : 'image';
+}
+
+function getFirstImage(route: RouteItem): RouteMedia | null {
+    return (
+        route.media?.find(
+            (media) => getMediaType(media.file) === 'image',
+        ) ?? null
+    );
+}
+
+function hasVideo(route: RouteItem): boolean {
+    return (
+        route.media?.some(
+            (media) => getMediaType(media.file) === 'video',
+        ) ?? false
+    );
+}
+
+function getRouteUrl(route: RouteItem): string {
+    return `/rutas/${route.id}`;
+}
 </script>
 
 <template>
     <section
         id="rutas"
-        class="landing-routes-section"
+        class="landing-experience-section"
     >
         <div class="landing-container">
             <div class="landing-section-header">
                 <div>
                     <span class="landing-section-eyebrow">
-                        DESCUBRE EL RECORRIDO
+                        CONOCE Y REVIVE TODAS LAS RUTAS
                     </span>
 
-                    <h2 class="landing-section-title">
-                        Conoce nuestras rutas
-                    </h2>
+                <h2 class="landing-section-title">
+                    Rutas
+                </h2>
 
-                    <p class="landing-section-subtitle">
-                        Prepárate para cada kilómetro y conoce el recorrido
-                        de nuestras carreras.
-                    </p>
-                </div>
+                <p class="landing-section-subtitle">
+                    Elige tu reto y sé parte de la experiencia.
+                </p>
             </div>
 
-            <div class="landing-routes-grid">
-                <article
-                    v-for="route in routes"
-                    :key="route.id"
-                    class="landing-route-card"
-                >
-                    <div class="landing-route-image-wrapper">
-                        <img
-                            :src="route.image"
-                            :alt="route.name"
-                            class="landing-route-image"
+            <a
+                v-if="props.showAllLink"
+                href="/rutas"
+                class="landing-see-all"
+            >
+                Ver todas las rutas
+
+                <ArrowRight
+                    :size="17"
+                    :stroke-width="2"
+                />
+            </a>
+        </div>
+
+        <div
+            class="landing-experience-grid"
+            style="
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                row-gap: 80px;
+            "
+        >
+            <a
+                v-for="route in props.routes"
+                :key="route.id"
+                :href="getRouteUrl(route)"
+                class="landing-experience-visual"
+                style="text-decoration: none; color: inherit;"
+            >
+                <div class="experience-image-main">
+                    <img
+                        v-if="getFirstImage(route)"
+                        :src="getMediaUrl(getFirstImage(route)!.file)"
+                        :alt="route.title"
+                    />
+
+                    <div
+                        v-else
+                        class="landing-route-image-empty"
+                    >
+                        Sin imagen
+                    </div>
+                </div>
+
+                <div class="experience-floating-card">
+                    <div class="experience-floating-icon">
+                        <Play
+                            v-if="hasVideo(route)"
+                            :size="22"
+                            fill="currentColor"
                         />
 
-                        <button
-                            type="button"
-                            class="landing-route-play"
-                            aria-label="Ver recorrido"
-                        >
-                            <Play
-                                :size="19"
-                                fill="currentColor"
-                            />
-                        </button>
+                        <Star
+                            v-else
+                            :size="22"
+                            fill="currentColor"
+                        />
                     </div>
 
-                    <div class="landing-route-content">
-                        <div>
-                            <span class="landing-route-label">
-                                <MapPin :size="15" />
-                                {{ route.distance }}
-                            </span>
+                    <div>
+                        <strong>
+                            {{ route.title }}
+                        </strong>
 
-                            <h3>{{ route.name }}</h3>
-                        </div>
+                        <span v-if="route.description">
+                            {{ route.description }}
+                        </span>
 
-                        <a
-                            href="#"
-                            class="landing-see-all"
-                        >
-                            Ver ruta
-
-                            <ArrowRight :size="16" />
-                        </a>
+                        <span v-else>
+                            Descubre esta ruta.
+                        </span>
                     </div>
-                </article>
-            </div>
+                </div>
+            </a>
         </div>
-    </section>
+    </div>
+</section>
+
 </template>

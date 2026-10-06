@@ -23,6 +23,8 @@ defineProps<{
     gallery: Array<any>;
     sponsors: Array<any>;
     banners: Array<any>;
+    routes: Array<any>;
+    winnerRace: any | null;
 }>();
 </script>
 
@@ -61,12 +63,14 @@ defineProps<{
                 :events="races"
                 :show-all-link="true"
             />
+            
+            <LandingRoutes
+                :routes="routes"
+            />
 
-            <LandingExperience />
-
-            <LandingRoutes />
-
-            <LandingWinners />
+            <LandingWinners
+                :race="winnerRace"
+            />
 
             <LandingGallery
                 :gallery="gallery"

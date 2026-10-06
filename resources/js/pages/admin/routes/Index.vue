@@ -3,8 +3,7 @@ import { Head, router } from '@inertiajs/vue3';
 import {
     Edit,
     Eye,
-    FileVideo,
-    Image,
+    Files,
     Plus,
     Search,
     Trash2,
@@ -32,7 +31,6 @@ interface RouteItem {
     description: string | null;
     is_active: boolean;
     sort_order: number;
-    media_count: number;
     media?: RouteMedia[];
 }
 
@@ -74,21 +72,10 @@ const submitSearch = (): void => {
     );
 };
 
-const getMediaUrl = (
-    file: string | null
-): string | null => {
-    if (!file) {
-        return null;
-    }
-
-    if (
-        file.startsWith('http://') ||
-        file.startsWith('https://')
-    ) {
-        return file;
-    }
-
-    return `/storage/${file}`;
+const getMediaCount = (
+    route: RouteItem
+): number => {
+    return route.media?.length ?? 0;
 };
 
 const getImageCount = (
@@ -109,12 +96,6 @@ const getVideoCount = (
             (media) => media.type === 'video'
         ).length ?? 0
     );
-};
-
-const getPreviewMedia = (
-    route: RouteItem
-): RouteMedia | null => {
-    return route.media?.[0] ?? null;
 };
 
 const deleteRoute = (
@@ -151,7 +132,7 @@ const columns = [
     },
     {
         key: 'media',
-        label: 'Multimedia',
+        label: 'Archivos',
     },
     {
         key: 'order',
@@ -239,104 +220,45 @@ const actions = [
             ================================================== -->
 
             <template #cell-route="{ row }">
-                <div class="route-cell">
-                    <div class="route-preview">
-                        <template
-                            v-if="
-                                getPreviewMedia(row)
-                            "
-                        >
-                            <img
-                                v-if="
-                                    getPreviewMedia(row)
-                                        ?.type === 'image'
-                                "
-                                :src="
-                                    getMediaUrl(
-                                        getPreviewMedia(
-                                            row
-                                        )?.file ?? null
-                                    ) ?? ''
-                                "
-                                :alt="row.title"
-                                class="route-preview-image"
-                            />
-
-                            <video
-                                v-else
-                                :src="
-                                    getMediaUrl(
-                                        getPreviewMedia(
-                                            row
-                                        )?.file ?? null
-                                    ) ?? ''
-                                "
-                                muted
-                                preload="metadata"
-                                class="route-preview-image"
-                            />
-                        </template>
-
-                        <RouteIcon
-                            v-else
-                            :size="18"
-                            :stroke-width="2"
-                        />
+                <div class="route-info">
+                    <div class="font-medium">
+                        {{ row.title }}
                     </div>
 
-                    <div class="payment-method-info">
-                        <div class="font-medium">
-                            {{ row.title }}
-                        </div>
+                    <div
+                        v-if="row.description"
+                        class="route-description"
+                    >
+                        {{ row.description }}
+                    </div>
 
-                        <div
-                            v-if="row.description"
-                            class="payment-description"
-                        >
-                            {{ row.description }}
-                        </div>
-
-                        <div class="payment-description">
-                            ID: {{ row.id }}
-                        </div>
+                    <div class="route-id">
+                        ID: {{ row.id }}
                     </div>
                 </div>
             </template>
 
             <!-- =================================================
-                 MULTIMEDIA
+                 ARCHIVOS
             ================================================== -->
 
             <template #cell-media="{ row }">
-                <div class="media-info">
-                    <div class="media-item media-images">
-                        <Image
+                <div class="media-count">
+                    <div class="media-count-main">
+                        <Files
                             :size="15"
                             :stroke-width="2"
                         />
 
-                        <span>
-                            {{ getImageCount(row) }}
-                            {{
-                                getImageCount(row) === 1
-                                    ? 'foto'
-                                    : 'fotos'
-                            }}
-                        </span>
-                    </div>
-
-                    <div class="media-item media-videos">
-                        <FileVideo
-                            :size="15"
-                            :stroke-width="2"
-                        />
+                        <strong>
+                            {{ getMediaCount(row) }}
+                        </strong>
 
                         <span>
-                            {{ getVideoCount(row) }}
                             {{
-                                getVideoCount(row) === 1
-                                    ? 'video'
-                                    : 'videos'
+                                getMediaCount(row) === 1
+                                    ? 'archivo'
+                                    : 'archivos'
                             }}
                         </span>
                     </div>
@@ -377,52 +299,54 @@ const actions = [
 </template>
 
 <style scoped>
-.route-cell {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+.route-info {
+    min-width: 0;
 }
 
-.route-preview {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 46px;
-    height: 46px;
+.route-description {
+    max-width: 420px;
+    margin-top: 2px;
     overflow: hidden;
-    border-radius: 10px;
-    background: #eaf6fc;
-    color: #249edb;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.route-preview-image {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+.route-id {
+    margin-top: 2px;
+    color: #94a3b8;
+    font-size: 11px;
 }
 
-.media-info {
+.media-count {
     display: flex;
-    align-items: center;
-    gap: 14px;
+    flex-direction: column;
+    gap: 3px;
 }
 
-.media-item {
+.media-count-main {
     display: flex;
     align-items: center;
     gap: 5px;
+    color: #1769a8;
+    font-size: 12px;
+}
+
+.media-count-main strong {
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
 }
 
-.media-images {
-    color: #249edb;
+.media-count-main span {
+    color: #475569;
+    font-weight: 500;
 }
 
-.media-videos {
-    color: #d94c9a;
+.media-count-detail {
+    color: #94a3b8;
+    font-size: 11px;
 }
 
 .order-badge {
