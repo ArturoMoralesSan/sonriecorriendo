@@ -52,8 +52,7 @@ const getRaceYear = (): string => {
                     </template>
 
                     <template v-else>
-                        Los resultados de nuestra próxima carrera
-                        estarán disponibles próximamente.
+                        Los resultados de nuestra próxima carrera estarán disponibles después del evento.
                     </template>
                 </p>
 

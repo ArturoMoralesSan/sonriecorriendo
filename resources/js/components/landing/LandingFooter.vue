@@ -34,37 +34,15 @@ import {
                 </nav>
 
                 <div class="landing-socials">
+                    
                     <a
-                        href="#"
-                        aria-label="Facebook"
-                        class="landing-social"
-                    >
-                        <Users :size="17" />
-                    </a>
-
-                    <a
-                        href="#"
+                        href="https://www.instagram.com/sonriecorriendo?stkn=MWFuNDdyZTd1bzVm"
                         aria-label="Instagram"
                         class="landing-social"
                     >
                         <Instagram :size="17" />
                     </a>
 
-                    <a
-                        href="#"
-                        aria-label="YouTube"
-                        class="landing-social"
-                    >
-                        <Youtube :size="17" />
-                    </a>
-
-                    <a
-                        href="#"
-                        aria-label="TikTok"
-                        class="landing-social"
-                    >
-                        <Sparkles :size="17" />
-                    </a>
                 </div>
             </div>
 
