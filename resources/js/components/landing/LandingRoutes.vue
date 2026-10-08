@@ -58,9 +58,7 @@ function getMediaType(
         'ogg',
     ];
 
-    return videoExtensions.includes(
-        extension ?? '',
-    )
+    return videoExtensions.includes(extension ?? '')
         ? 'video'
         : 'image';
 }
@@ -73,12 +71,16 @@ function getFirstImage(route: RouteItem): RouteMedia | null {
     );
 }
 
-function hasVideo(route: RouteItem): boolean {
+function getFirstVideo(route: RouteItem): RouteMedia | null {
     return (
-        route.media?.some(
+        route.media?.find(
             (media) => getMediaType(media.file) === 'video',
-        ) ?? false
+        ) ?? null
     );
+}
+
+function hasVideo(route: RouteItem): boolean {
+    return getFirstVideo(route) !== null;
 }
 
 function getRouteUrl(route: RouteItem): string {
@@ -137,17 +139,44 @@ function getRouteUrl(route: RouteItem): string {
                     style="text-decoration: none; color: inherit;"
                 >
                     <div class="experience-image-main">
+                        <!-- Si existe una imagen, tiene prioridad -->
                         <img
                             v-if="getFirstImage(route)"
                             :src="getMediaUrl(getFirstImage(route)!.file)"
                             :alt="route.title"
+                            loading="lazy"
                         />
 
+                        <!-- Si no hay imagen, usar el video como portada -->
+                        <video
+                            v-else-if="getFirstVideo(route)"
+                            :src="getMediaUrl(getFirstVideo(route)!.file) + '#t=0.5'"
+                            :aria-label="route.title"
+                            muted
+                            playsinline
+                            preload="metadata"
+                            tabindex="-1"
+                            class="landing-route-video-thumbnail"
+                        />
+
+                        <!-- Si no existe ningún archivo multimedia -->
                         <div
                             v-else
                             class="landing-route-image-empty"
                         >
-                            Sin imagen
+                            <Star :size="36" />
+                            <span>Sin imagen</span>
+                        </div>
+
+                        <!-- Indicador visual de video -->
+                        <div
+                            v-if="!getFirstImage(route) && getFirstVideo(route)"
+                            class="landing-route-video-play"
+                        >
+                            <Play
+                                :size="28"
+                                fill="currentColor"
+                            />
                         </div>
                     </div>
 
@@ -185,3 +214,46 @@ function getRouteUrl(route: RouteItem): string {
         </div>
     </section>
 </template>
+
+<style scoped>
+.experience-image-main {
+    position: relative;
+    overflow: hidden;
+}
+
+.landing-route-video-thumbnail {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #171717;
+}
+
+.landing-route-video-play {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    pointer-events: none;
+}
+
+.landing-route-video-play :deep(svg) {
+    padding: 16px;
+    box-sizing: content-box;
+    background: rgb(0 0 0 / 55%);
+    border-radius: 50%;
+}
+
+.landing-route-image-empty {
+    display: flex;
+    min-height: 240px;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    color: #737373;
+    background: #f3f4f6;
+}
+</style>
