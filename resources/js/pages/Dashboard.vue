@@ -1,30 +1,65 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3'
+import { computed, ref } from 'vue'
+import {
+    Head,
+    Link,
+    router,
+} from '@inertiajs/vue3'
 import {
     ArrowUpRight,
     CalendarDays,
     ChevronRight,
     CircleDollarSign,
+    CreditCard,
     ShoppingBag,
-    Ticket,
     TrendingDown,
     TrendingUp,
     Users,
 } from 'lucide-vue-next'
 import VueApexCharts from 'vue3-apexcharts'
 
-
 import admin from '@/routes/admin'
+
+interface DashboardGrowth {
+    users: number
+    orders: number
+    productsSold: number
+    revenue: number
+}
 
 interface DashboardStats {
     users: number
     orders: number
-    tickets: number
+    productsSold: number
     revenue: number
+    growth: DashboardGrowth
+}
+
+interface RevenueChartItem {
+    date: string
+    revenue: number
+    orders: number
+}
+
+interface ProductChartItem {
+    name: string
+    quantity: number
+    revenue: number
+}
+
+interface PaymentMethodChartItem {
+    name: string
+    amount: number
+}
+
+interface RegistrationChartItem {
+    date: string
+    registrations: number
 }
 
 interface RecentOrder {
     id: number
+    folio?: string
     customer: string
     email: string
     product: string
@@ -33,93 +68,145 @@ interface RecentOrder {
     date: string
 }
 
-interface UpcomingEvent {
-    id: number
-    name: string
-    date: string
-    location: string
-    registered: number
-    capacity: number
+interface DashboardPeriod {
+    label: string
+    month: string
+    startDate: string
+    endDate: string
 }
 
 const props = defineProps<{
     stats?: DashboardStats
+    revenueChart?: RevenueChartItem[]
+    productChart?: ProductChartItem[]
+    paymentMethodChart?: PaymentMethodChartItem[]
+    registrationsChart?: RegistrationChartItem[]
+    registrationsTotal?: number
     recentOrders?: RecentOrder[]
-    upcomingEvents?: UpcomingEvent[]
+    period?: DashboardPeriod
 }>()
 
-const stats = props.stats ?? {
-    users: 1248,
-    orders: 386,
-    tickets: 742,
-    revenue: 128450,
+/* =========================================================
+   FILTRO DE FECHAS
+========================================================= */
+
+const startDate = ref(
+    props.period?.startDate ?? '',
+)
+
+const endDate = ref(
+    props.period?.endDate ?? '',
+)
+
+const loading = ref(false)
+
+const applyDateFilter = () => {
+    if (!startDate.value || !endDate.value) {
+        return
+    }
+
+    if (startDate.value > endDate.value) {
+        const temporary = startDate.value
+
+        startDate.value = endDate.value
+        endDate.value = temporary
+    }
+
+    loading.value = true
+
+    router.get(
+        admin.dashboard().url,
+        {
+            start_date: startDate.value,
+            end_date: endDate.value,
+        },
+        {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            onFinish: () => {
+                loading.value = false
+            },
+        },
+    )
 }
 
-const recentOrders = props.recentOrders ?? [
-    {
-        id: 1024,
-        customer: 'María González',
-        email: 'maria@email.com',
-        product: 'Kit 10K Sonríe Corriendo',
-        amount: 850,
-        status: 'Pagado',
-        date: 'Hoy, 09:42',
-    },
-    {
-        id: 1023,
-        customer: 'Carlos Hernández',
-        email: 'carlos@email.com',
-        product: 'Kit 5K Sonríe Corriendo',
-        amount: 650,
-        status: 'Pagado',
-        date: 'Hoy, 08:31',
-    },
-    {
-        id: 1022,
-        customer: 'Ana Martínez',
-        email: 'ana@email.com',
-        product: 'Kit Infantil',
-        amount: 450,
-        status: 'Pendiente',
-        date: 'Ayer, 18:20',
-    },
-    {
-        id: 1021,
-        customer: 'Luis Ramírez',
-        email: 'luis@email.com',
-        product: 'Kit 10K + Playera',
-        amount: 990,
-        status: 'Pagado',
-        date: 'Ayer, 16:05',
-    },
-]
+const clearDateFilter = () => {
+    const today = new Date()
 
-const upcomingEvents = props.upcomingEvents ?? [
-    {
-        id: 1,
-        name: 'Sonríe Corriendo 2026',
-        date: '18 Oct 2026',
-        location: 'Durango, Dgo.',
-        registered: 742,
-        capacity: 1000,
-    },
-    {
-        id: 2,
-        name: 'Carrera Infantil',
-        date: '08 Nov 2026',
-        location: 'Parque Guadiana',
-        registered: 184,
-        capacity: 300,
-    },
-    {
-        id: 3,
-        name: 'Corre por una Sonrisa',
-        date: '22 Nov 2026',
-        location: 'Durango, Dgo.',
-        registered: 325,
-        capacity: 500,
-    },
-]
+    const year = today.getFullYear()
+
+    const month = String(
+        today.getMonth() + 1,
+    ).padStart(2, '0')
+
+    startDate.value = `${year}-${month}-01`
+
+    const lastDay = new Date(
+        year,
+        today.getMonth() + 1,
+        0,
+    ).getDate()
+
+    endDate.value = `${year}-${month}-${String(
+        lastDay,
+    ).padStart(2, '0')}`
+
+    applyDateFilter()
+}
+
+/* =========================================================
+   DATOS
+========================================================= */
+
+const stats = computed(() => {
+    return (
+        props.stats ?? {
+            users: 0,
+            orders: 0,
+            productsSold: 0,
+            revenue: 0,
+            growth: {
+                users: 0,
+                orders: 0,
+                productsSold: 0,
+                revenue: 0,
+            },
+        }
+    )
+})
+
+const revenueChart = computed(
+    () => props.revenueChart ?? [],
+)
+
+const productChart = computed(
+    () => props.productChart ?? [],
+)
+
+const paymentMethodChart = computed(
+    () => props.paymentMethodChart ?? [],
+)
+
+const registrationsChart = computed(
+    () => props.registrationsChart ?? [],
+)
+
+const registrationsTotal = computed(
+    () => props.registrationsTotal ?? 0,
+)
+
+const recentOrders = computed(
+    () => props.recentOrders ?? [],
+)
+
+const currentPeriod = computed(() => {
+    return props.period?.label ?? 'Periodo seleccionado'
+})
+
+/* =========================================================
+   FORMATOS
+========================================================= */
 
 const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-MX', {
@@ -129,39 +216,42 @@ const formatCurrency = (value: number) => {
     }).format(value)
 }
 
+const formatPercentage = (value: number) => {
+    return `${Math.abs(value).toFixed(1)}%`
+}
+
+const growthClass = (value: number) => {
+    return value >= 0
+        ? 'positive'
+        : 'negative'
+}
+
 /* =========================================================
    GRÁFICA DE INGRESOS
-   ========================================================= */
+========================================================= */
 
-const revenueSeries = [
+const revenueSeries = computed(() => [
     {
         name: 'Ingresos',
-        data: [
-            18500,
-            22400,
-            19800,
-            27600,
-            24300,
-            31900,
-            28600,
-            35100,
-            32700,
-            38200,
-            36100,
-            41500,
-        ],
-    },
-]
 
-const revenueChartOptions = {
+        data: revenueChart.value.map(
+            (item) => item.revenue,
+        ),
+    },
+])
+
+const revenueChartOptions = computed(() => ({
     chart: {
         type: 'area',
+
         toolbar: {
             show: false,
         },
+
         zoom: {
             enabled: false,
         },
+
         fontFamily: 'Inter, sans-serif',
     },
 
@@ -174,6 +264,7 @@ const revenueChartOptions = {
 
     fill: {
         type: 'gradient',
+
         gradient: {
             shadeIntensity: 1,
             opacityFrom: 0.24,
@@ -189,6 +280,7 @@ const revenueChartOptions = {
     grid: {
         borderColor: '#EEF3F7',
         strokeDashArray: 4,
+
         padding: {
             left: 10,
             right: 10,
@@ -196,29 +288,21 @@ const revenueChartOptions = {
     },
 
     xaxis: {
-        categories: [
-            '01 Sep',
-            '03 Sep',
-            '05 Sep',
-            '07 Sep',
-            '09 Sep',
-            '11 Sep',
-            '13 Sep',
-            '15 Sep',
-            '17 Sep',
-            '19 Sep',
-            '21 Sep',
-            '23 Sep',
-        ],
+        categories: revenueChart.value.map(
+            (item) => item.date,
+        ),
+
         labels: {
             style: {
                 colors: '#94A3B8',
                 fontSize: '11px',
             },
         },
+
         axisBorder: {
             show: false,
         },
+
         axisTicks: {
             show: false,
         },
@@ -227,8 +311,15 @@ const revenueChartOptions = {
     yaxis: {
         labels: {
             formatter: (value: number) => {
-                return `$${Math.round(value / 1000)}k`
+                if (value >= 1000) {
+                    return `$${Math.round(
+                        value / 1000,
+                    )}k`
+                }
+
+                return `$${Math.round(value)}`
             },
+
             style: {
                 colors: '#94A3B8',
                 fontSize: '11px',
@@ -238,47 +329,83 @@ const revenueChartOptions = {
 
     tooltip: {
         theme: 'light',
+
         y: {
-            formatter: (value: number) => formatCurrency(value),
+            formatter: (value: number) =>
+                formatCurrency(value),
         },
     },
 
     markers: {
         size: 0,
+
         hover: {
             size: 6,
         },
     },
-}
+}))
 
 /* =========================================================
    GRÁFICA DE PRODUCTOS
-   ========================================================= */
+========================================================= */
 
-const productSeries = [46, 31, 15, 8]
+const productSeries = computed(() => {
+    return productChart.value.map(
+        (product) => product.quantity,
+    )
+})
 
-const productChartOptions = {
+const productTotal = computed(() => {
+    return productChart.value.reduce(
+        (total, product) =>
+            total + product.quantity,
+        0,
+    )
+})
+
+const productPercentages = computed(() => {
+    return productChart.value.map(
+        (product) => {
+            if (productTotal.value === 0) {
+                return 0
+            }
+
+            return Math.round(
+                (product.quantity /
+                    productTotal.value) *
+                    100,
+            )
+        },
+    )
+})
+
+const productChartColors = [
+    '#249EDB',
+    '#6753B7',
+    '#D94C9A',
+    '#18B89A',
+    '#B9C7D5',
+]
+
+const productChartOptions = computed(() => ({
     chart: {
         type: 'donut',
+
         toolbar: {
             show: false,
         },
+
         fontFamily: 'Inter, sans-serif',
     },
 
-    labels: [
-        'Kit 10K',
-        'Kit 5K',
-        'Kit Infantil',
-        'Otros',
-    ],
+    labels: productChart.value.map(
+        (product) => product.name,
+    ),
 
-    colors: [
-        '#249EDB',
-        '#6753B7',
-        '#D94C9A',
-        '#B9C7D5',
-    ],
+    colors: productChartColors.slice(
+        0,
+        productChart.value.length,
+    ),
 
     legend: {
         show: false,
@@ -293,6 +420,7 @@ const productChartOptions = {
         pie: {
             donut: {
                 size: '72%',
+
                 labels: {
                     show: true,
 
@@ -307,14 +435,23 @@ const productChartOptions = {
                         color: '#172B4D',
                         fontSize: '22px',
                         fontWeight: 700,
-                        formatter: (value: string) => `${value}%`,
+
+                        formatter: (
+                            value: string,
+                        ) => {
+                            return `${value} uds.`
+                        },
                     },
 
                     total: {
                         show: true,
-                        label: 'Ventas',
+                        label: 'Productos',
+
                         color: '#64748B',
-                        formatter: () => '100%',
+
+                        formatter: () => {
+                            return `${productTotal.value}`
+                        },
                     },
                 },
             },
@@ -328,6 +465,7 @@ const productChartOptions = {
     responsive: [
         {
             breakpoint: 480,
+
             options: {
                 chart: {
                     width: 260,
@@ -335,25 +473,30 @@ const productChartOptions = {
             },
         },
     ],
-}
+}))
 
 /* =========================================================
    GRÁFICA DE REGISTROS
-   ========================================================= */
+========================================================= */
 
-const registrationSeries = [
+const registrationSeries = computed(() => [
     {
         name: 'Registros',
-        data: [32, 45, 38, 61, 48, 74, 69],
-    },
-]
 
-const registrationChartOptions = {
+        data: registrationsChart.value.map(
+            (item) => item.registrations,
+        ),
+    },
+])
+
+const registrationChartOptions = computed(() => ({
     chart: {
         type: 'bar',
+
         toolbar: {
             show: false,
         },
+
         fontFamily: 'Inter, sans-serif',
     },
 
@@ -375,24 +518,21 @@ const registrationChartOptions = {
     },
 
     xaxis: {
-        categories: [
-            'Lun',
-            'Mar',
-            'Mié',
-            'Jue',
-            'Vie',
-            'Sáb',
-            'Dom',
-        ],
+        categories: registrationsChart.value.map(
+            (item) => item.date,
+        ),
+
         labels: {
             style: {
                 colors: '#94A3B8',
                 fontSize: '11px',
             },
         },
+
         axisBorder: {
             show: false,
         },
+
         axisTicks: {
             show: false,
         },
@@ -405,7 +545,143 @@ const registrationChartOptions = {
     tooltip: {
         theme: 'light',
     },
-}
+}))
+
+/* =========================================================
+   GRÁFICA DE MÉTODOS DE PAGO
+========================================================= */
+
+const paymentMethodSeries = computed(() => {
+    return paymentMethodChart.value.map(
+        (method) => method.amount,
+    )
+})
+
+const paymentMethodTotal = computed(() => {
+    return paymentMethodChart.value.reduce(
+        (total, method) =>
+            total + method.amount,
+        0,
+    )
+})
+
+const paymentMethodPercentages = computed(() => {
+    return paymentMethodChart.value.map(
+        (method) => {
+            if (paymentMethodTotal.value === 0) {
+                return 0
+            }
+
+            return Math.round(
+                (method.amount /
+                    paymentMethodTotal.value) *
+                    100,
+            )
+        },
+    )
+})
+
+const paymentMethodColors = [
+    '#249EDB',
+    '#6753B7',
+    '#D94C9A',
+    '#18B89A',
+    '#F59E0B',
+]
+
+const paymentMethodChartOptions = computed(
+    () => ({
+        chart: {
+            type: 'donut',
+
+            toolbar: {
+                show: false,
+            },
+
+            fontFamily: 'Inter, sans-serif',
+        },
+
+        labels: paymentMethodChart.value.map(
+            (method) => method.name,
+        ),
+
+        colors: paymentMethodColors.slice(
+            0,
+            paymentMethodChart.value.length,
+        ),
+
+        legend: {
+            show: false,
+        },
+
+        stroke: {
+            width: 4,
+            colors: ['#FFFFFF'],
+        },
+
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '72%',
+
+                    labels: {
+                        show: true,
+
+                        name: {
+                            show: true,
+                            color: '#64748B',
+                            fontSize: '12px',
+                        },
+
+                        value: {
+                            show: true,
+                            color: '#172B4D',
+                            fontSize: '20px',
+                            fontWeight: 700,
+
+                            formatter: (
+                                value: string,
+                            ) => {
+                                return formatCurrency(
+                                    Number(value),
+                                )
+                            },
+                        },
+
+                        total: {
+                            show: true,
+                            label: 'Pagado',
+
+                            color: '#64748B',
+
+                            formatter: () => {
+                                return formatCurrency(
+                                    paymentMethodTotal.value,
+                                )
+                            },
+                        },
+                    },
+                },
+            },
+        },
+
+        dataLabels: {
+            enabled: false,
+        },
+
+        responsive: [
+            {
+                breakpoint: 480,
+
+                options: {
+                    chart: {
+                        width: 260,
+                    },
+                },
+            },
+        ],
+    }),
+)
 </script>
 
 <template>
@@ -427,36 +703,127 @@ const registrationChartOptions = {
                 </h1>
 
                 <p class="dashboard-subtitle">
-                    Aquí tienes un resumen de lo que está pasando
-                    en Sonríe Corriendo.
+                    Aquí tienes un resumen de lo que está
+                    pasando en Sonríe Corriendo.
                 </p>
             </div>
 
-            <div class="dashboard-header-actions">
-                <button class="dashboard-date">
+            <div
+                class="dashboard-header-actions"
+                style="
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    flex-wrap: wrap;
+                "
+            >
+                <label
+                    class="dashboard-date"
+                    style="cursor: default;"
+                >
                     <CalendarDays :size="17" />
 
                     <span>
-                        Septiembre 2026
+                        Desde
                     </span>
+
+                    <input
+                        v-model="startDate"
+                        type="date"
+                        aria-label="Fecha inicial"
+                    />
+                </label>
+
+                <label
+                    class="dashboard-date"
+                    style="cursor: default;"
+                >
+                    <CalendarDays :size="17" />
+
+                    <span>
+                        Hasta
+                    </span>
+
+                    <input
+                        v-model="endDate"
+                        type="date"
+                        aria-label="Fecha final"
+                    />
+                </label>
+
+                <button
+                    type="button"
+                    class="card-filter"
+                    :disabled="loading"
+                    @click="applyDateFilter"
+                >
+                    {{ loading ? 'Buscando...' : 'Aplicar' }}
+                </button>
+
+                <button
+                    type="button"
+                    class="card-filter"
+                    :disabled="loading"
+                    @click="clearDateFilter"
+                >
+                    Limpiar
                 </button>
             </div>
         </header>
+
+        <!-- =================================================
+             PERIODO
+        ================================================== -->
+
+        <div
+            style="
+                margin-bottom: 18px;
+                color: #64748B;
+                font-size: 13px;
+            "
+        >
+            Mostrando información del
+            <strong style="color: #172B4D;">
+                {{ currentPeriod }}
+            </strong>
+        </div>
 
         <!-- =================================================
              STATS
         ================================================== -->
 
         <section class="stats-grid">
+            <!-- USUARIOS -->
+
             <article class="stat-card">
                 <div class="stat-card-top">
                     <div class="stat-icon stat-icon-blue">
                         <Users :size="21" />
                     </div>
 
-                    <span class="stat-growth positive">
-                        <TrendingUp :size="14" />
-                        12.5%
+                    <span
+                        class="stat-growth"
+                        :class="
+                            growthClass(
+                                stats.growth.users,
+                            )
+                        "
+                    >
+                        <TrendingUp
+                            v-if="stats.growth.users >= 0"
+                            :size="14"
+                        />
+
+                        <TrendingDown
+                            v-else
+                            :size="14"
+                        />
+
+                        {{
+                            formatPercentage(
+                                stats.growth.users,
+                            )
+                        }}
                     </span>
                 </div>
 
@@ -466,61 +833,11 @@ const registrationChartOptions = {
                     </span>
 
                     <strong class="stat-value">
-                        {{ stats.users.toLocaleString('es-MX') }}
-                    </strong>
-
-                    <span class="stat-description">
-                        vs. mes anterior
-                    </span>
-                </div>
-            </article>
-
-            <article class="stat-card">
-                <div class="stat-card-top">
-                    <div class="stat-icon stat-icon-purple">
-                        <ShoppingBag :size="21" />
-                    </div>
-
-                    <span class="stat-growth positive">
-                        <TrendingUp :size="14" />
-                        8.2%
-                    </span>
-                </div>
-
-                <div class="stat-content">
-                    <span class="stat-label">
-                        Pedidos
-                    </span>
-
-                    <strong class="stat-value">
-                        {{ stats.orders.toLocaleString('es-MX') }}
-                    </strong>
-
-                    <span class="stat-description">
-                        este mes
-                    </span>
-                </div>
-            </article>
-
-            <article class="stat-card">
-                <div class="stat-card-top">
-                    <div class="stat-icon stat-icon-pink">
-                        <Ticket :size="21" />
-                    </div>
-
-                    <span class="stat-growth positive">
-                        <TrendingUp :size="14" />
-                        18.4%
-                    </span>
-                </div>
-
-                <div class="stat-content">
-                    <span class="stat-label">
-                        Boletos vendidos
-                    </span>
-
-                    <strong class="stat-value">
-                        {{ stats.tickets.toLocaleString('es-MX') }}
+                        {{
+                            stats.users.toLocaleString(
+                                'es-MX',
+                            )
+                        }}
                     </strong>
 
                     <span class="stat-description">
@@ -529,15 +846,145 @@ const registrationChartOptions = {
                 </div>
             </article>
 
+            <!-- VENTAS -->
+
+            <article class="stat-card">
+                <div class="stat-card-top">
+                    <div class="stat-icon stat-icon-purple">
+                        <ShoppingBag :size="21" />
+                    </div>
+
+                    <span
+                        class="stat-growth"
+                        :class="
+                            growthClass(
+                                stats.growth.orders,
+                            )
+                        "
+                    >
+                        <TrendingUp
+                            v-if="stats.growth.orders >= 0"
+                            :size="14"
+                        />
+
+                        <TrendingDown
+                            v-else
+                            :size="14"
+                        />
+
+                        {{
+                            formatPercentage(
+                                stats.growth.orders,
+                            )
+                        }}
+                    </span>
+                </div>
+
+                <div class="stat-content">
+                    <span class="stat-label">
+                        Ventas
+                    </span>
+
+                    <strong class="stat-value">
+                        {{
+                            stats.orders.toLocaleString(
+                                'es-MX',
+                            )
+                        }}
+                    </strong>
+
+                    <span class="stat-description">
+                        en el periodo
+                    </span>
+                </div>
+            </article>
+
+            <!-- PRODUCTOS -->
+
+            <article class="stat-card">
+                <div class="stat-card-top">
+                    <div class="stat-icon stat-icon-pink">
+                        <ShoppingBag :size="21" />
+                    </div>
+
+                    <span
+                        class="stat-growth"
+                        :class="
+                            growthClass(
+                                stats.growth.productsSold,
+                            )
+                        "
+                    >
+                        <TrendingUp
+                            v-if="
+                                stats.growth.productsSold >= 0
+                            "
+                            :size="14"
+                        />
+
+                        <TrendingDown
+                            v-else
+                            :size="14"
+                        />
+
+                        {{
+                            formatPercentage(
+                                stats.growth.productsSold,
+                            )
+                        }}
+                    </span>
+                </div>
+
+                <div class="stat-content">
+                    <span class="stat-label">
+                        Productos vendidos
+                    </span>
+
+                    <strong class="stat-value">
+                        {{
+                            stats.productsSold.toLocaleString(
+                                'es-MX',
+                            )
+                        }}
+                    </strong>
+
+                    <span class="stat-description">
+                        en el periodo
+                    </span>
+                </div>
+            </article>
+
+            <!-- INGRESOS -->
+
             <article class="stat-card">
                 <div class="stat-card-top">
                     <div class="stat-icon stat-icon-green">
                         <CircleDollarSign :size="21" />
                     </div>
 
-                    <span class="stat-growth positive">
-                        <TrendingUp :size="14" />
-                        15.8%
+                    <span
+                        class="stat-growth"
+                        :class="
+                            growthClass(
+                                stats.growth.revenue,
+                            )
+                        "
+                    >
+                        <TrendingUp
+                            v-if="stats.growth.revenue >= 0"
+                            :size="14"
+                        />
+
+                        <TrendingDown
+                            v-else
+                            :size="14"
+                        />
+
+                        {{
+                            formatPercentage(
+                                stats.growth.revenue,
+                            )
+                        }}
                     </span>
                 </div>
 
@@ -551,7 +998,7 @@ const registrationChartOptions = {
                     </strong>
 
                     <span class="stat-description">
-                        ingresos del mes
+                        en el periodo
                     </span>
                 </div>
             </article>
@@ -561,7 +1008,11 @@ const registrationChartOptions = {
              ROW 1 - INGRESOS + PRODUCTOS
         ================================================== -->
 
-        <section class="dashboard-grid dashboard-grid-main">
+        <section
+            class="dashboard-grid dashboard-grid-main"
+        >
+            <!-- INGRESOS -->
+
             <article class="dashboard-card revenue-card">
                 <div class="dashboard-card-header">
                     <div>
@@ -570,28 +1021,44 @@ const registrationChartOptions = {
                         </h2>
 
                         <p class="dashboard-card-subtitle">
-                            Rendimiento de ventas durante el mes
+                            Rendimiento de ventas durante el
+                            periodo seleccionado
                         </p>
                     </div>
-
-                    <button class="card-filter">
-                        Este mes
-                        <ChevronRight :size="15" />
-                    </button>
                 </div>
 
                 <div class="revenue-summary">
                     <div class="revenue-summary-value">
-                        $128,450
+                        {{ formatCurrency(stats.revenue) }}
                     </div>
 
-                    <div class="revenue-summary-change">
-                        <TrendingUp :size="15" />
-                        15.8%
+                    <div
+                        class="revenue-summary-change"
+                        :class="
+                            growthClass(
+                                stats.growth.revenue,
+                            )
+                        "
+                    >
+                        <TrendingUp
+                            v-if="stats.growth.revenue >= 0"
+                            :size="15"
+                        />
+
+                        <TrendingDown
+                            v-else
+                            :size="15"
+                        />
+
+                        {{
+                            formatPercentage(
+                                stats.growth.revenue,
+                            )
+                        }}
                     </div>
 
                     <span>
-                        vs. mes anterior
+                        vs. periodo anterior
                     </span>
                 </div>
 
@@ -605,6 +1072,8 @@ const registrationChartOptions = {
                 </div>
             </article>
 
+            <!-- PRODUCTOS -->
+
             <article class="dashboard-card products-card">
                 <div class="dashboard-card-header">
                     <div>
@@ -613,43 +1082,61 @@ const registrationChartOptions = {
                         </h2>
 
                         <p class="dashboard-card-subtitle">
-                            Distribución de kits vendidos
+                            Productos vendidos en el periodo
                         </p>
                     </div>
                 </div>
 
                 <div class="product-chart">
                     <VueApexCharts
+                        v-if="productChart.length"
                         type="donut"
                         height="245"
                         :options="productChartOptions"
                         :series="productSeries"
                     />
+
+                    <div
+                        v-else
+                        class="dashboard-empty"
+                    >
+                        No hay productos vendidos en este
+                        periodo.
+                    </div>
                 </div>
 
-                <div class="product-legend">
-                    <div class="legend-item">
-                        <span class="legend-dot blue"></span>
-                        <span>Kit 10K</span>
-                        <strong>46%</strong>
-                    </div>
+                <div
+                    v-if="productChart.length"
+                    class="product-legend"
+                >
+                    <div
+                        v-for="(
+                            product, index
+                        ) in productChart"
+                        :key="product.name"
+                        class="legend-item"
+                    >
+                        <span
+                            class="legend-dot"
+                            :style="{
+                                backgroundColor:
+                                    productChartColors[
+                                        index
+                                    ],
+                            }"
+                        ></span>
 
-                    <div class="legend-item">
-                        <span class="legend-dot purple"></span>
-                        <span>Kit 5K</span>
-                        <strong>31%</strong>
-                    </div>
+                        <span>
+                            {{ product.name }}
+                        </span>
 
-                    <div class="legend-item">
-                        <span class="legend-dot pink"></span>
-                        <span>Kit Infantil</span>
-                        <strong>15%</strong>
-                    </div>
-
-                    <div class="legend-item">
-                        <span class="legend-dot gray"></span>
-                        <span>Otros</span>
-                        <strong>8%</strong>
+                        <strong>
+                            {{
+                                productPercentages[
+                                    index
+                                ]
+                            }}%
+                        </strong>
                     </div>
                 </div>
             </article>
@@ -659,9 +1146,14 @@ const registrationChartOptions = {
              ROW 2
         ================================================== -->
 
-        <section class="dashboard-grid dashboard-grid-secondary">
+        <section
+            class="dashboard-grid dashboard-grid-secondary"
+        >
             <!-- REGISTROS -->
-            <article class="dashboard-card registrations-card">
+
+            <article
+                class="dashboard-card registrations-card"
+            >
                 <div class="dashboard-card-header">
                     <div>
                         <h2 class="dashboard-card-title">
@@ -669,123 +1161,130 @@ const registrationChartOptions = {
                         </h2>
 
                         <p class="dashboard-card-subtitle">
-                            Usuarios registrados esta semana
+                            Usuarios registrados en el periodo
                         </p>
                     </div>
 
                     <div class="small-growth">
                         <ArrowUpRight :size="15" />
-                        12.4%
+
+                        {{ registrationsTotal }}
                     </div>
                 </div>
 
                 <div class="registration-total">
-                    367
-                    <span>registros</span>
+                    {{ registrationsTotal }}
+
+                    <span>
+                        registros
+                    </span>
                 </div>
 
                 <div class="registration-chart">
                     <VueApexCharts
                         type="bar"
                         height="190"
-                        :options="registrationChartOptions"
+                        :options="
+                            registrationChartOptions
+                        "
                         :series="registrationSeries"
                     />
                 </div>
             </article>
 
-            <!-- EVENTOS -->
-            <article class="dashboard-card events-card">
+            <!-- MÉTODOS DE PAGO -->
+
+            <article
+                class="dashboard-card events-card"
+            >
                 <div class="dashboard-card-header">
                     <div>
                         <h2 class="dashboard-card-title">
-                            Próximos eventos
+                            Métodos de pago
                         </h2>
 
                         <p class="dashboard-card-subtitle">
-                            Eventos activos
+                            Distribución de pagos en el periodo
                         </p>
                     </div>
 
-                    <Link
-                        :href="admin.dashboard()"
-                        class="view-all-link"
-                    >
-                        Ver todos
-                        <ChevronRight :size="15" />
-                    </Link>
+                    <CreditCard :size="20" />
                 </div>
 
-                <div class="events-list">
-                    <div
-                        v-for="event in upcomingEvents"
-                        :key="event.id"
-                        class="event-item"
-                    >
-                        <div class="event-date">
+                <div
+                    v-if="paymentMethodChart.length"
+                    class="payment-method-content"
+                >
+                    <div class="payment-method-chart">
+                        <VueApexCharts
+                            type="donut"
+                            height="210"
+                            :options="
+                                paymentMethodChartOptions
+                            "
+                            :series="
+                                paymentMethodSeries
+                            "
+                        />
+                    </div>
+
+                    <div class="product-legend">
+                        <div
+                            v-for="(
+                                method, index
+                            ) in paymentMethodChart"
+                            :key="method.name"
+                            class="legend-item"
+                        >
+                            <span
+                                class="legend-dot"
+                                :style="{
+                                    backgroundColor:
+                                        paymentMethodColors[
+                                            index
+                                        ],
+                                }"
+                            ></span>
+
                             <span>
-                                {{ event.date.split(' ')[0] }}
+                                {{ method.name }}
                             </span>
 
-                            <small>
-                                {{ event.date.split(' ')[1] }}
-                            </small>
-                        </div>
-
-                        <div class="event-info">
                             <strong>
-                                {{ event.name }}
+                                {{
+                                    paymentMethodPercentages[
+                                        index
+                                    ]
+                                }}%
                             </strong>
-
-                            <span>
-                                {{ event.location }}
-                            </span>
-                        </div>
-
-                        <div class="event-progress">
-                            <div class="event-progress-label">
-                                <span>
-                                    {{ event.registered }}
-                                    registrados
-                                </span>
-
-                                <span>
-                                    {{ event.capacity }}
-                                </span>
-                            </div>
-
-                            <div class="progress-track">
-                                <div
-                                    class="progress-fill"
-                                    :style="{
-                                        width: `${Math.min(
-                                            (event.registered /
-                                                event.capacity) *
-                                                100,
-                                            100,
-                                        )}%`,
-                                    }"
-                                ></div>
-                            </div>
                         </div>
                     </div>
+                </div>
+
+                <div
+                    v-else
+                    class="dashboard-empty"
+                >
+                    No hay pagos registrados en este
+                    periodo.
                 </div>
             </article>
         </section>
 
         <!-- =================================================
-             PEDIDOS
+             VENTAS
         ================================================== -->
 
         <section class="dashboard-card orders-card">
             <div class="dashboard-card-header">
                 <div>
                     <h2 class="dashboard-card-title">
-                        Pedidos recientes
+                        Ventas recientes
                     </h2>
 
                     <p class="dashboard-card-subtitle">
-                        Últimas compras realizadas
+                        Últimas compras realizadas en el
+                        periodo
                     </p>
                 </div>
 
@@ -835,19 +1334,28 @@ const registrationChartOptions = {
                         >
                             <td>
                                 <span class="order-number">
-                                    #{{ order.id }}
+                                    #{{
+                                        order.folio ??
+                                        order.id
+                                    }}
                                 </span>
                             </td>
 
                             <td>
                                 <div class="customer-cell">
                                     <div class="customer-avatar">
-                                        {{ order.customer.charAt(0) }}
+                                        {{
+                                            order.customer
+                                                .charAt(0)
+                                                .toUpperCase()
+                                        }}
                                     </div>
 
                                     <div>
                                         <strong>
-                                            {{ order.customer }}
+                                            {{
+                                                order.customer
+                                            }}
                                         </strong>
 
                                         <span>
@@ -871,7 +1379,11 @@ const registrationChartOptions = {
 
                             <td>
                                 <strong class="order-amount">
-                                    {{ formatCurrency(order.amount) }}
+                                    {{
+                                        formatCurrency(
+                                            order.amount,
+                                        )
+                                    }}
                                 </strong>
                             </td>
 
@@ -880,13 +1392,28 @@ const registrationChartOptions = {
                                     class="order-status"
                                     :class="{
                                         paid:
-                                            order.status === 'Pagado',
+                                            order.status ===
+                                            'Completado',
+
                                         pending:
-                                            order.status === 'Pendiente',
+                                            order.status ===
+                                            'Pendiente',
                                     }"
                                 >
                                     {{ order.status }}
                                 </span>
+                            </td>
+                        </tr>
+
+                        <tr
+                            v-if="!recentOrders.length"
+                        >
+                            <td
+                                colspan="6"
+                                class="dashboard-table-empty"
+                            >
+                                No hay ventas registradas en
+                                este periodo.
                             </td>
                         </tr>
                     </tbody>

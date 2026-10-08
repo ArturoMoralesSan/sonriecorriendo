@@ -21,6 +21,7 @@ use App\Http\Controllers\SaleController;
 use App\Http\Controllers\MercadoPagoController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\RouteController;
+use App\Http\Controllers\Customer\OrderController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -127,6 +128,21 @@ Route::post(
     '/mercadopago/webhook',
     [MercadoPagoController::class, 'webhook']
 )->name('mercadopago.webhook');
+
+
+Route::get('/pedidos', [OrderController::class, 'index'])
+    ->middleware([
+        'auth',
+        'permission:orders.view',
+    ])
+    ->name('customer.orders.index');
+    
+Route::get('/pedidos/{sale}', [OrderController::class, 'show'])
+    ->middleware([
+        'auth',
+        'permission:orders.view',
+    ])
+    ->name('customer.orders.show');
 /*
 |--------------------------------------------------------------------------
 | Admin
@@ -489,7 +505,6 @@ Route::middleware(['auth', 'verified'])
                 'update' => 'permission:routes.edit',
                 'destroy' => 'permission:routes.delete',
             ]);
-
     });
 
 require __DIR__.'/settings.php';

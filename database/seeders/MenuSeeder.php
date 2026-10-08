@@ -197,6 +197,34 @@ class MenuSeeder extends Seeder
 
         /*
         |--------------------------------------------------------------------------
+        | Mi cuenta
+        |--------------------------------------------------------------------------
+        |
+        | Se muestra para usuarios que tengan orders.view.
+        |
+        */
+
+        $account = Menu::updateOrCreate(
+            ['name' => 'Mi cuenta'],
+            [
+                'icon' => 'CircleUserRound',
+                'order' => 8,
+                'route' => null,
+                'is_submenu' => true,
+            ]
+        );
+
+        $this->link(
+            $account,
+            'Mis pedidos',
+            'ShoppingBag',
+            1,
+            'customer.orders.index',
+            'orders.view'
+        );
+
+        /*
+        |--------------------------------------------------------------------------
         | Administración
         |--------------------------------------------------------------------------
         */
@@ -205,7 +233,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Administración'],
             [
                 'icon' => 'Settings',
-                'order' => 8,
+                'order' => 9,
                 'route' => null,
                 'is_submenu' => true,
             ]
