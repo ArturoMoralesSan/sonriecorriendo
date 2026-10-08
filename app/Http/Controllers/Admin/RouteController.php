@@ -119,7 +119,7 @@ class RouteController extends Controller
                 'required',
                 'file',
                 'mimes:jpg,jpeg,png,webp,mp4,webm,mov',
-                'max:51200',
+                'max:512000',
             ],
 
             'media.*.title' => [
