@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Branch;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,15 +15,45 @@ class CartController extends Controller
     {
         $cart = $request->session()->get('cart', []);
 
-        $productIds = array_keys($cart);
+        $branches = Branch::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get([
+                'id',
+                'name',
+                'slug',
+                'street',
+                'exterior_number',
+                'interior_number',
+                'neighborhood',
+                'postal_code',
+                'city',
+                'state',
+                'references',
+                'phone',
+                'opening_time',
+                'closing_time',
+            ])
+            ->map(fn (Branch $branch) => [
+                'id' => $branch->id,
+                'name' => $branch->name,
+                'address' => $branch->full_address,
+                'phone' => $branch->phone,
+                'opening_time' => $branch->opening_time,
+                'closing_time' => $branch->closing_time,
+            ])
+            ->values();
 
-        if (empty($productIds)) {
+        if (empty($cart)) {
             return Inertia::render('Cart', [
                 'items' => [],
                 'subtotal' => 0,
                 'totalItems' => 0,
+                'branches' => $branches,
             ]);
         }
+
+        $productIds = array_keys($cart);
 
         $products = Product::query()
             ->whereIn('id', $productIds)
@@ -54,7 +85,7 @@ class CartController extends Controller
             }
 
             $price = (float) $product->price;
-            $itemSubtotal = $price * $quantity;
+            $itemSubtotal = round($price * $quantity, 2);
 
             $items[] = [
                 'id' => $product->id,
@@ -73,8 +104,9 @@ class CartController extends Controller
 
         return Inertia::render('Cart', [
             'items' => $items,
-            'subtotal' => $subtotal,
+            'subtotal' => round($subtotal, 2),
             'totalItems' => $totalItems,
+            'branches' => $branches,
         ]);
     }
 
@@ -100,20 +132,14 @@ class CartController extends Controller
         $currentQuantity = (int) ($cart[$productId] ?? 0);
         $requestedQuantity = (int) $validated['quantity'];
 
-        $newQuantity = $currentQuantity + $requestedQuantity;
-
-        if ($newQuantity > $product->stock) {
-            $newQuantity = $product->stock;
-        }
-
-        $cart[$productId] = $newQuantity;
+        $cart[$productId] = min(
+            $currentQuantity + $requestedQuantity,
+            $product->stock
+        );
 
         $request->session()->put('cart', $cart);
 
-        return back()->with(
-            'success',
-            'Producto agregado al carrito.'
-        );
+        return back()->with('success', 'Producto agregado al carrito.');
     }
 
     public function update(Request $request): RedirectResponse
@@ -129,7 +155,6 @@ class CartController extends Controller
             ->firstOrFail();
 
         $cart = $request->session()->get('cart', []);
-
         $productId = (string) $product->id;
 
         if (! array_key_exists($productId, $cart)) {
@@ -147,12 +172,10 @@ class CartController extends Controller
             );
         }
 
-        $quantity = min(
+        $cart[$productId] = min(
             (int) $validated['quantity'],
             $product->stock
         );
-
-        $cart[$productId] = $quantity;
 
         $request->session()->put('cart', $cart);
 
@@ -171,19 +194,13 @@ class CartController extends Controller
 
         $request->session()->put('cart', $cart);
 
-        return back()->with(
-            'success',
-            'Producto eliminado del carrito.'
-        );
+        return back()->with('success', 'Producto eliminado del carrito.');
     }
 
     public function clear(Request $request): RedirectResponse
     {
         $request->session()->forget('cart');
 
-        return back()->with(
-            'success',
-            'Carrito vaciado.'
-        );
+        return back()->with('success', 'Carrito vaciado.');
     }
 }

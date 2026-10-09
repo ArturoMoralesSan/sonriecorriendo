@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Branch;
+use App\Models\DeliveryAddress;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Services\MercadoPagoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
@@ -20,20 +24,125 @@ class SaleController extends Controller
         Request $request,
         MercadoPagoService $mercadoPago
     ): JsonResponse {
+        $validated = Validator::make($request->all(), [
+            'delivery_method' => [
+                'required',
+                Rule::in([
+                    DeliveryAddress::METHOD_HOME,
+                    DeliveryAddress::METHOD_BRANCH,
+                ]),
+            ],
+
+            'branch_id' => [
+                'required_if:delivery_method,' . DeliveryAddress::METHOD_BRANCH,
+                'nullable',
+                'integer',
+                Rule::exists('branches', 'id')
+                    ->where('is_active', true),
+            ],
+
+            'street' => [
+                'required_if:delivery_method,' . DeliveryAddress::METHOD_HOME,
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'exterior_number' => [
+                'required_if:delivery_method,' . DeliveryAddress::METHOD_HOME,
+                'nullable',
+                'string',
+                'max:50',
+            ],
+
+            'interior_number' => [
+                'nullable',
+                'string',
+                'max:50',
+            ],
+
+            'neighborhood' => [
+                'required_if:delivery_method,' . DeliveryAddress::METHOD_HOME,
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'postal_code' => [
+                'required_if:delivery_method,' . DeliveryAddress::METHOD_HOME,
+                'nullable',
+                'string',
+                'max:10',
+            ],
+
+            'city' => [
+                'required_if:delivery_method,' . DeliveryAddress::METHOD_HOME,
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'state' => [
+                'required_if:delivery_method,' . DeliveryAddress::METHOD_HOME,
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'references' => [
+                'nullable',
+                'string',
+                'max:2000',
+            ],
+        ], [
+            'delivery_method.required' => 'Selecciona una modalidad de entrega.',
+            'delivery_method.in' => 'La modalidad de entrega seleccionada no es válida.',
+            'branch_id.required_if' => 'Selecciona la sucursal donde recogerás tu pedido.',
+            'branch_id.exists' => 'La sucursal seleccionada no está disponible.',
+            'street.required_if' => 'Escribe la calle de entrega.',
+            'exterior_number.required_if' => 'Escribe el número exterior.',
+            'neighborhood.required_if' => 'Escribe la colonia.',
+            'postal_code.required_if' => 'Escribe el código postal.',
+            'city.required_if' => 'Escribe la ciudad.',
+            'state.required_if' => 'Escribe el estado.',
+        ])->validate();
+
         try {
-            /**
-             * Primero creamos nuestra venta y sus productos.
-             *
-             * Todavía queda como pending.
-             * No se descuenta stock.
-             */
-            $sale = DB::transaction(function () use ($request) {
-                return $this->createSaleFromCart($request);
+            $sale = DB::transaction(function () use ($request, $validated) {
+                $sale = $this->createSaleFromCart($request);
+
+                if (
+                    $validated['delivery_method']
+                    === DeliveryAddress::METHOD_BRANCH
+                ) {
+                    $branch = Branch::query()
+                        ->where('is_active', true)
+                        ->lockForUpdate()
+                        ->findOrFail($validated['branch_id']);
+
+                    $sale->deliveryAddress()->create([
+                        'delivery_method' => DeliveryAddress::METHOD_BRANCH,
+                        'branch_id' => $branch->id,
+                        'branch_name' => $branch->name,
+                        'branch_address' => $branch->full_address,
+                    ]);
+                } else {
+                    $sale->deliveryAddress()->create([
+                        'delivery_method' => DeliveryAddress::METHOD_HOME,
+                        'street' => $validated['street'],
+                        'exterior_number' => $validated['exterior_number'],
+                        'interior_number' => $validated['interior_number'] ?? null,
+                        'neighborhood' => $validated['neighborhood'],
+                        'postal_code' => $validated['postal_code'],
+                        'city' => $validated['city'],
+                        'state' => $validated['state'],
+                        'references' => $validated['references'] ?? null,
+                    ]);
+                }
+
+                return $sale;
             });
 
-            /**
-             * Preparamos los productos para Mercado Pago.
-             */
             $sale->load('items.product');
 
             $items = $sale->items
@@ -52,90 +161,50 @@ class SaleController extends Controller
                 ->values()
                 ->all();
 
-            /**
-             * URLs a las que Mercado Pago regresará al comprador.
-             *
-             * El pago NO se confirma aquí.
-             */
-            $successUrl = route(
-                'sales.show',
-                $sale
-            );
+            $returnUrl = route('sales.show', $sale);
 
-            $failureUrl = route(
-                'sales.show',
-                $sale
-            );
-
-            $pendingUrl = route(
-                'sales.show',
-                $sale
-            );
-
-            /**
-             * Creamos la Order en Mercado Pago.
-             */
             $order = $mercadoPago->createOrder(
                 externalReference: $sale->folio,
                 description: 'Pedido Sonríe Corriendo ' . $sale->folio,
                 total: (float) $sale->total,
                 items: $items,
                 payerEmail: $request->user()?->email,
-                successUrl: $successUrl,
-                failureUrl: $failureUrl,
-                pendingUrl: $pendingUrl,
+                successUrl: $returnUrl,
+                failureUrl: $returnUrl,
+                pendingUrl: $returnUrl,
             );
 
-            /**
-             * Mercado Pago debe devolver un ID de Order.
-             */
             if (empty($order->id)) {
                 throw new RuntimeException(
                     'Mercado Pago no devolvió el ID de la Order.'
                 );
             }
 
-            /**
-             * Mercado Pago debe devolver la URL de Checkout.
-             */
             if (empty($order->checkout_url)) {
                 throw new RuntimeException(
                     'Mercado Pago no devolvió la URL de Checkout.'
                 );
             }
 
-            /**
-             * Guardamos la relación entre nuestra venta
-             * y la Order de Mercado Pago.
-             */
             $sale->update([
                 'mercadopago_order_id' => $order->id,
             ]);
 
-            /**
-             * El carrito solamente se vacía después de
-             * crear correctamente la Order.
-             */
             $request->session()->forget('cart');
 
-            /**
-             * IMPORTANTE:
-             * No hacemos redirect()->away() aquí.
-             *
-             * Cart.vue recibe esta respuesta mediante fetch()
-             * y posteriormente hace:
-             *
-             * window.location.href = checkout_url;
-             */
             return response()->json([
                 'checkout_url' => $order->checkout_url,
             ]);
         } catch (Throwable $exception) {
+            report($exception);
+
             return response()->json([
                 'message' => 'No fue posible iniciar el checkout.',
                 'errors' => [
                     'sale' => [
-                        $exception->getMessage(),
+                        $exception instanceof RuntimeException
+                            ? $exception->getMessage()
+                            : 'Ocurrió un error al preparar tu pedido. Intenta nuevamente.',
                     ],
                 ],
             ], 422);
@@ -156,6 +225,7 @@ class SaleController extends Controller
         $sale->load([
             'customer',
             'items.product',
+            'deliveryAddress.branch',
         ]);
 
         return Inertia::render('SaleShow', [
@@ -163,24 +233,16 @@ class SaleController extends Controller
         ]);
     }
 
-    private function createSaleFromCart(
-        Request $request
-    ): Sale {
-        $cart = $request->session()->get(
-            'cart',
-            []
-        );
+    private function createSaleFromCart(Request $request): Sale
+    {
+        $cart = $request->session()->get('cart', []);
 
         if (empty($cart)) {
-            throw new RuntimeException(
-                'Tu carrito está vacío.'
-            );
+            throw new RuntimeException('Tu carrito está vacío.');
         }
 
         $productIds = collect($cart)
-            ->filter(function ($quantity) {
-                return (int) $quantity > 0;
-            })
+            ->filter(fn ($quantity) => (int) $quantity > 0)
             ->keys()
             ->map(fn ($id) => (int) $id)
             ->values()
@@ -220,18 +282,13 @@ class SaleController extends Controller
 
             if ($product->stock < $quantity) {
                 throw new RuntimeException(
-                    "No hay suficiente stock para " .
-                    "\"{$product->name}\". " .
+                    "No hay suficiente stock para \"{$product->name}\". " .
                     "Stock disponible: {$product->stock}."
                 );
             }
 
             $unitPrice = (float) $product->price;
-
-            $itemSubtotal = round(
-                $unitPrice * $quantity,
-                2
-            );
+            $itemSubtotal = round($unitPrice * $quantity, 2);
 
             $subtotal += $itemSubtotal;
 
@@ -249,27 +306,14 @@ class SaleController extends Controller
             );
         }
 
-        $subtotal = round(
-            $subtotal,
-            2
-        );
-
+        $subtotal = round($subtotal, 2);
         $discount = 0;
-
-        $total = round(
-            max(
-                $subtotal - $discount,
-                0
-            ),
-            2
-        );
+        $total = round(max($subtotal - $discount, 0), 2);
 
         $sale = Sale::create([
             'folio' => $this->generateFolio(),
             'mercadopago_order_id' => null,
-            'customer_id' => $request
-                ->user()
-                ?->id,
+            'customer_id' => $request->user()?->id,
             'subtotal' => $subtotal,
             'discount' => $discount,
             'total' => $total,
@@ -280,42 +324,18 @@ class SaleController extends Controller
         ]);
 
         foreach ($items as $item) {
-            $sale->items()->create([
-                'product_id' => $item['product_id'],
-                'quantity' => $item['quantity'],
-                'unit_price' => $item['unit_price'],
-                'subtotal' => $item['subtotal'],
-            ]);
+            $sale->items()->create($item);
         }
 
-        /**
-         * El pago todavía no está confirmado.
-         *
-         * Por eso:
-         * - No se crea SalePayment.
-         * - No se descuenta stock.
-         *
-         * Eso ocurrirá cuando Mercado Pago confirme
-         * correctamente el pago mediante Webhook.
-         */
         return $sale;
     }
 
     private function generateFolio(): string
     {
         do {
-            $folio =
-                'V-' .
-                now()->format('Ymd') .
-                '-' .
-                strtoupper(
-                    Str::random(6)
-                );
-        } while (
-            Sale::query()
-                ->where('folio', $folio)
-                ->exists()
-        );
+            $folio = 'V-' . now()->format('Ymd') . '-' .
+                strtoupper(Str::random(6));
+        } while (Sale::query()->where('folio', $folio)->exists());
 
         return $folio;
     }

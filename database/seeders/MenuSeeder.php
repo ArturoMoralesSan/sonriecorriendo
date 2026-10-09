@@ -129,6 +129,31 @@ class MenuSeeder extends Seeder
 
         /*
         |--------------------------------------------------------------------------
+        | Sucursales
+        |--------------------------------------------------------------------------
+        */
+
+        $branches = Menu::updateOrCreate(
+            ['name' => 'Sucursales'],
+            [
+                'icon' => 'Store',
+                'order' => 6,
+                'route' => null,
+                'is_submenu' => true,
+            ]
+        );
+
+        $this->link(
+            $branches,
+            'Listado de sucursales',
+            'MapPin',
+            1,
+            'admin.branches.index',
+            'branches.view'
+        );
+
+        /*
+        |--------------------------------------------------------------------------
         | Venta
         |--------------------------------------------------------------------------
         */
@@ -137,7 +162,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Venta'],
             [
                 'icon' => 'ShoppingCart',
-                'order' => 6,
+                'order' => 7,
                 'route' => null,
                 'is_submenu' => true,
             ]
@@ -180,7 +205,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Banners'],
             [
                 'icon' => 'Images',
-                'order' => 7,
+                'order' => 8,
                 'route' => null,
                 'is_submenu' => true,
             ]
@@ -208,7 +233,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Mi cuenta'],
             [
                 'icon' => 'CircleUserRound',
-                'order' => 8,
+                'order' => 9,
                 'route' => null,
                 'is_submenu' => true,
             ]
@@ -233,7 +258,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Administración'],
             [
                 'icon' => 'Settings',
-                'order' => 9,
+                'order' => 10,
                 'route' => null,
                 'is_submenu' => true,
             ]
