@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import {
+    Building2,
     Edit,
     Eye,
-    FileVideo,
-    Image,
+    Mail,
+    MapPin,
     Plus,
     Search,
     Trash2,
-    Route as RouteIcon,
+    Users,
 } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
 import { ref } from 'vue';
@@ -17,23 +18,18 @@ import DataTable from '@/Components/Admin/DataTable.vue';
 import PageHeader from '@/Components/Admin/PageHeader.vue';
 import admin from '@/routes/admin';
 
-interface RouteMedia {
+interface Club {
     id: number;
-    route_id: number;
-    type: 'image' | 'video';
-    file: string;
-    title: string | null;
-    sort_order: number;
-}
-
-interface RouteItem {
-    id: number;
-    title: string;
+    name: string;
+    slug: string;
     description: string | null;
+    logo: string | null;
+    responsible: string | null;
+    phone: string | null;
+    email: string | null;
+    city: string | null;
+    address: string | null;
     is_active: boolean;
-    sort_order: number;
-    media_count: number;
-    media?: RouteMedia[];
 }
 
 interface PaginationLink {
@@ -42,8 +38,8 @@ interface PaginationLink {
     active: boolean;
 }
 
-interface RoutesPagination {
-    data: RouteItem[];
+interface ClubsPagination {
+    data: Club[];
     links: PaginationLink[];
     current_page: number;
     last_page: number;
@@ -53,7 +49,7 @@ interface RoutesPagination {
 }
 
 const props = defineProps<{
-    routes: RoutesPagination;
+    clubs: ClubsPagination;
     filters?: {
         search?: string;
     };
@@ -63,7 +59,7 @@ const search = ref(props.filters?.search ?? '');
 
 const submitSearch = (): void => {
     router.get(
-        admin.routes.index().url,
+        admin.clubs.index().url,
         {
             search: search.value || undefined,
         },
@@ -74,55 +70,27 @@ const submitSearch = (): void => {
     );
 };
 
-const getMediaUrl = (
-    file: string | null
+const getLogoUrl = (
+    logo: string | null
 ): string | null => {
-    if (!file) {
+    if (!logo) {
         return null;
     }
 
     if (
-        file.startsWith('http://') ||
-        file.startsWith('https://')
+        logo.startsWith('http://') ||
+        logo.startsWith('https://')
     ) {
-        return file;
+        return logo;
     }
 
-    return `/storage/${file}`;
+    return `/storage/${logo}`;
 };
 
-const getImageCount = (
-    route: RouteItem
-): number => {
-    return (
-        route.media?.filter(
-            (media) => media.type === 'image'
-        ).length ?? 0
-    );
-};
-
-const getVideoCount = (
-    route: RouteItem
-): number => {
-    return (
-        route.media?.filter(
-            (media) => media.type === 'video'
-        ).length ?? 0
-    );
-};
-
-const getPreviewMedia = (
-    route: RouteItem
-): RouteMedia | null => {
-    return route.media?.[0] ?? null;
-};
-
-const deleteRoute = (
-    route: RouteItem
-): void => {
+const deleteClub = (club: Club): void => {
     Swal.fire({
-        title: '¿Eliminar ruta?',
-        text: `Se eliminará "${route.title}" junto con todas sus fotos y videos. Esta acción no se puede deshacer.`,
+        title: '¿Eliminar club?',
+        text: `Se eliminará a "${club.name}". Esta acción no se puede deshacer.`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Sí, eliminar',
@@ -131,7 +99,7 @@ const deleteRoute = (
     }).then((result) => {
         if (result.isConfirmed) {
             router.delete(
-                admin.routes.destroy(route.id).url,
+                admin.clubs.destroy(club.id).url,
                 {
                     preserveScroll: true,
                 }
@@ -142,20 +110,24 @@ const deleteRoute = (
 
 /* =========================================================
    COLUMNS
-========================================================= */
+   ========================================================= */
 
 const columns = [
     {
-        key: 'route',
-        label: 'Ruta',
+        key: 'club',
+        label: 'Club',
     },
     {
-        key: 'media',
-        label: 'Multimedia',
+        key: 'responsible',
+        label: 'Responsable',
     },
     {
-        key: 'order',
-        label: 'Orden',
+        key: 'contact',
+        label: 'Contacto',
+    },
+    {
+        key: 'city',
+        label: 'Ciudad',
     },
     {
         key: 'status',
@@ -165,7 +137,7 @@ const columns = [
 
 /* =========================================================
    ACTIONS
-========================================================= */
+   ========================================================= */
 
 const actions = [
     {
@@ -174,9 +146,9 @@ const actions = [
         icon: Eye,
         class: 'action-btn-detail',
         href: (
-            route: Record<string, any>
+            club: Record<string, any>
         ): string =>
-            admin.routes.show(route.id).url,
+            admin.clubs.show(club.id).url,
     },
     {
         key: 'edit',
@@ -184,9 +156,9 @@ const actions = [
         icon: Edit,
         class: 'action-btn-edit',
         href: (
-            route: Record<string, any>
+            club: Record<string, any>
         ): string =>
-            admin.routes.edit(route.id).url,
+            admin.clubs.edit(club.id).url,
     },
     {
         key: 'delete',
@@ -194,26 +166,26 @@ const actions = [
         icon: Trash2,
         class: 'action-btn-delete',
         onClick: (
-            route: Record<string, any>
+            club: Record<string, any>
         ): void => {
-            deleteRoute(route as RouteItem);
+            deleteClub(club as Club);
         },
     },
 ];
 </script>
 
 <template>
-    <Head title="Rutas" />
+    <Head title="Clubes" />
 
     <div class="admin-page">
         <PageHeader
-            eyebrow="Contenido"
-            title="Rutas"
-            subtitle="Administra las rutas y su contenido multimedia."
+            eyebrow="Organización"
+            title="Clubes"
+            subtitle="Administra los clubes registrados en Sonríe Corriendo."
             :actions="[
                 {
-                    label: 'Nueva ruta',
-                    href: admin.routes.create().url,
+                    label: 'Nuevo club',
+                    href: admin.clubs.create().url,
                     icon: Plus,
                     variant: 'primary',
                 },
@@ -222,62 +194,33 @@ const actions = [
 
         <DataTable
             :columns="columns"
-            :pagination="routes"
+            :pagination="clubs"
             :actions="actions"
             :search="search"
-            search-placeholder="Buscar ruta..."
-            counter-label="rutas"
-            empty-title="No se encontraron rutas."
+            search-placeholder="Buscar club..."
+            counter-label="clubes"
+            empty-title="No se encontraron clubes."
             empty-description="Intenta realizar una búsqueda diferente."
             :search-icon="Search"
-            :empty-icon="RouteIcon"
+            :empty-icon="Users"
             @update:search="search = $event"
             @search="submitSearch"
         >
             <!-- =================================================
-                 RUTA
+                 CLUB
             ================================================== -->
 
-            <template #cell-route="{ row }">
-                <div class="route-cell">
-                    <div class="route-preview">
-                        <template
-                            v-if="
-                                getPreviewMedia(row)
-                            "
-                        >
-                            <img
-                                v-if="
-                                    getPreviewMedia(row)
-                                        ?.type === 'image'
-                                "
-                                :src="
-                                    getMediaUrl(
-                                        getPreviewMedia(
-                                            row
-                                        )?.file ?? null
-                                    ) ?? ''
-                                "
-                                :alt="row.title"
-                                class="route-preview-image"
-                            />
+            <template #cell-club="{ row }">
+                <div class="payment-method-cell">
+                    <div class="payment-method-icon">
+                        <img
+                            v-if="getLogoUrl(row.logo)"
+                            :src="getLogoUrl(row.logo)!"
+                            :alt="row.name"
+                            class="club-logo"
+                        />
 
-                            <video
-                                v-else
-                                :src="
-                                    getMediaUrl(
-                                        getPreviewMedia(
-                                            row
-                                        )?.file ?? null
-                                    ) ?? ''
-                                "
-                                muted
-                                preload="metadata"
-                                class="route-preview-image"
-                            />
-                        </template>
-
-                        <RouteIcon
+                        <Building2
                             v-else
                             :size="18"
                             :stroke-width="2"
@@ -286,14 +229,11 @@ const actions = [
 
                     <div class="payment-method-info">
                         <div class="font-medium">
-                            {{ row.title }}
+                            {{ row.name }}
                         </div>
 
-                        <div
-                            v-if="row.description"
-                            class="payment-description"
-                        >
-                            {{ row.description }}
+                        <div class="payment-description">
+                            {{ row.slug }}
                         </div>
 
                         <div class="payment-description">
@@ -304,52 +244,87 @@ const actions = [
             </template>
 
             <!-- =================================================
-                 MULTIMEDIA
+                 RESPONSABLE
             ================================================== -->
 
-            <template #cell-media="{ row }">
-                <div class="media-info">
-                    <div class="media-item media-images">
-                        <Image
-                            :size="15"
-                            :stroke-width="2"
-                        />
-
-                        <span>
-                            {{ getImageCount(row) }}
-                            {{
-                                getImageCount(row) === 1
-                                    ? 'foto'
-                                    : 'fotos'
-                            }}
-                        </span>
+            <template #cell-responsible="{ row }">
+                <div
+                    v-if="row.responsible"
+                    class="payment-method-info"
+                >
+                    <div class="font-medium">
+                        {{ row.responsible }}
                     </div>
 
-                    <div class="media-item media-videos">
-                        <FileVideo
-                            :size="15"
+                    <div
+                        v-if="row.email"
+                        class="payment-description flex items-center gap-1.5"
+                    >
+                        <Mail
+                            :size="13"
                             :stroke-width="2"
                         />
 
-                        <span>
-                            {{ getVideoCount(row) }}
-                            {{
-                                getVideoCount(row) === 1
-                                    ? 'video'
-                                    : 'videos'
-                            }}
-                        </span>
+                        {{ row.email }}
                     </div>
                 </div>
+
+                <span
+                    v-else
+                    class="payment-description"
+                >
+                    Sin responsable
+                </span>
             </template>
 
             <!-- =================================================
-                 ORDEN
+                 CONTACTO
             ================================================== -->
 
-            <template #cell-order="{ row }">
-                <span class="order-badge">
-                    {{ row.sort_order }}
+            <template #cell-contact="{ row }">
+                <div
+                    v-if="row.phone || row.email"
+                    class="payment-method-info"
+                >
+                    <div
+                        v-if="row.phone"
+                        class="payment-description"
+                    >
+                        {{ row.phone }}
+                    </div>
+
+                </div>
+
+                <span
+                    v-else
+                    class="payment-description"
+                >
+                    Sin contacto
+                </span>
+            </template>
+
+            <!-- =================================================
+                 CIUDAD
+            ================================================== -->
+
+            <template #cell-city="{ row }">
+                <div
+                    v-if="row.city"
+                    class="payment-description flex items-center gap-1.5"
+                >
+                    <MapPin
+                        :size="13"
+                        :stroke-width="2"
+                    />
+
+                    {{ row.city }}
+                </div>
+
+                <span
+                    v-else
+                    class="payment-description"
+                >
+                    Sin ciudad
                 </span>
             </template>
 
@@ -377,65 +352,15 @@ const actions = [
 </template>
 
 <style scoped>
-.route-cell {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.route-preview {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 46px;
-    height: 46px;
-    overflow: hidden;
+.club-logo {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
     border-radius: 10px;
-    background: #eaf6fc;
-    color: #249edb;
+    background: #ffffff;
 }
 
-.route-preview-image {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.media-info {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}
-
-.media-item {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.media-images {
-    color: #249edb;
-}
-
-.media-videos {
-    color: #d94c9a;
-}
-
-.order-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 30px;
-    height: 28px;
-    padding: 0 8px;
-    border-radius: 8px;
-    background: #eaf6fc;
-    color: #1769a8;
-    font-size: 12px;
-    font-weight: 700;
+.payment-method-icon {
+    overflow: hidden;
 }
 </style>

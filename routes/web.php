@@ -22,6 +22,7 @@ use App\Http\Controllers\MercadoPagoController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\RouteController;
 use App\Http\Controllers\Customer\OrderController;
+use App\Http\Controllers\Admin\BranchController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -505,6 +506,18 @@ Route::middleware(['auth', 'verified'])
                 'update' => 'permission:routes.edit',
                 'destroy' => 'permission:routes.delete',
             ]);
+
+        Route::resource('branches', BranchController::class)
+            ->except(['destroy'])
+            ->middleware([
+                'index' => 'permission:branches.view',
+                'create' => 'permission:branches.create',
+                'store' => 'permission:branches.create',
+                'show' => 'permission:branches.view',
+                'edit' => 'permission:branches.edit',
+                'update' => 'permission:branches.edit',
+            ]);
     });
+        
 
 require __DIR__.'/settings.php';

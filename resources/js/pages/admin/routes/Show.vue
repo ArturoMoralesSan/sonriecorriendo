@@ -3,6 +3,7 @@ import {
     Head,
     Link,
 } from '@inertiajs/vue3';
+
 import {
     ArrowLeft,
     Edit,
@@ -37,9 +38,7 @@ const props = defineProps<{
     route: RouteItem;
 }>();
 
-const getMediaUrl = (
-    file: string,
-): string => {
+const getMediaUrl = (file: string): string => {
     if (!file) {
         return '';
     }
@@ -51,9 +50,7 @@ const getMediaUrl = (
     return `/storage/${cleanFile}`;
 };
 
-const getFileExtension = (
-    file: string,
-): string => {
+const getFileExtension = (file: string): string => {
     return (
         file
             .split('?')[0]
@@ -64,9 +61,7 @@ const getFileExtension = (
     );
 };
 
-const isVideo = (
-    media: RouteMedia,
-): boolean => {
+const isVideo = (media: RouteMedia): boolean => {
     const extension = getFileExtension(media.file);
 
     return [
@@ -78,9 +73,7 @@ const isVideo = (
     ].includes(extension);
 };
 
-const isImage = (
-    media: RouteMedia,
-): boolean => {
+const isImage = (media: RouteMedia): boolean => {
     const extension = getFileExtension(media.file);
 
     return [
@@ -134,9 +127,10 @@ defineOptions({
 </script>
 
 <template>
-    <Head :title="`Ruta: ${route.title}`" />
+    <Head :title="`Ruta: ${props.route.title}`" />
 
     <div class="admin-page">
+        <!-- ENCABEZADO -->
         <header class="admin-page-header">
             <div>
                 <p class="admin-page-eyebrow">
@@ -144,7 +138,7 @@ defineOptions({
                 </p>
 
                 <h1 class="admin-page-title">
-                    {{ route.title }}
+                    {{ props.route.title }}
                 </h1>
 
                 <p class="admin-page-subtitle">
@@ -159,7 +153,7 @@ defineOptions({
                     class="admin-btn admin-btn-secondary"
                 >
                     <ArrowLeft
-                        :size="14"
+                        :size="16"
                         :stroke-width="2"
                     />
 
@@ -167,11 +161,11 @@ defineOptions({
                 </Link>
 
                 <Link
-                    :href="admin.routes.edit(route.id).url"
-                    class="admin-btn admin-btn-primary"
+                    :href="admin.routes.edit(props.route.id).url"
+                    class="admin-btn admin-btn-secondary"
                 >
                     <Edit
-                        :size="14"
+                        :size="16"
                         :stroke-width="2"
                     />
 
@@ -180,171 +174,196 @@ defineOptions({
             </div>
         </header>
 
+        <!-- INFORMACIÓN GENERAL -->
         <section class="admin-show-card">
-            <div class="show-card-header">
-                <div>
-                    <p class="show-card-eyebrow">
-                        Información
-                    </p>
-
-                    <h2 class="show-card-title">
-                        Datos de la ruta
-                    </h2>
-
-                    <p class="show-card-description">
-                        Información general y estado de publicación.
-                    </p>
-                </div>
-
-                <div class="show-card-icon">
+            <div class="admin-show-card-header">
+                <div class="admin-show-section-icon">
                     <ImagePlus
                         :size="17"
                         :stroke-width="2"
                     />
                 </div>
+
+                <div>
+                    <h2 class="admin-show-card-title">
+                        Datos de la ruta
+                    </h2>
+
+                    <p class="admin-show-card-description">
+                        Información general y estado de publicación.
+                    </p>
+                </div>
             </div>
 
-            <div class="show-card-body">
-                <div class="info-grid">
-                    <div class="info-field info-field-full">
-                        <span class="info-label">
-                            Título
-                        </span>
-
-                        <div class="info-value info-value-title">
-                            {{ route.title }}
-                        </div>
+            <div class="admin-show-card-body">
+                <!-- PERFIL DE LA RUTA -->
+                <div class="route-profile">
+                    <div class="route-profile-icon">
+                        <ImagePlus
+                            :size="30"
+                            :stroke-width="1.7"
+                        />
                     </div>
 
-                    <div class="info-field info-field-full">
-                        <span class="info-label">
-                            Descripción
-                        </span>
+                    <div class="route-profile-info">
+                        <h3>
+                            {{ props.route.title }}
+                        </h3>
 
-                        <div
-                            v-if="route.description"
-                            class="info-value info-description"
-                        >
-                            {{ route.description }}
-                        </div>
-
-                        <div
-                            v-else
-                            class="info-empty"
-                        >
-                            Sin descripción.
-                        </div>
-                    </div>
-
-                    <div class="info-field">
-                        <span class="info-label">
-                            Estado
+                        <span class="route-profile-subtitle">
+                            Ruta de contenido
                         </span>
 
                         <span
-                            class="status-badge"
-                            :class="{
-                                'status-active':
-                                    route.is_active,
-                                'status-inactive':
-                                    !route.is_active,
-                            }"
+                            :class="[
+                                'status-badge',
+                                props.route.is_active
+                                    ? 'status-active'
+                                    : 'status-inactive',
+                            ]"
                         >
                             <span class="status-dot"></span>
 
                             {{
-                                route.is_active
+                                props.route.is_active
+                                    ? 'Activa'
+                                    : 'Inactiva'
+                            }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- DESCRIPCIÓN -->
+                <div class="route-description">
+                    <h3 class="route-section-label">
+                        Descripción
+                    </h3>
+
+                    <p v-if="props.route.description">
+                        {{ props.route.description }}
+                    </p>
+
+                    <p
+                        v-else
+                        class="route-empty-text"
+                    >
+                        Esta ruta todavía no tiene una descripción.
+                    </p>
+                </div>
+
+                <!-- DETALLES Y ESTADÍSTICAS -->
+                <div class="route-details-grid">
+                    <div class="route-detail">
+                        <span class="route-detail-label">
+                            Estado
+                        </span>
+
+                        <span
+                            :class="[
+                                'status-badge',
+                                props.route.is_active
+                                    ? 'status-active'
+                                    : 'status-inactive',
+                            ]"
+                        >
+                            <span class="status-dot"></span>
+
+                            {{
+                                props.route.is_active
                                     ? 'Activa'
                                     : 'Inactiva'
                             }}
                         </span>
                     </div>
 
-                    <div class="info-field">
-                        <span class="info-label">
-                            Orden
+                    <div class="route-detail">
+                        <span class="route-detail-label">
+                            Orden de visualización
                         </span>
 
                         <span class="order-badge">
-                            {{ route.sort_order }}
+                            {{ props.route.sort_order }}
                         </span>
                     </div>
 
-                    <div class="info-field">
-                        <span class="info-label">
-                            Fotos
+                    <div class="route-detail">
+                        <span class="route-detail-label">
+                            Fotografías
                         </span>
 
-                        <div class="stat-value">
+                        <span class="route-stat-value">
                             <FileImage
                                 :size="16"
                                 :stroke-width="2"
                             />
 
                             {{ getImageCount() }}
-                        </div>
+                        </span>
                     </div>
 
-                    <div class="info-field">
-                        <span class="info-label">
+                    <div class="route-detail">
+                        <span class="route-detail-label">
                             Videos
                         </span>
 
-                        <div class="stat-value">
+                        <span class="route-stat-value">
                             <Video
                                 :size="16"
                                 :stroke-width="2"
                             />
 
                             {{ getVideoCount() }}
-                        </div>
+                        </span>
                     </div>
 
-                    <div class="info-field">
-                        <span class="info-label">
+                    <div class="route-detail">
+                        <span class="route-detail-label">
                             Total de archivos
                         </span>
 
-                        <div class="stat-value stat-value-total">
+                        <span class="route-total-badge">
                             {{ getMediaCount() }}
-                        </div>
+                        </span>
                     </div>
                 </div>
             </div>
         </section>
 
+        <!-- GALERÍA MULTIMEDIA -->
         <section class="admin-show-card">
-            <div class="show-card-header">
-                <div>
-                    <p class="show-card-eyebrow">
-                        Multimedia
-                    </p>
-
-                    <h2 class="show-card-title">
-                        Fotos y videos
-                    </h2>
-
-                    <p class="show-card-description">
-                        Contenido multimedia asociado a esta ruta.
-                    </p>
-                </div>
-
-                <div class="show-card-icon">
+            <div class="admin-show-card-header">
+                <div class="admin-show-section-icon">
                     <Video
                         :size="17"
                         :stroke-width="2"
                     />
                 </div>
+
+                <div>
+                    <h2 class="admin-show-card-title">
+                        Fotos y videos
+                    </h2>
+
+                    <p class="admin-show-card-description">
+                        Contenido multimedia asociado a esta ruta.
+                    </p>
+                </div>
+
+                <div class="media-header-count">
+                    {{ getMediaCount() }}
+                    {{ getMediaCount() === 1 ? 'archivo' : 'archivos' }}
+                </div>
             </div>
 
-            <div class="show-card-body">
+            <div class="admin-show-card-body">
+                <!-- SIN ARCHIVOS -->
                 <div
-                    v-if="!route.media?.length"
+                    v-if="!props.route.media?.length"
                     class="empty-media"
                 >
                     <div class="empty-media-icon">
                         <ImagePlus
-                            :size="22"
+                            :size="25"
                             :stroke-width="1.8"
                         />
                     </div>
@@ -358,34 +377,32 @@ defineOptions({
                     </span>
                 </div>
 
+                <!-- ARCHIVOS -->
                 <div
                     v-else
                     class="media-grid"
                 >
-                    <div
-                        v-for="media in route.media"
+                    <article
+                        v-for="media in props.route.media"
                         :key="media.id"
                         class="media-card"
                     >
                         <div class="media-preview">
                             <!-- IMAGEN -->
-                            <template
-                                v-if="isImage(media)"
-                            >
+                            <template v-if="isImage(media)">
                                 <img
                                     :src="getMediaUrl(media.file)"
                                     :alt="
                                         media.title ||
-                                        `Imagen de ${route.title}`
+                                        `Imagen de ${props.route.title}`
                                     "
                                     class="media-image"
+                                    loading="lazy"
                                 />
                             </template>
 
                             <!-- VIDEO -->
-                            <template
-                                v-else-if="isVideo(media)"
-                            >
+                            <template v-else-if="isVideo(media)">
                                 <video
                                     :src="getMediaUrl(media.file)"
                                     class="media-video"
@@ -420,40 +437,50 @@ defineOptions({
                         </div>
 
                         <div class="media-info">
-                            <div class="media-type">
-                                <FileImage
-                                    v-if="isImage(media)"
-                                    :size="13"
-                                    :stroke-width="2"
-                                />
+                            <div class="media-info-top">
+                                <span class="media-type">
+                                    <FileImage
+                                        v-if="isImage(media)"
+                                        :size="13"
+                                        :stroke-width="2"
+                                    />
 
-                                <Video
-                                    v-else-if="isVideo(media)"
-                                    :size="13"
-                                    :stroke-width="2"
-                                />
+                                    <Video
+                                        v-else-if="isVideo(media)"
+                                        :size="13"
+                                        :stroke-width="2"
+                                    />
 
-                                {{
-                                    isVideo(media)
-                                        ? 'Video'
-                                        : isImage(media)
-                                            ? 'Fotografía'
-                                            : 'Archivo'
-                                }}
+                                    {{
+                                        isVideo(media)
+                                            ? 'Video'
+                                            : isImage(media)
+                                                ? 'Fotografía'
+                                                : 'Archivo'
+                                    }}
+                                </span>
+
+                                <span class="media-order">
+                                    Orden {{ media.sort_order }}
+                                </span>
                             </div>
 
                             <p
                                 v-if="media.title"
                                 class="media-title"
+                                :title="media.title"
                             >
                                 {{ media.title }}
                             </p>
 
-                            <p class="media-order">
-                                Orden {{ media.sort_order }}
+                            <p
+                                v-else
+                                class="media-no-title"
+                            >
+                                Sin título
                             </p>
                         </div>
-                    </div>
+                    </article>
                 </div>
             </div>
         </section>
@@ -464,136 +491,232 @@ defineOptions({
 .admin-page {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 18px;
+    width: 100%;
+    min-width: 0;
+    color: var(--sc-page-text);
+}
+
+.admin-page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 4px;
+}
+
+.admin-page-eyebrow {
+    margin: 0 0 5px;
+    color: var(--sc-page-blue);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.admin-page-title {
+    margin: 0;
+    color: var(--sc-page-text);
+    font-size: 27px;
+    font-weight: 750;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
+}
+
+.admin-page-subtitle {
+    margin: 7px 0 0;
+    color: var(--sc-page-text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 .admin-page-header-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 9px;
+    flex-shrink: 0;
 }
+
+.admin-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 40px;
+    padding: 0 14px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.2s ease,
+        background-color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.admin-btn:hover {
+    transform: translateY(-1px);
+}
+
+.admin-btn-secondary {
+    border-color: var(--sc-page-border);
+    background: #ffffff;
+    color: var(--sc-page-text);
+}
+
+.admin-btn-secondary:hover {
+    border-color: #d3dbe4;
+    background: #fbfcfd;
+}
+
+/* TARJETAS */
 
 .admin-show-card {
     width: 100%;
+    min-width: 0;
     overflow: hidden;
+    border: 1px solid var(--sc-page-border);
+    border-radius: var(--sc-page-radius);
+    background: #ffffff;
+    box-shadow:
+        0 4px 15px rgba(27, 62, 90, 0.035),
+        0 1px 3px rgba(27, 62, 90, 0.025);
+    box-sizing: border-box;
 }
 
-.show-card-header {
+.admin-show-card-header {
     display: flex;
     align-items: flex-start;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 21px 24px;
-    border-bottom: 1px solid var(--sc-page-border);
+    gap: 11px;
+    padding: 22px 22px 0;
 }
 
-.show-card-eyebrow {
-    margin: 0 0 5px;
-    color: #91a1ac;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-}
-
-.show-card-title {
-    margin: 0;
-    color: var(--sc-page-text);
-    font-size: 16px;
-    font-weight: 700;
-}
-
-.show-card-description {
-    margin: 6px 0 0;
-    color: #8999a4;
-    font-size: 12px;
-    line-height: 1.55;
-}
-
-.show-card-icon {
+.admin-show-section-icon {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 34px;
     height: 34px;
     flex: 0 0 34px;
-    border: 1px solid #dce9ef;
     border-radius: 9px;
-    background: #f5f9fb;
-    color: #7592a3;
+    background: var(--sc-page-blue-light);
+    color: var(--sc-page-blue-dark);
 }
 
-.show-card-body {
-    padding: 23px 24px;
+.admin-show-card-title {
+    margin: 0;
+    color: var(--sc-page-text);
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.3;
 }
 
-.info-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 20px;
+.admin-show-card-description {
+    margin: 4px 0 0;
+    color: var(--sc-page-text-secondary);
+    font-size: 11px;
+    line-height: 1.5;
 }
 
-.info-field {
+.admin-show-card-body {
+    min-width: 0;
+    padding: 22px;
+}
+
+.media-header-count {
+    margin-left: auto;
+    padding: 6px 10px;
+    border: 1px solid #dceaf2;
+    border-radius: 8px;
+    background: #f3f9fc;
+    color: var(--sc-page-blue-dark);
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* PERFIL */
+
+.route-profile {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 22px;
+    padding: 16px;
+    border: 1px solid var(--sc-page-border);
+    border-radius: 10px;
+    background: #fbfcfd;
+}
+
+.route-profile-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 76px;
+    height: 76px;
+    flex: 0 0 76px;
+    border: 1px solid var(--sc-page-border);
+    border-radius: 10px;
+    background: #ffffff;
+    color: var(--sc-page-blue-dark);
+}
+
+.route-profile-info {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column;
     min-width: 0;
 }
 
-.info-field-full {
-    grid-column: 1 / -1;
-}
-
-.info-label {
-    display: block;
-    margin-bottom: 7px;
-    color: #91a1ac;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-}
-
-.info-value {
+.route-profile-info h3 {
+    margin: 0;
     color: var(--sc-page-text);
-    font-size: 13px;
-    line-height: 1.55;
-}
-
-.info-value-title {
-    font-size: 15px;
+    font-size: 18px;
     font-weight: 700;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
 }
 
-.info-description {
-    max-width: 900px;
-    color: #526574;
-    white-space: pre-line;
-}
-
-.info-empty {
-    color: #a3b0b8;
-    font-size: 12px;
-    font-style: italic;
+.route-profile-subtitle {
+    margin-top: 4px;
+    color: var(--sc-page-muted);
+    font-size: 11px;
 }
 
 .status-badge {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
-    min-height: 27px;
+    width: fit-content;
+    min-height: 25px;
+    margin-top: 9px;
     padding: 0 9px;
     border-radius: 999px;
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 10px;
+    font-weight: 650;
+    line-height: 1.3;
+    white-space: nowrap;
 }
 
 .status-dot {
     width: 6px;
     height: 6px;
+    flex: 0 0 6px;
     border-radius: 50%;
 }
 
 .status-active {
-    background: #eaf8f3;
-    color: #16815f;
+    background: var(--sc-page-green-light);
+    color: #12927b;
 }
 
 .status-active .status-dot {
@@ -601,53 +724,107 @@ defineOptions({
 }
 
 .status-inactive {
-    background: #f1f4f6;
-    color: #71808a;
+    background: var(--sc-page-red-light);
+    color: #c73542;
 }
 
 .status-inactive .status-dot {
-    background: #9aa8b0;
+    background: #e05260;
 }
 
-.order-badge {
+/* DESCRIPCIÓN */
+
+.route-description {
+    margin-bottom: 22px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--sc-page-border-soft);
+}
+
+.route-section-label {
+    margin: 0 0 8px;
+    color: var(--sc-page-text);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.route-description p {
+    margin: 0;
+    color: var(--sc-page-text-secondary);
+    font-size: 12px;
+    line-height: 1.7;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+.route-description .route-empty-text {
+    color: var(--sc-page-muted);
+    font-style: italic;
+}
+
+/* DATOS Y ESTADÍSTICAS */
+
+.route-details-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    overflow: hidden;
+    border: 1px solid var(--sc-page-border);
+    border-radius: 9px;
+    background: var(--sc-page-border);
+}
+
+.route-detail {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+    min-height: 75px;
+    padding: 13px;
+    background: #ffffff;
+}
+
+.route-detail-label {
+    color: var(--sc-page-muted);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+}
+
+.order-badge,
+.route-total-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     min-width: 30px;
     height: 28px;
-    padding: 0 8px;
+    padding: 0 9px;
     border-radius: 8px;
-    background: #eaf6fc;
-    color: #1769a8;
+    background: var(--sc-page-blue-light);
+    color: var(--sc-page-blue-dark);
     font-size: 12px;
     font-weight: 700;
 }
 
-.stat-value {
+.route-stat-value {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    color: #1769a8;
+    gap: 7px;
+    color: var(--sc-page-blue-dark);
     font-size: 14px;
     font-weight: 700;
 }
 
-.stat-value-total {
-    min-width: 32px;
-    height: 28px;
-    justify-content: center;
-    padding: 0 9px;
-    border-radius: 8px;
-    background: #eaf6fc;
-}
+/* ESTADO VACÍO */
 
 .empty-media {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 220px;
-    padding: 30px;
+    flex-direction: column;
+    min-height: 230px;
+    padding: 30px 20px;
     border: 1px dashed #d9e5eb;
     border-radius: 12px;
     background: #fafcfd;
@@ -658,24 +835,28 @@ defineOptions({
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
-    margin-bottom: 12px;
+    width: 50px;
+    height: 50px;
+    margin-bottom: 13px;
     border-radius: 12px;
-    background: #eaf6fc;
-    color: #5f9fc1;
+    background: var(--sc-page-blue-light);
+    color: var(--sc-page-blue-dark);
 }
 
 .empty-media strong {
     color: var(--sc-page-text);
     font-size: 13px;
+    font-weight: 700;
 }
 
 .empty-media span {
-    margin-top: 4px;
-    color: #91a1ac;
+    margin-top: 5px;
+    color: var(--sc-page-muted);
     font-size: 11px;
+    line-height: 1.5;
 }
+
+/* GALERÍA */
 
 .media-grid {
     display: grid;
@@ -686,9 +867,19 @@ defineOptions({
 .media-card {
     min-width: 0;
     overflow: hidden;
-    border: 1px solid #dce7ec;
-    border-radius: 12px;
+    border: 1px solid var(--sc-page-border);
+    border-radius: 11px;
     background: #ffffff;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        transform 0.2s ease;
+}
+
+.media-card:hover {
+    transform: translateY(-2px);
+    border-color: #c9dfec;
+    box-shadow: 0 6px 16px rgba(27, 62, 90, 0.07);
 }
 
 .media-preview {
@@ -697,7 +888,7 @@ defineOptions({
     align-items: center;
     justify-content: center;
     width: 100%;
-    height: 230px;
+    height: 225px;
     overflow: hidden;
     background: #f2f6f8;
 }
@@ -720,16 +911,16 @@ defineOptions({
 
 .video-badge {
     position: absolute;
-    top: 9px;
-    left: 9px;
+    top: 10px;
+    left: 10px;
     z-index: 2;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    min-height: 23px;
-    padding: 0 7px;
+    gap: 5px;
+    min-height: 24px;
+    padding: 0 8px;
     border-radius: 6px;
-    background: rgba(23, 105, 168, 0.92);
+    background: rgba(23, 105, 168, 0.94);
     color: #ffffff;
     font-size: 10px;
     font-weight: 700;
@@ -738,10 +929,10 @@ defineOptions({
 
 .unknown-media {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    flex-direction: column;
+    gap: 9px;
     width: 100%;
     height: 100%;
     color: #94a3b8;
@@ -751,43 +942,64 @@ defineOptions({
     font-size: 11px;
 }
 
+/* INFORMACIÓN DEL ARCHIVO */
+
 .media-info {
-    padding: 11px 12px 12px;
+    padding: 12px 13px 14px;
+    border-top: 1px solid var(--sc-page-border-soft);
+}
+
+.media-info-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
 }
 
 .media-type {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 5px;
-    color: #1769a8;
+    color: var(--sc-page-blue-dark);
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
 }
 
+.media-order {
+    color: var(--sc-page-muted);
+    font-size: 10px;
+    white-space: nowrap;
+}
+
 .media-title {
-    margin: 6px 0 0;
+    margin: 8px 0 0;
     overflow: hidden;
     color: var(--sc-page-text);
     font-size: 12px;
-    font-weight: 600;
-    line-height: 1.4;
+    font-weight: 650;
+    line-height: 1.45;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.media-order {
-    margin: 5px 0 0;
-    color: #94a3b8;
-    font-size: 10px;
+.media-no-title {
+    margin: 8px 0 0;
+    color: var(--sc-page-muted);
+    font-size: 11px;
+    font-style: italic;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 1100px) {
+    .media-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 900px) {
-    .info-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .media-grid {
+    .route-details-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
@@ -797,26 +1009,92 @@ defineOptions({
         gap: 16px;
     }
 
+    .admin-page-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 16px;
+    }
+
     .admin-page-header-actions {
         width: 100%;
     }
 
     .admin-page-header-actions .admin-btn {
         flex: 1;
-        justify-content: center;
     }
 
-    .show-card-header {
+    .admin-show-card-header {
+        padding: 18px 18px 0;
+    }
+
+    .admin-show-card-body {
         padding: 18px;
     }
 
-    .show-card-body {
-        padding: 18px;
+    .route-profile {
+        align-items: flex-start;
+        margin-bottom: 18px;
     }
 
-    .info-grid {
+    .route-description {
+        margin-bottom: 18px;
+    }
+
+    .media-preview {
+        height: 205px;
+    }
+}
+
+@media (max-width: 520px) {
+    .admin-page-title {
+        font-size: 24px;
+    }
+
+    .admin-page-header-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .admin-page-header-actions .admin-btn {
+        flex: none;
+        width: 100%;
+    }
+
+    .admin-show-card-header {
+        gap: 9px;
+    }
+
+    .admin-show-card-description {
+        max-width: 250px;
+    }
+
+    .media-header-count {
+        padding: 5px 7px;
+        font-size: 10px;
+    }
+
+    .route-profile {
+        gap: 12px;
+        padding: 12px;
+    }
+
+    .route-profile-icon {
+        width: 58px;
+        height: 58px;
+        flex-basis: 58px;
+    }
+
+    .route-profile-info h3 {
+        font-size: 15px;
+    }
+
+    .route-details-grid {
         grid-template-columns: 1fr;
-        gap: 17px;
+    }
+
+    .route-detail {
+        min-height: auto;
+        padding: 12px;
     }
 
     .media-grid {
@@ -824,7 +1102,7 @@ defineOptions({
     }
 
     .media-preview {
-        height: 220px;
+        height: 230px;
     }
 }
 </style>

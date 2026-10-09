@@ -45,4 +45,9 @@ class Sale extends Model
     {
         return $this->hasMany(SalePayment::class);
     }
+
+    public function deliveryAddress(): HasOne
+    {
+        return $this->hasOne(DeliveryAddress::class);
+    }
 }
