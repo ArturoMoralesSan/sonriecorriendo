@@ -1,9 +1,11 @@
+
 <script setup lang="ts">
 import {
     Head,
     Link,
     useForm,
 } from '@inertiajs/vue3';
+
 import {
     ArrowLeft,
     Check,
@@ -11,6 +13,7 @@ import {
     Save,
     Video,
 } from 'lucide-vue-next';
+
 import { ref } from 'vue';
 
 import ImageGallery from '@/components/admin/ImageGallery.vue';
@@ -69,6 +72,14 @@ function getMediaType(file: string): 'image' | 'video' {
         : 'image';
 }
 
+/*
+|--------------------------------------------------------------------------
+| Multimedia existente
+|--------------------------------------------------------------------------
+| Inicializamos la galería con todos los archivos de la ruta.
+| Estos registros no se vuelven a subir al editar.
+*/
+
 const selectedMedia = ref<SelectedMediaItem[]>(
     (props.route.media ?? []).map((media) => ({
         id: media.id,
@@ -81,10 +92,16 @@ const selectedMedia = ref<SelectedMediaItem[]>(
     })),
 );
 
+/*
+|--------------------------------------------------------------------------
+| Identificadores originales
+|--------------------------------------------------------------------------
+| Se usan exclusivamente para identificar cuáles archivos existentes
+| fueron retirados expresamente de la galería.
+*/
+
 const originalMediaIds = ref<number[]>(
-    (props.route.media ?? []).map(
-        (media) => media.id,
-    ),
+    (props.route.media ?? []).map((media) => media.id),
 );
 
 const form = useForm<{
@@ -112,19 +129,27 @@ const form = useForm<{
     media_order: [],
 });
 
+/*
+|--------------------------------------------------------------------------
+| Actualización de la galería
+|--------------------------------------------------------------------------
+| ImageGallery debe emitir la lista completa actualizada, no solamente
+| los archivos nuevos. No reemplazamos la lista con el evento "add".
+*/
+
 function handleGalleryUpdate(
     items: SelectedMediaItem[],
 ): void {
-    selectedMedia.value = items;
+    selectedMedia.value = [...items];
 }
 
-function handleGalleryAdd(
-    items: SelectedMediaItem[],
-): void {
-    selectedMedia.value = [
-        ...items,
-    ];
-}
+/*
+|--------------------------------------------------------------------------
+| Sincronizar archivos nuevos
+|--------------------------------------------------------------------------
+| Solamente enviamos archivos File nuevos. Los archivos existentes
+| permanecen en la base de datos y no se vuelven a subir.
+*/
 
 function syncMedia(): void {
     form.media = selectedMedia.value
@@ -141,19 +166,41 @@ function syncMedia(): void {
         }));
 }
 
+/*
+|--------------------------------------------------------------------------
+| Sincronizar eliminaciones explícitas
+|--------------------------------------------------------------------------
+| Solo se consideran eliminados los archivos que existían al abrir
+| el formulario y que ya no están en la lista actual.
+*/
+
 function syncRemovedMedia(): void {
+    const currentIds = new Set(
+        selectedMedia.value
+            .filter(
+                (item) =>
+                    typeof item.id === 'number',
+            )
+            .map((item) => item.id as number),
+    );
+
     form.remove_media = originalMediaIds.value.filter(
-        (id) =>
-            !selectedMedia.value.some(
-                (item) => item.id === id,
-            ),
+        (id) => !currentIds.has(id),
     );
 }
+
+/*
+|--------------------------------------------------------------------------
+| Sincronizar orden de archivos existentes
+|--------------------------------------------------------------------------
+*/
 
 function syncMediaOrder(): void {
     form.media_order = selectedMedia.value
         .filter(
-            (item): item is SelectedMediaItem & {
+            (
+                item,
+            ): item is SelectedMediaItem & {
                 id: number;
             } =>
                 item.id !== null &&
@@ -167,6 +214,12 @@ function syncMediaOrder(): void {
                     : index,
         }));
 }
+
+/*
+|--------------------------------------------------------------------------
+| Guardar cambios
+|--------------------------------------------------------------------------
+*/
 
 function submit(): void {
     syncMedia();
@@ -211,9 +264,7 @@ defineOptions({
     <Head title="Editar ruta" />
 
     <div class="admin-page">
-        <!-- =================================================
-             HEADER
-        ================================================== -->
+        <!-- HEADER -->
 
         <header class="admin-page-header">
             <div>
@@ -240,15 +291,12 @@ defineOptions({
                         :size="14"
                         :stroke-width="2"
                     />
-
                     Regresar
                 </Link>
             </div>
         </header>
 
-        <!-- =================================================
-             GENERAL
-        ================================================== -->
+        <!-- INFORMACIÓN GENERAL -->
 
         <section class="admin-form-card">
             <div class="show-card-header">
@@ -283,9 +331,7 @@ defineOptions({
                             class="form-label"
                         >
                             Título
-                            <span class="required">
-                                *
-                            </span>
+                            <span class="required">*</span>
                         </label>
 
                         <input
@@ -370,9 +416,7 @@ defineOptions({
                             />
 
                             <span class="status-switch-control">
-                                <span
-                                    class="status-switch-check"
-                                >
+                                <span class="status-switch-check">
                                     <Check
                                         :size="11"
                                         :stroke-width="2.5"
@@ -381,9 +425,7 @@ defineOptions({
                             </span>
 
                             <span class="status-switch-text">
-                                <strong>
-                                    Ruta activa
-                                </strong>
+                                <strong>Ruta activa</strong>
 
                                 <small>
                                     Disponible para mostrarse
@@ -402,9 +444,7 @@ defineOptions({
             </div>
         </section>
 
-        <!-- =================================================
-             MULTIMEDIA
-        ================================================== -->
+        <!-- MULTIMEDIA -->
 
         <section class="admin-form-card">
             <div class="show-card-header">
@@ -418,8 +458,9 @@ defineOptions({
                     </h2>
 
                     <p class="show-card-description">
-                        Consulta el contenido multimedia relacionado
-                        con esta ruta.
+                        Los archivos existentes se conservan.
+                        Agrega nuevos archivos o quita únicamente
+                        los que ya no necesites.
                     </p>
                 </div>
 
@@ -435,26 +476,37 @@ defineOptions({
                 <ImageGallery
                     :model-value="selectedMedia"
                     label="Multimedia de la ruta"
-                    hint="Aquí se muestran las fotografías y videos asociados a esta ruta."
+                    hint="Los archivos actuales permanecen al guardar. Solo se envían los archivos nuevos."
                     accept="image/jpeg,image/png,image/webp,image/jpg,video/mp4,video/webm,video/quicktime"
                     :max-images="20"
                     :max-size="50"
                     @update:model-value="handleGalleryUpdate"
-                    @add="handleGalleryAdd"
                 />
 
                 <div
-                    v-if="form.errors['media']"
+                    v-if="form.errors.media"
                     class="form-error media-error"
                 >
-                    {{ form.errors['media'] }}
+                    {{ form.errors.media }}
+                </div>
+
+                <div
+                    v-if="form.errors.remove_media"
+                    class="form-error media-error"
+                >
+                    {{ form.errors.remove_media }}
+                </div>
+
+                <div
+                    v-if="form.errors.media_order"
+                    class="form-error media-error"
+                >
+                    {{ form.errors.media_order }}
                 </div>
             </div>
         </section>
 
-        <!-- =================================================
-             ACTIONS
-        ================================================== -->
+        <!-- ACCIONES -->
 
         <div class="form-actions">
             <Link
@@ -465,7 +517,6 @@ defineOptions({
                     :size="14"
                     :stroke-width="2"
                 />
-
                 Cancelar
             </Link>
 
@@ -491,28 +542,16 @@ defineOptions({
 </template>
 
 <style scoped>
-/* =========================================================
-   PAGE
-   ========================================================= */
-
 .admin-page {
     display: flex;
     flex-direction: column;
     gap: 20px;
 }
 
-/* =========================================================
-   CARD
-   ========================================================= */
-
 .admin-form-card {
     width: 100%;
     overflow: hidden;
 }
-
-/* =========================================================
-   CARD HEADER
-   ========================================================= */
 
 .show-card-header {
     display: flex;
@@ -559,17 +598,9 @@ defineOptions({
     color: #7592a3;
 }
 
-/* =========================================================
-   CARD BODY
-   ========================================================= */
-
 .show-card-body {
     padding: 23px 24px;
 }
-
-/* =========================================================
-   FORM
-   ========================================================= */
 
 .form-grid {
     display: grid;
@@ -654,10 +685,6 @@ defineOptions({
     margin-top: 12px;
 }
 
-/* =========================================================
-   STATUS
-   ========================================================= */
-
 .status-switch {
     display: flex;
     align-items: center;
@@ -734,10 +761,6 @@ defineOptions({
     font-size: 10px;
 }
 
-/* =========================================================
-   ACTIONS
-   ========================================================= */
-
 .form-actions {
     display: flex;
     align-items: center;
@@ -745,10 +768,6 @@ defineOptions({
     gap: 10px;
     padding-bottom: 4px;
 }
-
-/* =========================================================
-   RESPONSIVE
-   ========================================================= */
 
 @media (max-width: 700px) {
     .admin-page {
