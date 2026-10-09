@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Models\DeliveryAddress;
 use App\Models\Sale;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -21,6 +22,7 @@ class OrderController extends Controller
             ->with([
                 'items.product:id,name,image',
                 'payments.paymentMethod:id,name',
+                'deliveryAddress.branch',
             ])
             ->where('customer_id', $request->user()->id)
             ->when($search !== '', function ($query) use ($search) {
@@ -51,20 +53,14 @@ class OrderController extends Controller
     }
 
     /**
-     * Mostrar detalle de un pedido.
+     * Muestra el detalle de un pedido.
+     *
+     * El cliente solamente puede consultar sus propios pedidos.
      */
     public function show(
         Request $request,
         Sale $sale
     ): Response {
-        /*
-        |--------------------------------------------------------------------------
-        | SEGURIDAD
-        |--------------------------------------------------------------------------
-        | El cliente solamente puede consultar sus propios pedidos.
-        |--------------------------------------------------------------------------
-        */
-
         abort_unless(
             (int) $sale->customer_id === (int) $request->user()->id,
             404
@@ -73,8 +69,12 @@ class OrderController extends Controller
         $sale->load([
             'items.product:id,name,image,price',
             'payments.paymentMethod:id,name',
+            'deliveryAddress.branch',
         ]);
 
+        /*
+         * Productos del pedido.
+         */
         $items = $sale->items
             ->map(function ($item) {
                 return [
@@ -90,6 +90,9 @@ class OrderController extends Controller
             })
             ->values();
 
+        /*
+         * Pagos del pedido.
+         */
         $payments = $sale->payments
             ->map(function ($payment) {
                 return [
@@ -103,6 +106,50 @@ class OrderController extends Controller
             })
             ->values();
 
+        /*
+         * Dirección de entrega y sucursal relacionada.
+         */
+        $deliveryAddress = $sale->deliveryAddress;
+        $branch = $deliveryAddress?->branch;
+
+        $deliveryData = null;
+
+        if ($deliveryAddress) {
+            $deliveryData = [
+                'delivery_method' => $deliveryAddress->delivery_method,
+                'branch_id' => $deliveryAddress->branch_id,
+
+                'branch_name' => $deliveryAddress->branch_name
+                    ?? $branch?->name,
+
+                'branch_address' => $deliveryAddress->branch_address
+                    ?? $branch?->full_address,
+
+                'street' => $deliveryAddress->street,
+                'exterior_number' => $deliveryAddress->exterior_number,
+                'interior_number' => $deliveryAddress->interior_number,
+                'neighborhood' => $deliveryAddress->neighborhood,
+                'postal_code' => $deliveryAddress->postal_code,
+                'city' => $deliveryAddress->city,
+                'state' => $deliveryAddress->state,
+                'references' => $deliveryAddress->references,
+
+                'branch' => $branch ? [
+                    'id' => $branch->id,
+                    'name' => $branch->name,
+                    'street' => $branch->street,
+                    'exterior_number' => $branch->exterior_number,
+                    'interior_number' => $branch->interior_number,
+                    'neighborhood' => $branch->neighborhood,
+                    'postal_code' => $branch->postal_code,
+                    'city' => $branch->city,
+                    'state' => $branch->state,
+                    'phone' => $branch->phone,
+                    'full_address' => $branch->full_address,
+                ] : null,
+            ];
+        }
+
         return Inertia::render('customer/orders/Show', [
             'order' => [
                 'id' => $sale->id,
@@ -115,6 +162,7 @@ class OrderController extends Controller
                 'notes' => $sale->notes,
                 'sold_at' => $sale->sold_at?->toISOString(),
                 'created_at' => $sale->created_at?->toISOString(),
+                'delivery_address' => $deliveryData,
                 'items' => $items,
                 'payments' => $payments,
             ],

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Branch;
+use App\Models\DeliveryAddress;
 use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Sale;
@@ -33,6 +35,7 @@ class SaleController extends Controller
                 'customer',
                 'items.product',
                 'payments.paymentMethod',
+                'deliveryAddress.branch',
             ])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($query) use ($search) {
@@ -91,9 +94,12 @@ class SaleController extends Controller
                 'code',
             ]);
 
+        $branches = $this->activeBranches();
+
         return Inertia::render('admin/sales/Create', [
             'products' => $products,
             'paymentMethods' => $paymentMethods,
+            'branches' => $branches,
         ]);
     }
 
@@ -134,7 +140,6 @@ class SaleController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-
         $validated = $request->validate([
             'customer_id' => [
                 'nullable',
@@ -233,13 +238,9 @@ class SaleController extends Controller
 
         try {
             $sale = DB::transaction(function () use ($validated) {
-
                 /*
-                 * ---------------------------------------------------------
-                 * Productos y stock
-                 * ---------------------------------------------------------
+                 * Productos y stock.
                  */
-
                 $productIds = collect($validated['items'])
                     ->pluck('product_id')
                     ->values()
@@ -252,11 +253,8 @@ class SaleController extends Controller
                     ->keyBy('id');
 
                 /*
-                 * ---------------------------------------------------------
-                 * Calcular productos y subtotal real
-                 * ---------------------------------------------------------
+                 * Calcular productos y subtotal real.
                  */
-
                 $items = [];
                 $calculatedSubtotal = 0;
 
@@ -265,29 +263,19 @@ class SaleController extends Controller
 
                     if (! $product) {
                         throw new \RuntimeException(
-                            'Uno de los productos seleccionados ya no existe.',
+                            'Uno de los productos seleccionados ya no existe.'
                         );
                     }
 
                     $quantity = (int) $item['quantity'];
 
-                    /*
-                     * El stock se valida antes de modificarlo.
-                     */
-
                     if ($product->stock < $quantity) {
                         throw new \RuntimeException(
-                            "No hay suficiente stock para el producto \"{$product->name}\". Stock disponible: {$product->stock}.",
+                            "No hay suficiente stock para el producto \"{$product->name}\". Stock disponible: {$product->stock}."
                         );
                     }
 
-                    /*
-                     * Guardamos el precio actual del producto
-                     * como precio histórico de la venta.
-                     */
-
                     $unitPrice = (float) $product->price;
-
                     $itemSubtotal = $unitPrice * $quantity;
 
                     $calculatedSubtotal += $itemSubtotal;
@@ -301,36 +289,24 @@ class SaleController extends Controller
                 }
 
                 /*
-                 * ---------------------------------------------------------
-                 * Descuento
-                 * ---------------------------------------------------------
+                 * Descuento.
                  */
-
                 $discount = min(
-                    max(
-                        (float) $validated['discount'],
-                        0,
-                    ),
-                    $calculatedSubtotal,
+                    max((float) $validated['discount'], 0),
+                    $calculatedSubtotal
                 );
 
                 /*
-                 * ---------------------------------------------------------
-                 * Total real
-                 * ---------------------------------------------------------
+                 * Total real.
                  */
-
                 $calculatedTotal = max(
                     $calculatedSubtotal - $discount,
-                    0,
+                    0
                 );
 
                 /*
-                 * ---------------------------------------------------------
-                 * Validar que los totales enviados coincidan
-                 * ---------------------------------------------------------
+                 * Validar los totales enviados.
                  */
-
                 if (
                     abs(
                         (float) $validated['subtotal'] -
@@ -338,7 +314,7 @@ class SaleController extends Controller
                     ) > 0.01
                 ) {
                     throw new \RuntimeException(
-                        'El subtotal de la venta no coincide con los productos seleccionados.',
+                        'El subtotal de la venta no coincide con los productos seleccionados.'
                     );
                 }
 
@@ -349,16 +325,13 @@ class SaleController extends Controller
                     ) > 0.01
                 ) {
                     throw new \RuntimeException(
-                        'El total de la venta no coincide con los productos seleccionados.',
+                        'El total de la venta no coincide con los productos seleccionados.'
                     );
                 }
 
                 /*
-                 * ---------------------------------------------------------
-                 * Pagos
-                 * ---------------------------------------------------------
+                 * Validar métodos de pago.
                  */
-
                 $paymentMethodIds = collect($validated['payments'])
                     ->pluck('payment_method_id')
                     ->unique()
@@ -371,175 +344,111 @@ class SaleController extends Controller
                     ->get()
                     ->keyBy('id');
 
-                if (
-                    $paymentMethods->count() !==
-                    count($paymentMethodIds)
-                ) {
+                if ($paymentMethods->count() !== count($paymentMethodIds)) {
                     throw new \RuntimeException(
-                        'Uno de los métodos de pago seleccionados no está disponible.',
+                        'Uno de los métodos de pago seleccionados no está disponible.'
                     );
                 }
 
                 $paymentsTotal = collect($validated['payments'])
-                    ->sum(function ($payment) {
-                        return (float) $payment['amount'];
-                    });
+                    ->sum(fn ($payment) => (float) $payment['amount']);
 
-                /*
-                 * No permitimos cobrar menos de lo necesario
-                 * para una venta.
-                 */
-
-                if (
-                    $paymentsTotal + 0.01 <
-                    $calculatedTotal
-                ) {
+                if ($paymentsTotal + 0.01 < $calculatedTotal) {
                     throw new \RuntimeException(
-                        'El importe de los pagos no cubre el total de la venta.',
+                        'El importe de los pagos no cubre el total de la venta.'
                     );
                 }
 
                 /*
-                 * Los pagos no pueden superar el total cuando
-                 * no existe efectivo.
-                 *
-                 * Si hay efectivo, el excedente representa cambio.
+                 * Validar pagos que no sean en efectivo.
                  */
-
                 $cashTotal = 0;
                 $nonCashTotal = 0;
 
                 foreach ($validated['payments'] as $payment) {
                     $paymentMethod = $paymentMethods->get(
-                        $payment['payment_method_id'],
+                        $payment['payment_method_id']
                     );
 
-                    if (
-                        $paymentMethod &&
-                        $paymentMethod->code === 'cash'
-                    ) {
+                    if ($paymentMethod && $paymentMethod->code === 'cash') {
                         $cashTotal += (float) $payment['amount'];
                     } else {
                         $nonCashTotal += (float) $payment['amount'];
                     }
                 }
 
-                if (
-                    $nonCashTotal >
-                    $calculatedTotal + 0.01
-                ) {
+                if ($nonCashTotal > $calculatedTotal + 0.01) {
                     throw new \RuntimeException(
-                        'Los pagos que no son en efectivo no pueden superar el total de la venta.',
+                        'Los pagos que no son en efectivo no pueden superar el total de la venta.'
                     );
                 }
 
                 /*
-                 * ---------------------------------------------------------
-                 * Estado real de la venta
-                 * ---------------------------------------------------------
+                 * Estado real de la venta.
                  */
-
                 $status = $validated['status'];
-
-                /*
-                 * Si la venta está marcada como pagada,
-                 * verificamos que realmente esté cubierta.
-                 */
 
                 if (
                     $status === 'paid' &&
-                    $paymentsTotal + 0.01 <
-                    $calculatedTotal
+                    $paymentsTotal + 0.01 < $calculatedTotal
                 ) {
                     throw new \RuntimeException(
-                        'Una venta marcada como pagada debe estar cubierta por completo.',
+                        'Una venta marcada como pagada debe estar cubierta por completo.'
                     );
                 }
 
-                /*
-                 * Si no está pagada y el importe cubre todo,
-                 * la dejamos como pagada.
-                 */
-
                 if (
                     $status === 'pending' &&
-                    $paymentsTotal + 0.01 >=
-                    $calculatedTotal
+                    $paymentsTotal + 0.01 >= $calculatedTotal
                 ) {
                     $status = 'paid';
                 }
 
                 /*
-                 * ---------------------------------------------------------
-                 * Folio
-                 * ---------------------------------------------------------
+                 * Folio.
                  */
-
                 $folio = $this->generateFolio();
 
                 /*
-                 * ---------------------------------------------------------
-                 * Crear venta
-                 * ---------------------------------------------------------
+                 * Crear venta.
                  */
-
                 $sale = Sale::create([
                     'folio' => $folio,
-
                     'customer_id' => $validated['customer_id'] ?? null,
-
                     'subtotal' => $calculatedSubtotal,
-
                     'discount' => $discount,
-
                     'total' => $calculatedTotal,
-
                     'sales_channel' => $validated['sales_channel'],
-
                     'status' => $status,
-
                     'notes' => $validated['notes'] ?? null,
-
                     'sold_at' => $validated['sold_at'] ?? now(),
                 ]);
 
                 /*
-                 * ---------------------------------------------------------
-                 * Crear partidas y descontar stock
-                 * ---------------------------------------------------------
+                 * Crear partidas y descontar stock.
                  */
-
                 foreach ($items as $item) {
                     $sale->items()->create([
                         'product_id' => $item['product']->id,
-
                         'quantity' => $item['quantity'],
-
                         'unit_price' => $item['unit_price'],
-
                         'subtotal' => $item['subtotal'],
                     ]);
 
                     $item['product']->decrement(
                         'stock',
-                        $item['quantity'],
+                        $item['quantity']
                     );
                 }
 
                 /*
-                 * ---------------------------------------------------------
-                 * Crear pagos
-                 * ---------------------------------------------------------
+                 * Crear pagos.
                  */
-
                 foreach ($validated['payments'] as $payment) {
                     $sale->payments()->create([
                         'payment_method_id' => $payment['payment_method_id'],
-
                         'amount' => $payment['amount'],
-
                         'reference' => $payment['reference'] ?? null,
-
                         'notes' => $payment['notes'] ?? null,
                     ]);
                 }
@@ -552,10 +461,10 @@ class SaleController extends Controller
                 'message' => "Venta {$sale->folio} creada correctamente.",
             ]);
 
-            return redirect()
-                ->route('admin.sales.index');
-
+            return redirect()->route('admin.sales.index');
         } catch (Throwable $exception) {
+            report($exception);
+
             return back()
                 ->withInput()
                 ->withErrors([
@@ -565,35 +474,32 @@ class SaleController extends Controller
     }
 
     /**
-     * Mostrar una venta.
+     * Mostrar una venta con su dirección y sucursal.
      */
-    public function show(
-        Sale $sale,
-    ): Response {
+    public function show(Sale $sale): Response
+    {
         $sale->load([
             'customer',
             'items.product',
             'payments.paymentMethod',
+            'deliveryAddress.branch',
         ]);
 
-        return Inertia::render(
-            'admin/sales/Show',
-            [
-                'sale' => $sale,
-            ],
-        );
+        return Inertia::render('admin/sales/Show', [
+            'sale' => $sale,
+        ]);
     }
 
     /**
      * Formulario de edición.
      */
-    public function edit(
-        Sale $sale,
-    ): Response {
+    public function edit(Sale $sale): Response
+    {
         $sale->load([
             'customer',
             'items.product',
             'payments.paymentMethod',
+            'deliveryAddress.branch',
         ]);
 
         $products = Product::query()
@@ -622,14 +528,14 @@ class SaleController extends Controller
                 'code',
             ]);
 
-        return Inertia::render(
-            'admin/sales/Edit',
-            [
-                'sale' => $sale,
-                'products' => $products,
-                'paymentMethods' => $paymentMethods,
-            ],
-        );
+        $branches = $this->activeBranches();
+
+        return Inertia::render('admin/sales/Edit', [
+            'sale' => $sale,
+            'products' => $products,
+            'paymentMethods' => $paymentMethods,
+            'branches' => $branches,
+        ]);
     }
 
     /**
@@ -637,7 +543,7 @@ class SaleController extends Controller
      */
     public function update(
         Request $request,
-        Sale $sale,
+        Sale $sale
     ): RedirectResponse {
         $validated = $request->validate([
             'status' => [
@@ -654,7 +560,6 @@ class SaleController extends Controller
 
         $sale->update([
             'status' => $validated['status'],
-
             'notes' => $validated['notes'] ?? null,
         ]);
 
@@ -663,44 +568,23 @@ class SaleController extends Controller
             'message' => "Venta {$sale->folio} actualizada correctamente.",
         ]);
 
-        return redirect()
-            ->route(
-                'admin.sales.show',
-                $sale,
-            );
+        return redirect()->route('admin.sales.show', $sale);
     }
 
     /**
-     * Cancelar/eliminar una venta.
+     * Cancelar una venta y devolver el stock.
      */
-    public function destroy(
-        Sale $sale,
-    ): RedirectResponse {
+    public function destroy(Sale $sale): RedirectResponse
+    {
         DB::transaction(function () use ($sale) {
-            $sale->load([
-                'items',
-            ]);
+            $sale->load('items');
 
-            /*
-             * Si la venta no estaba cancelada,
-             * devolvemos el stock.
-             */
-
-            if (
-                $sale->status !==
-                'cancelled'
-            ) {
+            if ($sale->status !== 'cancelled') {
                 foreach ($sale->items as $item) {
                     Product::query()
-                        ->where(
-                            'id',
-                            $item->product_id,
-                        )
+                        ->where('id', $item->product_id)
                         ->lockForUpdate()
-                        ->increment(
-                            'stock',
-                            $item->quantity,
-                        );
+                        ->increment('stock', $item->quantity);
                 }
             }
 
@@ -714,8 +598,31 @@ class SaleController extends Controller
             'message' => "Venta {$sale->folio} cancelada correctamente.",
         ]);
 
-        return redirect()
-            ->route('admin.sales.index');
+        return redirect()->route('admin.sales.index');
+    }
+
+    /**
+     * Obtener sucursales activas.
+     */
+    private function activeBranches()
+    {
+        return Branch::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get([
+                'id',
+                'name',
+                'street',
+                'exterior_number',
+                'interior_number',
+                'neighborhood',
+                'postal_code',
+                'city',
+                'state',
+                'phone',
+                'opening_time',
+                'closing_time',
+            ]);
     }
 
     /**
@@ -724,13 +631,10 @@ class SaleController extends Controller
     private function generateFolio(): string
     {
         do {
-            $folio =
-                'V-'.
-                now()->format('Ymd').
-                '-'.
-                strtoupper(
-                    Str::random(6),
-                );
+            $folio = 'V-'
+                . now()->format('Ymd')
+                . '-'
+                . strtoupper(Str::random(6));
         } while (
             Sale::query()
                 ->where('folio', $folio)

@@ -7,7 +7,9 @@ import {
     CreditCard,
     FileText,
     Hash,
+    MapPin,
     Package,
+    Store,
     Printer,
     Receipt,
     ShoppingCart,
@@ -57,6 +59,34 @@ interface SalePayment {
     payment_method?: PaymentMethod | null;
 }
 
+interface DeliveryAddress {
+    id?: number;
+    delivery_method?: string | null;
+    branch_id?: number | null;
+    branch_name?: string | null;
+    branch_address?: string | null;
+    street?: string | null;
+    exterior_number?: string | null;
+    interior_number?: string | null;
+    neighborhood?: string | null;
+    postal_code?: string | null;
+    city?: string | null;
+    state?: string | null;
+    references?: string | null;
+    branch?: {
+        id?: number;
+        name?: string | null;
+        street?: string | null;
+        exterior_number?: string | null;
+        interior_number?: string | null;
+        neighborhood?: string | null;
+        postal_code?: string | null;
+        city?: string | null;
+        state?: string | null;
+        phone?: string | null;
+    } | null;
+}
+
 interface Sale {
     id: number;
     customer_id?: number | null;
@@ -72,6 +102,7 @@ interface Sale {
     customer?: Customer | null;
     items?: SaleItem[] | null;
     payments?: SalePayment[] | null;
+    delivery_address?: DeliveryAddress | null;
 }
 
 const props = defineProps<{
@@ -210,6 +241,53 @@ const getProductImage = (
     }
 
     return `/storage/${product.image}`;
+};
+
+const deliveryAddress = computed<DeliveryAddress | null>(() => {
+    return props.sale?.delivery_address ?? null;
+});
+
+const getDeliveryMethodLabel = (address?: DeliveryAddress | null) => {
+    if (!address?.delivery_method) return 'No especificado';
+
+    const labels: Record<string, string> = {
+        home_delivery: 'Entrega a domicilio',
+        branch_pickup: 'Recoger en sucursal',
+    };
+
+    return labels[address.delivery_method] ?? address.delivery_method;
+};
+
+const getDeliveryAddressText = (address?: DeliveryAddress | null) => {
+    if (!address) return '';
+
+    if (address.delivery_method === 'branch_pickup') {
+        const branch = address.branch;
+        const branchAddress = address.branch_address
+            || (branch ? [
+                branch.street,
+                branch.exterior_number ? `No. ${branch.exterior_number}` : null,
+                branch.interior_number ? `Int. ${branch.interior_number}` : null,
+                branch.neighborhood,
+                branch.postal_code ? `C.P. ${branch.postal_code}` : null,
+                branch.city,
+                branch.state,
+            ].filter(Boolean).join(', ') : '');
+
+        return [address.branch_name || branch?.name, branchAddress]
+            .filter(Boolean)
+            .join(' — ');
+    }
+
+    return [
+        address.street,
+        address.exterior_number ? `No. ${address.exterior_number}` : null,
+        address.interior_number ? `Int. ${address.interior_number}` : null,
+        address.neighborhood,
+        address.postal_code ? `C.P. ${address.postal_code}` : null,
+        address.city,
+        address.state,
+    ].filter(Boolean).join(', ');
 };
 
 /*
@@ -1181,6 +1259,60 @@ const paymentDifference = computed(() => {
                     </div>
                 </section>
 
+                <!-- DELIVERY ADDRESS / BRANCH -->
+                <section
+                    v-if="deliveryAddress"
+                    class="content-card"
+                >
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <div class="card-icon">
+                                <Store
+                                    v-if="deliveryAddress.delivery_method === 'branch_pickup'"
+                                    :size="19"
+                                />
+                                <MapPin v-else :size="19" />
+                            </div>
+                            <div>
+                                <h2>Entrega</h2>
+                                <p>Dirección o sucursal asociada a la venta.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-list">
+                        <div class="info-row">
+                            <span>Modalidad</span>
+                            <strong>{{ getDeliveryMethodLabel(deliveryAddress) }}</strong>
+                        </div>
+                        <div
+                            v-if="deliveryAddress.branch_name || deliveryAddress.branch?.name"
+                            class="info-row"
+                        >
+                            <span>Sucursal</span>
+                            <strong>{{ deliveryAddress.branch_name || deliveryAddress.branch?.name }}</strong>
+                        </div>
+                        <div class="delivery-address-content">
+                            <MapPin :size="17" />
+                            <span>{{ getDeliveryAddressText(deliveryAddress) || 'No hay dirección registrada.' }}</span>
+                        </div>
+                        <div
+                            v-if="deliveryAddress.references"
+                            class="delivery-references"
+                        >
+                            <strong>Referencias</strong>
+                            <span>{{ deliveryAddress.references }}</span>
+                        </div>
+                        <div
+                            v-if="deliveryAddress.branch?.phone"
+                            class="info-row"
+                        >
+                            <span>Teléfono</span>
+                            <strong>{{ deliveryAddress.branch.phone }}</strong>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- INFORMATION -->
                 <section class="content-card">
                     <div class="card-header">
@@ -1382,6 +1514,29 @@ const paymentDifference = computed(() => {
                     <strong>
                         {{ props.sale.customer.email }}
                     </strong>
+                </div>
+            </div>
+
+            <!-- DELIVERY -->
+            <div v-if="deliveryAddress" class="print-section">
+                <h2>Entrega</h2>
+                <div class="print-info print-delivery-info">
+                    <div>
+                        <span>Modalidad</span>
+                        <strong>{{ getDeliveryMethodLabel(deliveryAddress) }}</strong>
+                    </div>
+                    <div v-if="deliveryAddress.branch_name || deliveryAddress.branch?.name">
+                        <span>Sucursal</span>
+                        <strong>{{ deliveryAddress.branch_name || deliveryAddress.branch?.name }}</strong>
+                    </div>
+                    <div>
+                        <span>Dirección</span>
+                        <strong>{{ getDeliveryAddressText(deliveryAddress) || 'No registrada' }}</strong>
+                    </div>
+                    <div v-if="deliveryAddress.references">
+                        <span>Referencias</span>
+                        <strong>{{ deliveryAddress.references }}</strong>
+                    </div>
                 </div>
             </div>
 
@@ -2253,6 +2408,56 @@ const paymentDifference = computed(() => {
     display: flex;
     justify-content: space-between;
     margin-top: 20px;
+}
+
+/* =========================================================
+   DELIVERY ADDRESS
+   ========================================================= */
+
+.delivery-address-content {
+    align-items: flex-start;
+    color: #526174;
+    display: flex;
+    font-size: 12px;
+    gap: 8px;
+    line-height: 1.65;
+    padding: 12px 0;
+}
+
+.delivery-address-content :deep(svg) {
+    color: var(--sc-primary, #249edb);
+    flex: 0 0 auto;
+    margin-top: 2px;
+}
+
+.delivery-references {
+    border-top: 1px solid #edf1f5;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 0;
+}
+
+.delivery-references strong {
+    color: var(--sc-text, #172b4d);
+    font-size: 12px;
+}
+
+.delivery-references span {
+    color: #718096;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-line;
+}
+
+.print-delivery-info {
+    border-top: 0;
+    border-bottom: 0;
+    padding: 0;
+}
+
+.print-delivery-info > div {
+    align-items: flex-start;
 }
 
 /* =========================================================
