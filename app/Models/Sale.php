@@ -15,6 +15,8 @@ class Sale extends Model
     protected $fillable = [
         'folio',
         'customer_id',
+        'customer_name',
+        'customer_email',
         'mercadopago_order_id',
         'subtotal',
         'discount',

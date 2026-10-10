@@ -10,6 +10,7 @@ use App\Services\MercadoPagoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -24,7 +25,35 @@ class SaleController extends Controller
         Request $request,
         MercadoPagoService $mercadoPago
     ): JsonResponse {
+        $isGuest = ! $request->user();
+
         $validated = Validator::make($request->all(), [
+            /*
+            |--------------------------------------------------------------------------
+            | Datos del cliente
+            |--------------------------------------------------------------------------
+            */
+
+            'customer_name' => [
+                Rule::requiredIf($isGuest),
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'customer_email' => [
+                Rule::requiredIf($isGuest),
+                'nullable',
+                'email',
+                'max:255',
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Modalidad de entrega
+            |--------------------------------------------------------------------------
+            */
+
             'delivery_method' => [
                 'required',
                 Rule::in([
@@ -40,6 +69,12 @@ class SaleController extends Controller
                 Rule::exists('branches', 'id')
                     ->where('is_active', true),
             ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Dirección de entrega a domicilio
+            |--------------------------------------------------------------------------
+            */
 
             'street' => [
                 'required_if:delivery_method,' . DeliveryAddress::METHOD_HOME,
@@ -95,10 +130,18 @@ class SaleController extends Controller
                 'max:2000',
             ],
         ], [
+            'customer_name.required' => 'Escribe tu nombre completo.',
+            'customer_name.max' => 'El nombre no puede superar los 255 caracteres.',
+            'customer_email.required' => 'Escribe tu correo electrónico.',
+            'customer_email.email' => 'Escribe un correo electrónico válido.',
+            'customer_email.max' => 'El correo no puede superar los 255 caracteres.',
+
             'delivery_method.required' => 'Selecciona una modalidad de entrega.',
             'delivery_method.in' => 'La modalidad de entrega seleccionada no es válida.',
+
             'branch_id.required_if' => 'Selecciona la sucursal donde recogerás tu pedido.',
             'branch_id.exists' => 'La sucursal seleccionada no está disponible.',
+
             'street.required_if' => 'Escribe la calle de entrega.',
             'exterior_number.required_if' => 'Escribe el número exterior.',
             'neighborhood.required_if' => 'Escribe la colonia.',
@@ -108,8 +151,20 @@ class SaleController extends Controller
         ])->validate();
 
         try {
-            $sale = DB::transaction(function () use ($request, $validated) {
-                $sale = $this->createSaleFromCart($request);
+            /*
+            |--------------------------------------------------------------------------
+            | Crear venta y dirección de entrega
+            |--------------------------------------------------------------------------
+            */
+
+            $sale = DB::transaction(function () use (
+                $request,
+                $validated
+            ) {
+                $sale = $this->createSaleFromCart(
+                    $request,
+                    $validated
+                );
 
                 if (
                     $validated['delivery_method']
@@ -143,7 +198,15 @@ class SaleController extends Controller
                 return $sale;
             });
 
-            $sale->load('items.product');
+            /*
+            |--------------------------------------------------------------------------
+            | Preparar productos para Mercado Pago
+            |--------------------------------------------------------------------------
+            */
+
+            $sale->load([
+                'items.product',
+            ]);
 
             $items = $sale->items
                 ->map(function ($item) {
@@ -161,6 +224,14 @@ class SaleController extends Controller
                 ->values()
                 ->all();
 
+            /*
+            |--------------------------------------------------------------------------
+            | Crear orden de Mercado Pago
+            |--------------------------------------------------------------------------
+            */
+
+            $customerEmail = $sale->customer_email;
+
             $returnUrl = route('sales.show', $sale);
 
             $order = $mercadoPago->createOrder(
@@ -168,7 +239,7 @@ class SaleController extends Controller
                 description: 'Pedido Sonríe Corriendo ' . $sale->folio,
                 total: (float) $sale->total,
                 items: $items,
-                payerEmail: $request->user()?->email,
+                payerEmail: $customerEmail,
                 successUrl: $returnUrl,
                 failureUrl: $returnUrl,
                 pendingUrl: $returnUrl,
@@ -233,8 +304,10 @@ class SaleController extends Controller
         ]);
     }
 
-    private function createSaleFromCart(Request $request): Sale
-    {
+    private function createSaleFromCart(
+        Request $request,
+        array $validated
+    ): Sale {
         $cart = $request->session()->get('cart', []);
 
         if (empty($cart)) {
@@ -310,10 +383,28 @@ class SaleController extends Controller
         $discount = 0;
         $total = round(max($subtotal - $discount, 0), 2);
 
+        /*
+        |--------------------------------------------------------------------------
+        | Datos del cliente
+        |--------------------------------------------------------------------------
+        */
+
+        $user = $request->user();
+
+        if ($user) {
+            $customerName = $user->name;
+            $customerEmail = $user->email;
+        } else {
+            $customerName = $validated['customer_name'];
+            $customerEmail = $validated['customer_email'];
+        }
+
         $sale = Sale::create([
             'folio' => $this->generateFolio(),
             'mercadopago_order_id' => null,
-            'customer_id' => $request->user()?->id,
+            'customer_id' => $user?->id,
+            'customer_name' => $customerName,
+            'customer_email' => $customerEmail,
             'subtotal' => $subtotal,
             'discount' => $discount,
             'total' => $total,

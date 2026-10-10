@@ -1,0 +1,372 @@
+<mjml>
+    <mj-head>
+        <mj-title>Confirmación de tu pedido | Sonríe Corriendo</mj-title>
+        <mj-preview>Gracias por tu compra. Consulta los detalles de tu pedido.</mj-preview>
+
+        <mj-attributes>
+            <mj-all font-family="Arial, Helvetica, sans-serif" />
+            <mj-text color="#526176" font-size="14px" line-height="1.7" />
+            <mj-section padding="0" />
+            <mj-column padding="0" />
+        </mj-attributes>
+
+        <mj-breakpoint width="480px" />
+    </mj-head>
+
+    <mj-body background-color="#f4f7fb" width="600px">
+
+        <!-- Header -->
+        <mj-section background-color="#fefefe" padding="32px 24px 28px">
+            <mj-column>
+                <mj-image
+                    src="https://sonriecorriendo.com/images/sonrie-corriendo.png"
+                    alt="Sonríe Corriendo"
+                    width="190px"
+                    align="center"
+                    padding="0 0 14px"
+                />
+
+                <mj-text
+                    align="center"
+                    color="#1769a8"
+                    font-size="13px"
+                    letter-spacing="2px"
+                    font-weight="bold"
+                    padding="0"
+                >
+                    Corre, vive y Sonríe
+                </mj-text>
+
+                <mj-divider
+                    border-color="#d94c9a"
+                    border-width="3px"
+                    width="64px"
+                    padding="20px 0 0"
+                />
+            </mj-column>
+        </mj-section>
+
+        <!-- Bienvenida -->
+        <mj-section background-color="#ffffff" padding="28px 28px 12px">
+            <mj-column>
+                <mj-text
+                    color="#172b4d"
+                    font-size="25px"
+                    font-weight="bold"
+                    line-height="1.3"
+                    padding-bottom="10px"
+                >
+                    ¡Gracias por tu compra!
+                </mj-text>
+
+                <mj-text>
+                    Hola, <strong>{{ $customerName }}</strong>. Nos alegra que formes
+                    parte de Sonríe Corriendo.
+                </mj-text>
+
+                <mj-text>
+                    Tu pedido ha sido registrado. A continuación encontrarás el
+                    resumen de los productos y la información de entrega.
+                </mj-text>
+            </mj-column>
+        </mj-section>
+
+        <!-- Folio -->
+        <mj-section background-color="#ffffff" padding="12px 28px 24px">
+            <mj-column
+                background-color="#eaf6fc"
+                border-radius="12px"
+                padding="18px 20px"
+            >
+                <mj-text
+                    color="#526176"
+                    font-size="11px"
+                    font-weight="bold"
+                    text-transform="uppercase"
+                    letter-spacing="1px"
+                    padding-bottom="4px"
+                >
+                    Folio de pedido
+                </mj-text>
+
+                <mj-text
+                    color="#1769a8"
+                    font-size="23px"
+                    font-weight="bold"
+                    padding-top="0"
+                    padding-bottom="8px"
+                >
+                    {{ $sale->folio }}
+                </mj-text>
+
+                <mj-text font-size="13px" padding-top="0">
+                    <strong>Fecha:</strong>
+                    {{ $sale->created_at?->format('d/m/Y H:i') ?? 'No disponible' }}
+                </mj-text>
+            </mj-column>
+        </mj-section>
+
+        <!-- Datos del cliente -->
+        <mj-section background-color="#ffffff" padding="0 28px 24px">
+            <mj-column>
+                <mj-text
+                    color="#172b4d"
+                    font-size="18px"
+                    font-weight="bold"
+                    padding-bottom="8px"
+                >
+                    Datos del cliente
+                </mj-text>
+
+                <mj-divider border-color="#e8edf3" padding-bottom="12px" />
+
+                <mj-text padding-bottom="4px">
+                    <strong>Nombre:</strong> {{ $customerName }}
+                </mj-text>
+
+                <mj-text padding-top="0">
+                    <strong>Correo electrónico:</strong> {{ $customerEmail }}
+                </mj-text>
+            </mj-column>
+        </mj-section>
+
+        <!-- Productos -->
+        <mj-section background-color="#ffffff" padding="0 28px 24px">
+            <mj-column>
+                <mj-text
+                    color="#172b4d"
+                    font-size="18px"
+                    font-weight="bold"
+                    padding-bottom="12px"
+                >
+                    Resumen de tu compra
+                </mj-text>
+
+                <mj-table
+                    cellpadding="10"
+                    width="100%"
+                    font-size="13px"
+                    color="#172b4d"
+                >
+                    <tr style="background-color:#f4f7fb;">
+                        <th align="left" style="font-size:11px;color:#526176;">
+                            PRODUCTO
+                        </th>
+                        <th align="center" style="font-size:11px;color:#526176;">
+                            CANT.
+                        </th>
+                        <th align="right" style="font-size:11px;color:#526176;">
+                            IMPORTE
+                        </th>
+                    </tr>
+
+                    @forelse ($sale->items as $item)
+                        <tr>
+                            <td style="border-bottom:1px solid #e8edf3;">
+                                <strong>{{ $item->product?->name ?? 'Producto' }}</strong>
+
+                                <div style="font-size:11px;color:#7b8798;">
+                                    ${{ number_format((float) $item->unit_price, 2, '.', ',') }}
+                                    por unidad
+                                </div>
+                            </td>
+
+                            <td align="center" style="border-bottom:1px solid #e8edf3;">
+                                {{ $item->quantity }}
+                            </td>
+
+                            <td align="right" style="border-bottom:1px solid #e8edf3;white-space:nowrap;">
+                                ${{ number_format((float) $item->subtotal, 2, '.', ',') }}
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="3" align="center" style="padding:16px 6px;color:#7b8798;">
+                                No hay productos registrados en este pedido.
+                            </td>
+                        </tr>
+                    @endforelse
+                </mj-table>
+            </mj-column>
+        </mj-section>
+
+        <!-- Totales -->
+        <mj-section background-color="#ffffff" padding="0 28px 28px">
+            <mj-column>
+                <mj-table cellpadding="8" width="100%" font-size="14px">
+                    <tr>
+                        <td align="left" style="color:#526176;">
+                            Subtotal
+                        </td>
+                        <td align="right" style="color:#172b4d;white-space:nowrap;">
+                            ${{ number_format((float) $sale->subtotal, 2, '.', ',') }} MXN
+                        </td>
+                    </tr>
+
+                    @if ((float) $sale->discount > 0)
+                        <tr>
+                            <td align="left" style="color:#16845d;">
+                                Descuento
+                            </td>
+                            <td align="right" style="color:#16845d;white-space:nowrap;">
+                                -${{ number_format((float) $sale->discount, 2, '.', ',') }} MXN
+                            </td>
+                        </tr>
+                    @endif
+
+                    <tr>
+                        <td
+                            align="left"
+                            style="border-top:2px solid #e8edf3;font-size:16px;font-weight:bold;color:#172b4d;"
+                        >
+                            Total
+                        </td>
+                        <td
+                            align="right"
+                            style="border-top:2px solid #e8edf3;font-size:21px;font-weight:bold;color:#1769a8;white-space:nowrap;"
+                        >
+                            ${{ number_format((float) $sale->total, 2, '.', ',') }} MXN
+                        </td>
+                    </tr>
+                </mj-table>
+            </mj-column>
+        </mj-section>
+
+        <!-- Título de entrega -->
+        <mj-section background-color="#ffffff" padding="0 28px 12px">
+            <mj-column>
+                <mj-text
+                    color="#172b4d"
+                    font-size="18px"
+                    font-weight="bold"
+                    padding-bottom="8px"
+                >
+                    Información de entrega
+                </mj-text>
+            </mj-column>
+        </mj-section>
+
+        <!-- Detalles de entrega -->
+        <mj-section background-color="#ffffff" padding="0 28px 28px">
+            <mj-column
+                background-color="#fff5fa"
+                border-radius="12px"
+                padding="18px 20px"
+            >
+                @php
+                    $delivery = $sale->deliveryAddress;
+
+                    $deliveryIsBranch = $delivery
+                        && $delivery->delivery_method === \App\Models\DeliveryAddress::METHOD_BRANCH;
+
+                    $deliveryIsHome = $delivery
+                        && $delivery->delivery_method === \App\Models\DeliveryAddress::METHOD_HOME;
+                @endphp
+
+                @if ($deliveryIsBranch)
+                    <mj-text color="#172b4d" font-weight="bold" padding-bottom="8px">
+                        Recolección en sucursal
+                    </mj-text>
+
+                    <mj-text padding-top="0">
+                        <strong>Sucursal:</strong>
+                        {{ $delivery->branch_name ?? $delivery->branch?->name ?? 'Sucursal seleccionada' }}
+                    </mj-text>
+
+                    @if ($delivery->branch_address)
+                        <mj-text padding-top="0">
+                            <strong>Dirección:</strong>
+                            {{ $delivery->branch_address }}
+                        </mj-text>
+                    @elseif ($delivery->branch)
+                        <mj-text padding-top="0">
+                            <strong>Dirección:</strong>
+                            {{ $delivery->branch->street }}
+                            {{ $delivery->branch->exterior_number }}
+                            @if ($delivery->branch->interior_number)
+                                , Int. {{ $delivery->branch->interior_number }}
+                            @endif
+                            , {{ $delivery->branch->neighborhood }}
+                            , C.P. {{ $delivery->branch->postal_code }}
+                            , {{ $delivery->branch->city }},
+                            {{ $delivery->branch->state }}
+                        </mj-text>
+                    @endif
+
+                    @if ($delivery->branch?->phone)
+                        <mj-text padding-top="0">
+                            <strong>Teléfono:</strong> {{ $delivery->branch->phone }}
+                        </mj-text>
+                    @endif
+
+                    @if ($delivery->branch?->opening_time && $delivery->branch?->closing_time)
+                        <mj-text padding-top="0">
+                            <strong>Horario:</strong>
+                            {{ \Illuminate\Support\Carbon::parse($delivery->branch->opening_time)->format('H:i') }}
+                            a
+                            {{ \Illuminate\Support\Carbon::parse($delivery->branch->closing_time)->format('H:i') }}
+                        </mj-text>
+                    @endif
+
+                @elseif ($deliveryIsHome)
+                    <mj-text color="#172b4d" font-weight="bold" padding-bottom="8px">
+                        Entrega a domicilio
+                    </mj-text>
+
+                    <mj-text padding-top="0">
+                        <strong>Calle:</strong>
+                        {{ $delivery->street }}
+                        {{ $delivery->exterior_number }}
+                        @if ($delivery->interior_number)
+                            , Int. {{ $delivery->interior_number }}
+                        @endif
+                    </mj-text>
+
+                    @if ($delivery->neighborhood)
+                        <mj-text padding-top="0">
+                            <strong>Colonia:</strong> {{ $delivery->neighborhood }}
+                        </mj-text>
+                    @endif
+
+                    @if ($delivery->postal_code)
+                        <mj-text padding-top="0">
+                            <strong>Código postal:</strong> {{ $delivery->postal_code }}
+                        </mj-text>
+                    @endif
+
+                    <mj-text padding-top="0">
+                        <strong>Ciudad:</strong> {{ $delivery->city }}, {{ $delivery->state }}
+                    </mj-text>
+
+                    @if ($delivery->references)
+                        <mj-text padding-top="0">
+                            <strong>Referencias:</strong> {{ $delivery->references }}
+                        </mj-text>
+                    @endif
+
+                @else
+                    <mj-text padding-top="0">
+                        No hay información de entrega registrada para este pedido.
+                    </mj-text>
+                @endif
+            </mj-column>
+        </mj-section>
+
+        <!-- Pie -->
+        <mj-section background-color="#f4f7fb" padding="28px">
+            <mj-column>
+                <mj-text align="center">
+                    Gracias por formar parte de Sonríe Corriendo. Si tienes dudas
+                    sobre tu pedido, comunícate con nuestro equipo de atención.
+                </mj-text>
+
+                <mj-divider border-color="#e0e7ef" padding="10px 0" />
+
+                <mj-text align="center" color="#7b8798" font-size="11px">
+                    © Sonríe Corriendo. Todos los derechos reservados.
+                </mj-text>
+            </mj-column>
+        </mj-section>
+
+    </mj-body>
+</mjml>

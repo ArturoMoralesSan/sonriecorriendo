@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\OrderConfirmationMail;
 use App\Models\PaymentMethod;
 use App\Models\Sale;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use MercadoPago\Client\Order\OrderClient;
 use MercadoPago\Exceptions\MPApiException;
 use MercadoPago\MercadoPagoConfig;
@@ -22,7 +24,7 @@ class MercadoPagoController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | data.id
+        | Obtener data.id
         |--------------------------------------------------------------------------
         */
 
@@ -33,10 +35,7 @@ class MercadoPagoController extends Controller
         }
 
         if ($dataId === null || $dataId === '') {
-            $dataId = data_get(
-                $request->input('data'),
-                'id'
-            );
+            $dataId = data_get($request->input('data'), 'id');
         }
 
         $dataId = $dataId !== null
@@ -71,7 +70,7 @@ class MercadoPagoController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Solo Order
+        | Solo procesar eventos Order
         |--------------------------------------------------------------------------
         */
 
@@ -88,9 +87,7 @@ class MercadoPagoController extends Controller
         */
 
         $secret = trim(
-            (string) config(
-                'services.mercadopago.webhook_secret'
-            )
+            (string) config('services.mercadopago.webhook_secret')
         );
 
         if ($secret === '') {
@@ -113,11 +110,7 @@ class MercadoPagoController extends Controller
         $v1 = null;
 
         foreach (explode(',', $xSignature) as $part) {
-            $keyValue = explode(
-                '=',
-                trim($part),
-                2
-            );
+            $keyValue = explode('=', trim($part), 2);
 
             if (count($keyValue) !== 2) {
                 continue;
@@ -143,7 +136,7 @@ class MercadoPagoController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | HMAC Mercado Pago
+        | Validar firma HMAC de Mercado Pago
         |--------------------------------------------------------------------------
         */
 
@@ -160,10 +153,7 @@ class MercadoPagoController extends Controller
             $secret
         );
 
-        if (!hash_equals(
-            $calculatedSignature,
-            $v1
-        )) {
+        if (!hash_equals($calculatedSignature, $v1)) {
             Log::warning(
                 'Mercado Pago: firma HMAC inválida.',
                 [
@@ -183,9 +173,7 @@ class MercadoPagoController extends Controller
         */
 
         $accessToken = trim(
-            (string) config(
-                'services.mercadopago.access_token'
-            )
+            (string) config('services.mercadopago.access_token')
         );
 
         if ($accessToken === '') {
@@ -201,13 +189,11 @@ class MercadoPagoController extends Controller
         try {
             /*
             |--------------------------------------------------------------------------
-            | Mercado Pago
+            | Consultar Order en Mercado Pago
             |--------------------------------------------------------------------------
             */
 
-            MercadoPagoConfig::setAccessToken(
-                $accessToken
-            );
+            MercadoPagoConfig::setAccessToken($accessToken);
 
             $client = new OrderClient();
 
@@ -219,24 +205,13 @@ class MercadoPagoController extends Controller
                 ], 404);
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | Order
-            |--------------------------------------------------------------------------
-            */
-
-            $orderId = (string) (
-                $order->id ?? $dataId
-            );
-
+            $orderId = (string) ($order->id ?? $dataId);
             $orderStatus = $order->status ?? null;
-
-            $orderStatusDetail =
-                $order->status_detail ?? null;
+            $orderStatusDetail = $order->status_detail ?? null;
 
             /*
             |--------------------------------------------------------------------------
-            | Sale
+            | Buscar venta relacionada
             |--------------------------------------------------------------------------
             */
 
@@ -271,12 +246,11 @@ class MercadoPagoController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | Payments
+            | Obtener pagos
             |--------------------------------------------------------------------------
             */
 
-            $payments =
-                $order->transactions->payments ?? [];
+            $payments = $order->transactions->payments ?? [];
 
             if (empty($payments)) {
                 return response()->json([
@@ -294,11 +268,9 @@ class MercadoPagoController extends Controller
                 ? (float) $payment->amount
                 : 0;
 
-            $paymentStatus =
-                $payment->status ?? null;
+            $paymentStatus = $payment->status ?? null;
 
-            $paymentStatusDetail =
-                $payment->status_detail ?? null;
+            $paymentStatusDetail = $payment->status_detail ?? null;
 
             /*
             |--------------------------------------------------------------------------
@@ -326,23 +298,21 @@ class MercadoPagoController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | Validar monto
+            | Validar monto pagado
             |--------------------------------------------------------------------------
             */
 
             $saleTotal = (float) $sale->total;
 
-            if (
-                abs(
-                    $paymentAmount - $saleTotal
-                ) > 0.01
-            ) {
+            if (abs($paymentAmount - $saleTotal) > 0.01) {
                 Log::error(
                     'Mercado Pago: monto incorrecto.',
                     [
                         'order_id' => $orderId,
                         'payment_id' => $paymentId,
                         'sale_id' => $sale->id,
+                        'sale_total' => $saleTotal,
+                        'payment_amount' => $paymentAmount,
                     ]
                 );
 
@@ -353,21 +323,22 @@ class MercadoPagoController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | Procesar venta
+            | Procesar pago y actualizar inventario
             |--------------------------------------------------------------------------
+            |
+            | La transacción devuelve true solamente cuando esta ejecución
+            | registra el pago y marca la venta como pagada.
+            |
             */
 
-            DB::transaction(
+            $shouldSendConfirmation = DB::transaction(
                 function () use (
                     $sale,
                     $orderId,
                     $paymentId,
                     $paymentAmount
-                ) {
-                    $lockedSale = Sale::where(
-                        'id',
-                        $sale->id
-                    )
+                ): bool {
+                    $lockedSale = Sale::where('id', $sale->id)
                         ->lockForUpdate()
                         ->first();
 
@@ -379,40 +350,32 @@ class MercadoPagoController extends Controller
 
                     /*
                     |--------------------------------------------------------------------------
-                    | Evitar doble procesamiento
+                    | Evitar procesar dos veces la misma venta
                     |--------------------------------------------------------------------------
                     */
 
                     if (
-                        isset($lockedSale->status) &&
                         in_array(
                             $lockedSale->status,
-                            [
-                                'paid',
-                                'pagada',
-                            ],
+                            ['paid', 'pagada'],
                             true
                         )
                     ) {
-                        return;
+                        return false;
                     }
 
                     /*
                     |--------------------------------------------------------------------------
-                    | Payment Method
+                    | Obtener método de pago
                     |--------------------------------------------------------------------------
                     */
 
-                    $paymentMethod =
-                        PaymentMethod::where(
-                            'code',
-                            'mercadopago'
-                        )
-                            ->where(
-                                'is_active',
-                                true
-                            )
-                            ->first();
+                    $paymentMethod = PaymentMethod::where(
+                        'code',
+                        'mercadopago'
+                    )
+                        ->where('is_active', true)
+                        ->first();
 
                     if (!$paymentMethod) {
                         throw new \RuntimeException(
@@ -422,26 +385,22 @@ class MercadoPagoController extends Controller
 
                     /*
                     |--------------------------------------------------------------------------
-                    | Evitar Payment duplicado
+                    | Evitar registrar el mismo pago dos veces
                     |--------------------------------------------------------------------------
                     */
 
-                    $existingPayment =
-                        $lockedSale
-                            ->payments()
-                            ->where(
-                                'reference',
-                                $paymentId
-                            )
-                            ->exists();
+                    $existingPayment = $lockedSale
+                        ->payments()
+                        ->where('reference', $paymentId)
+                        ->exists();
 
                     if ($existingPayment) {
-                        return;
+                        return false;
                     }
 
                     /*
                     |--------------------------------------------------------------------------
-                    | Items
+                    | Obtener productos de la venta
                     |--------------------------------------------------------------------------
                     */
 
@@ -465,15 +424,11 @@ class MercadoPagoController extends Controller
                             );
                         }
 
-                        $quantity =
-                            (float) $item->quantity;
+                        $quantity = (float) $item->quantity;
 
                         $lockedProduct = $product
                             ->newQuery()
-                            ->where(
-                                'id',
-                                $product->id
-                            )
+                            ->where('id', $product->id)
                             ->lockForUpdate()
                             ->first();
 
@@ -483,57 +438,102 @@ class MercadoPagoController extends Controller
                             );
                         }
 
-                        if (
-                            (float) $lockedProduct->stock
-                            < $quantity
-                        ) {
+                        if ((float) $lockedProduct->stock < $quantity) {
                             throw new \RuntimeException(
                                 "Insufficient stock for product {$lockedProduct->id}."
                             );
                         }
 
                         $lockedProduct->stock =
-                            (float) $lockedProduct->stock
-                            - $quantity;
+                            (float) $lockedProduct->stock - $quantity;
 
                         $lockedProduct->save();
                     }
 
                     /*
                     |--------------------------------------------------------------------------
-                    | Registrar Payment
+                    | Registrar el pago
                     |--------------------------------------------------------------------------
                     */
 
-                    $lockedSale
-                        ->payments()
-                        ->create([
-                            'payment_method_id' =>
-                                $paymentMethod->id,
-
-                            'amount' =>
-                                $paymentAmount,
-
-                            'reference' =>
-                                $paymentId,
-
-                            'notes' =>
-                                "Mercado Pago Order {$orderId}",
-                        ]);
+                    $lockedSale->payments()->create([
+                        'payment_method_id' => $paymentMethod->id,
+                        'amount' => $paymentAmount,
+                        'reference' => $paymentId,
+                        'notes' => "Mercado Pago Order {$orderId}",
+                    ]);
 
                     /*
                     |--------------------------------------------------------------------------
-                    | Marcar venta pagada
+                    | Marcar la venta como pagada
                     |--------------------------------------------------------------------------
                     */
 
                     $lockedSale->status = 'paid';
-
                     $lockedSale->sold_at = now();
-
                     $lockedSale->save();
+
+                    return true;
                 }
             );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Enviar correo de confirmación
+            |--------------------------------------------------------------------------
+            |
+            | Solo se envía cuando esta ejecución acaba de procesar el pago.
+            | El envío se hace fuera de la transacción para que un error de
+            | correo no revierta el pago ni el descuento de inventario.
+            |
+            */
+
+            if ($shouldSendConfirmation) {
+                try {
+                    $sale->refresh();
+
+                    $sale->load([
+                        'customer',
+                        'items.product',
+                        'deliveryAddress.branch',
+                    ]);
+
+                    Mail::to($sale->customer_email)->send(
+                        new OrderConfirmationMail($sale)
+                    );
+
+                    Log::info(
+                        'Correo de confirmación enviado correctamente.',
+                        [
+                            'sale_id' => $sale->id,
+                            'folio' => $sale->folio,
+                            'email' => $sale->customer_email,
+                        ]
+                    );
+                } catch (Throwable $mailException) {
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Un error de correo no debe invalidar el pago
+                    |--------------------------------------------------------------------------
+                    */
+
+                    Log::error(
+                        'No se pudo enviar el correo de confirmación.',
+                        [
+                            'sale_id' => $sale->id,
+                            'folio' => $sale->folio,
+                            'email' => $sale->customer_email,
+                            'message' => $mailException->getMessage(),
+                        ]
+                    );
+                }
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Log de procesamiento
+            |--------------------------------------------------------------------------
+            */
 
             Log::info(
                 'Mercado Pago Webhook procesado correctamente.',
@@ -541,12 +541,12 @@ class MercadoPagoController extends Controller
                     'order_id' => $orderId,
                     'payment_id' => $paymentId,
                     'sale_id' => $sale->id,
+                    'confirmation_email_attempted' => $shouldSendConfirmation,
                 ]
             );
 
             return response()->json([
-                'message' =>
-                    'Webhook processed successfully',
+                'message' => 'Webhook processed successfully',
             ], 200);
 
         } catch (MPApiException $e) {

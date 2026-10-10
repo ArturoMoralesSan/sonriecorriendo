@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\View\Composers\MenuComposer;
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -49,6 +51,28 @@ class AppServiceProvider extends ServiceProvider
         View::composer(
             'app',
             MenuComposer::class
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Correo de recuperación de contraseña
+        |--------------------------------------------------------------------------
+        */
+
+        ResetPassword::toMailUsing(
+            function (object $notifiable, string $token): MailMessage {
+                $url = url(route('password.reset', [
+                    'token' => $token,
+                    'email' => $notifiable->getEmailForPasswordReset(),
+                ], false));
+
+                return (new MailMessage)
+                    ->subject('Restablece tu contraseña | Sonríe Corriendo')
+                    ->view('emails.auth.reset-password', [
+                        'url' => $url,
+                        'name' => $notifiable->name ?? '',
+                    ]);
+            }
         );
     }
 

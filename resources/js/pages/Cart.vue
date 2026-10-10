@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     ArrowLeft,
     Minus,
@@ -9,6 +9,8 @@ import {
     MapPin,
     Store,
     Truck,
+    UserRound,
+    Mail,
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import Swal from 'sweetalert2';
@@ -36,7 +38,10 @@ interface Branch {
     closing_time?: string | null;
 }
 
-type DeliveryMethod = 'home_delivery' | 'branch_pickup';
+interface AuthUser {
+    name?: string | null;
+    email?: string | null;
+}
 
 interface CheckoutResponse {
     checkout_url?: string;
@@ -44,12 +49,31 @@ interface CheckoutResponse {
     errors?: Record<string, string[]>;
 }
 
+type DeliveryMethod = 'home_delivery' | 'branch_pickup';
+
 const props = defineProps<{
     items: CartItem[];
     subtotal: number;
     totalItems: number;
     branches?: Branch[];
 }>();
+
+const page = usePage();
+
+const authUser = computed<AuthUser | null>(() => {
+    const pageProps = page.props as unknown as {
+        auth?: {
+            user?: AuthUser | null;
+        };
+    };
+
+    return pageProps.auth?.user ?? null;
+});
+
+const isGuest = computed(() => !authUser.value);
+
+const guestName = ref('');
+const guestEmail = ref('');
 
 const processingCheckout = ref(false);
 
@@ -158,6 +182,32 @@ const clearCart = (): void => {
     );
 };
 
+const validateCustomer = (): string | null => {
+    if (!isGuest.value) {
+        return null;
+    }
+
+    if (!guestName.value.trim()) {
+        return 'Escribe tu nombre completo.';
+    }
+
+    if (guestName.value.trim().length < 2) {
+        return 'El nombre debe tener al menos 2 caracteres.';
+    }
+
+    if (!guestEmail.value.trim()) {
+        return 'Escribe tu correo electrónico.';
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailPattern.test(guestEmail.value.trim())) {
+        return 'Escribe un correo electrónico válido.';
+    }
+
+    return null;
+};
+
 const validateDelivery = (): string | null => {
     if (deliveryMethod.value === 'branch_pickup') {
         if (!branchId.value) {
@@ -203,6 +253,19 @@ const checkout = async (): Promise<void> => {
         return;
     }
 
+    const customerError = validateCustomer();
+
+    if (customerError) {
+        await Swal.fire({
+            icon: 'warning',
+            title: 'Revisa tus datos de contacto',
+            text: customerError,
+            confirmButtonText: 'Aceptar',
+        });
+
+        return;
+    }
+
     const deliveryError = validateDelivery();
 
     if (deliveryError) {
@@ -223,16 +286,33 @@ const checkout = async (): Promise<void> => {
             .querySelector('meta[name="csrf-token"]')
             ?.getAttribute('content');
 
+        /*
+         * Los clientes registrados se identifican en el backend
+         * mediante su sesión autenticada.
+         *
+         * Los invitados envían su nombre y correo para que Laravel
+         * pueda validarlos y asociarlos con el pedido.
+         */
+        const customerData = isGuest.value
+            ? {
+                  customer_name: guestName.value.trim(),
+                  customer_email: guestEmail.value.trim(),
+              }
+            : {};
+
         const deliveryData = deliveryMethod.value === 'branch_pickup'
             ? {
+                  ...customerData,
                   delivery_method: deliveryMethod.value,
                   branch_id: branchId.value,
               }
             : {
+                  ...customerData,
                   delivery_method: deliveryMethod.value,
                   street: address.value.street.trim(),
                   exterior_number: address.value.exterior_number.trim(),
-                  interior_number: address.value.interior_number.trim() || null,
+                  interior_number:
+                      address.value.interior_number.trim() || null,
                   neighborhood: address.value.neighborhood.trim(),
                   postal_code: address.value.postal_code.trim(),
                   city: address.value.city.trim(),
@@ -278,7 +358,7 @@ const checkout = async (): Promise<void> => {
     } catch (error) {
         console.error('Error al iniciar checkout:', error);
 
-        Swal.fire({
+        await Swal.fire({
             icon: 'error',
             title: 'No se pudo iniciar el pago',
             text: error instanceof Error
@@ -322,11 +402,7 @@ const hasItems = computed(() => props.items.length > 0);
 
             <section class="cart-content">
                 <div class="cart-container">
-                    <!-- CARRITO VACÍO -->
-                    <div
-                        v-if="!hasItems"
-                        class="empty-cart"
-                    >
+                    <div v-if="!hasItems" class="empty-cart">
                         <div class="empty-cart-icon">
                             <ShoppingBag :size="34" />
                         </div>
@@ -346,11 +422,7 @@ const hasItems = computed(() => props.items.length > 0);
                         </Link>
                     </div>
 
-                    <!-- CARRITO -->
-                    <div
-                        v-else
-                        class="cart-layout"
-                    >
+                    <div v-else class="cart-layout">
                         <div class="cart-items">
                             <div class="cart-items-header">
                                 <div>
@@ -394,8 +466,7 @@ const hasItems = computed(() => props.items.length > 0);
                                     </Link>
 
                                     <span class="cart-item-price">
-                                        {{ formatPrice(item.price) }}
-                                        MXN
+                                        {{ formatPrice(item.price) }} MXN
                                     </span>
 
                                     <div class="cart-item-actions">
@@ -434,12 +505,107 @@ const hasItems = computed(() => props.items.length > 0);
 
                                 <div class="cart-item-subtotal">
                                     <span>Subtotal</span>
-
                                     <strong>
                                         {{ formatPrice(item.subtotal) }}
                                     </strong>
                                 </div>
                             </article>
+
+                            <!-- DATOS DEL COMPRADOR -->
+                            <section class="customer-section">
+                                <div class="customer-heading">
+                                    <span class="customer-icon">
+                                        <UserRound :size="21" />
+                                    </span>
+
+                                    <div>
+                                        <h2>Datos del comprador</h2>
+                                        <p>
+                                            Utilizaremos estos datos para enviarte
+                                            la confirmación de tu compra.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- CLIENTE REGISTRADO -->
+                                <div
+                                    v-if="authUser"
+                                    class="customer-registered"
+                                >
+                                    <div class="customer-detail">
+                                        <UserRound :size="17" />
+
+                                        <div>
+                                            <small>Nombre</small>
+                                            <strong>
+                                                {{ authUser.name || 'Usuario registrado' }}
+                                            </strong>
+                                        </div>
+                                    </div>
+
+                                    <div class="customer-detail">
+                                        <Mail :size="17" />
+
+                                        <div>
+                                            <small>Correo electrónico</small>
+                                            <strong>
+                                                {{ authUser.email || 'Sin correo disponible' }}
+                                            </strong>
+                                        </div>
+                                    </div>
+
+                                    <p class="customer-note">
+                                        La compra se asociará con tu cuenta.
+                                    </p>
+                                </div>
+
+                                <!-- CLIENTE INVITADO -->
+                                <div v-else class="customer-form">
+                                    <p class="guest-info">
+                                        Puedes comprar sin crear una cuenta.
+                                        Solo necesitamos estos datos para enviarte
+                                        la confirmación del pedido.
+                                    </p>
+
+                                    <div class="customer-form-grid">
+                                        <label class="customer-field">
+                                            <span>Nombre completo *</span>
+
+                                            <input
+                                                v-model="guestName"
+                                                type="text"
+                                                name="customer_name"
+                                                autocomplete="name"
+                                                maxlength="255"
+                                                placeholder="Escribe tu nombre"
+                                                required
+                                            />
+                                        </label>
+
+                                        <label class="customer-field">
+                                            <span>Correo electrónico *</span>
+
+                                            <input
+                                                v-model="guestEmail"
+                                                type="email"
+                                                name="customer_email"
+                                                autocomplete="email"
+                                                maxlength="255"
+                                                placeholder="correo@ejemplo.com"
+                                                required
+                                            />
+
+                                            <small>
+                                                Aquí recibirás la confirmación de tu compra.
+                                            </small>
+                                        </label>
+                                    </div>
+
+                                    <p class="customer-note">
+                                        No necesitas registrarte para comprar.
+                                    </p>
+                                </div>
+                            </section>
 
                             <!-- DATOS DE ENTREGA -->
                             <section class="delivery-section">
@@ -518,7 +684,6 @@ const hasItems = computed(() => props.items.length > 0);
                                     </button>
                                 </div>
 
-                                <!-- DIRECCIÓN NUEVA PARA ESTA COMPRA -->
                                 <div
                                     v-if="deliveryMethod === 'home_delivery'"
                                     class="delivery-fields"
@@ -530,7 +695,6 @@ const hasItems = computed(() => props.items.length > 0);
 
                                         <div>
                                             <h3>Dirección de entrega</h3>
-
                                             <p>
                                                 Estos datos se guardarán para este pedido.
                                                 No se utilizará una dirección anterior.
@@ -541,7 +705,6 @@ const hasItems = computed(() => props.items.length > 0);
                                     <div class="delivery-form-grid">
                                         <label class="delivery-field field-full">
                                             <span>Calle *</span>
-
                                             <input
                                                 v-model="address.street"
                                                 type="text"
@@ -554,12 +717,10 @@ const hasItems = computed(() => props.items.length > 0);
 
                                         <label class="delivery-field">
                                             <span>Número exterior *</span>
-
                                             <input
                                                 v-model="address.exterior_number"
                                                 type="text"
                                                 maxlength="50"
-                                                autocomplete="address-line2"
                                                 placeholder="Ej. 123"
                                                 required
                                             />
@@ -567,7 +728,6 @@ const hasItems = computed(() => props.items.length > 0);
 
                                         <label class="delivery-field">
                                             <span>Número interior</span>
-
                                             <input
                                                 v-model="address.interior_number"
                                                 type="text"
@@ -578,7 +738,6 @@ const hasItems = computed(() => props.items.length > 0);
 
                                         <label class="delivery-field field-full">
                                             <span>Colonia *</span>
-
                                             <input
                                                 v-model="address.neighborhood"
                                                 type="text"
@@ -591,7 +750,6 @@ const hasItems = computed(() => props.items.length > 0);
 
                                         <label class="delivery-field">
                                             <span>Código postal *</span>
-
                                             <input
                                                 v-model="address.postal_code"
                                                 type="text"
@@ -605,7 +763,6 @@ const hasItems = computed(() => props.items.length > 0);
 
                                         <label class="delivery-field">
                                             <span>Ciudad o municipio *</span>
-
                                             <input
                                                 v-model="address.city"
                                                 type="text"
@@ -618,7 +775,6 @@ const hasItems = computed(() => props.items.length > 0);
 
                                         <label class="delivery-field field-full">
                                             <span>Estado *</span>
-
                                             <input
                                                 v-model="address.state"
                                                 type="text"
@@ -631,7 +787,6 @@ const hasItems = computed(() => props.items.length > 0);
 
                                         <label class="delivery-field field-full">
                                             <span>Referencias adicionales</span>
-
                                             <textarea
                                                 v-model="address.references"
                                                 rows="3"
@@ -646,11 +801,7 @@ const hasItems = computed(() => props.items.length > 0);
                                     </div>
                                 </div>
 
-                                <!-- RECOGER EN SUCURSAL -->
-                                <div
-                                    v-else
-                                    class="delivery-fields"
-                                >
+                                <div v-else class="delivery-fields">
                                     <div class="delivery-fields-heading">
                                         <span class="delivery-fields-icon">
                                             <Store :size="19" />
@@ -658,7 +809,6 @@ const hasItems = computed(() => props.items.length > 0);
 
                                         <div>
                                             <h3>Selecciona una sucursal</h3>
-
                                             <p>
                                                 Elige la sucursal donde deseas recoger
                                                 tu pedido.
@@ -666,10 +816,7 @@ const hasItems = computed(() => props.items.length > 0);
                                         </div>
                                     </div>
 
-                                    <div
-                                        v-if="branches.length"
-                                        class="branch-list"
-                                    >
+                                    <div v-if="branches.length" class="branch-list">
                                         <label
                                             v-for="branch in branches"
                                             :key="branch.id"
@@ -687,9 +834,7 @@ const hasItems = computed(() => props.items.length > 0);
                                             />
 
                                             <span class="branch-option-content">
-                                                <strong>
-                                                    {{ branch.name }}
-                                                </strong>
+                                                <strong>{{ branch.name }}</strong>
 
                                                 <span class="branch-address">
                                                     <MapPin :size="15" />
@@ -725,10 +870,7 @@ const hasItems = computed(() => props.items.length > 0);
                                         </label>
                                     </div>
 
-                                    <div
-                                        v-else
-                                        class="no-branches"
-                                    >
+                                    <div v-else class="no-branches">
                                         <Store :size="25" />
 
                                         <strong>
@@ -743,9 +885,7 @@ const hasItems = computed(() => props.items.length > 0);
 
                                         <button
                                             type="button"
-                                            @click="
-                                                deliveryMethod = 'home_delivery'
-                                            "
+                                            @click="deliveryMethod = 'home_delivery'"
                                         >
                                             Elegir entrega a domicilio
                                         </button>
@@ -756,24 +896,19 @@ const hasItems = computed(() => props.items.length > 0);
 
                         <!-- RESUMEN -->
                         <aside class="cart-summary">
-                            <span class="summary-eyebrow">
-                                RESUMEN
-                            </span>
+                            <span class="summary-eyebrow">RESUMEN</span>
 
                             <h2>Tu compra</h2>
 
                             <div class="summary-row">
                                 <span>Productos</span>
-
                                 <strong>{{ totalItems }}</strong>
                             </div>
 
                             <div class="summary-row">
                                 <span>Subtotal</span>
-
                                 <strong>
-                                    {{ formatPrice(subtotal) }}
-                                    MXN
+                                    {{ formatPrice(subtotal) }} MXN
                                 </strong>
                             </div>
 
@@ -781,26 +916,18 @@ const hasItems = computed(() => props.items.length > 0);
 
                             <div class="summary-total">
                                 <span>Total</span>
-
                                 <strong>
-                                    {{ formatPrice(subtotal) }}
-                                    MXN
+                                    {{ formatPrice(subtotal) }} MXN
                                 </strong>
                             </div>
 
                             <div class="summary-delivery">
                                 <span class="summary-delivery-icon">
                                     <Truck
-                                        v-if="
-                                            deliveryMethod === 'home_delivery'
-                                        "
+                                        v-if="deliveryMethod === 'home_delivery'"
                                         :size="17"
                                     />
-
-                                    <Store
-                                        v-else
-                                        :size="17"
-                                    />
+                                    <Store v-else :size="17" />
                                 </span>
 
                                 <div>
@@ -866,17 +993,12 @@ const hasItems = computed(() => props.items.length > 0);
 </template>
 
 <style scoped>
-/* =========================================================
-   BASE
-   ========================================================= */
-
 .cart-page {
     --blue-deep: #12558c;
     --blue: #1769a8;
     --blue-light: #249edb;
     --pink: #d94c9a;
     --pink-light: #f48bb0;
-
     --text: #172b4d;
     --muted: #64748b;
     --border: #e1ebf3;
@@ -884,9 +1006,7 @@ const hasItems = computed(() => props.items.length > 0);
 
     width: 100%;
     min-height: 100vh;
-
     overflow-x: hidden;
-
     background: var(--bg);
     color: var(--text);
 }
@@ -896,24 +1016,18 @@ const hasItems = computed(() => props.items.length > 0);
     margin: 0 auto;
 }
 
-/* =========================================================
-   HERO
-   ========================================================= */
-
 .cart-hero {
     position: relative;
     overflow: hidden;
     padding: 65px 0 70px;
-
-    background:
-        linear-gradient(
-            90deg,
-            #12558cfa 0%,
-            #1769a8e8 30%,
-            #249edba3 54%,
-            #d94c9a7a 78%,
-            #f48bb052 100%
-        );
+    background: linear-gradient(
+        90deg,
+        #12558cfa 0%,
+        #1769a8e8 30%,
+        #249edba3 54%,
+        #d94c9a7a 78%,
+        #f48bb052 100%
+    );
 }
 
 .cart-hero::before {
@@ -973,17 +1087,9 @@ const hasItems = computed(() => props.items.length > 0);
     line-height: 1.6;
 }
 
-/* =========================================================
-   CONTENT
-   ========================================================= */
-
 .cart-content {
     padding: 55px 0 75px;
 }
-
-/* =========================================================
-   LAYOUT
-   ========================================================= */
 
 .cart-layout {
     display: grid;
@@ -991,10 +1097,6 @@ const hasItems = computed(() => props.items.length > 0);
     gap: 28px;
     align-items: start;
 }
-
-/* =========================================================
-   ITEMS
-   ========================================================= */
 
 .cart-items {
     min-width: 0;
@@ -1026,13 +1128,10 @@ const hasItems = computed(() => props.items.length > 0);
     cursor: pointer;
 }
 
-.clear-cart-button:hover {
+.clear-cart-button:hover,
+.remove-item-button:hover {
     color: #a52f3d;
 }
-
-/* =========================================================
-   ITEM
-   ========================================================= */
 
 .cart-item {
     display: grid;
@@ -1148,10 +1247,6 @@ const hasItems = computed(() => props.items.length > 0);
     cursor: pointer;
 }
 
-.remove-item-button:hover {
-    color: #a52f3d;
-}
-
 .cart-item-subtotal {
     min-width: 100px;
     text-align: right;
@@ -1172,9 +1267,148 @@ const hasItems = computed(() => props.items.length > 0);
     font-weight: 800;
 }
 
-/* =========================================================
-   DELIVERY
-   ========================================================= */
+/* DATOS DEL COMPRADOR */
+
+.customer-section {
+    margin-top: 24px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: 17px;
+    background: #fff;
+    box-shadow: 0 8px 25px rgba(23, 43, 77, 0.04);
+}
+
+.customer-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.customer-icon {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 11px;
+    background: #eaf6fc;
+    color: var(--blue);
+}
+
+.customer-heading h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 19px;
+    font-weight: 800;
+}
+
+.customer-heading p {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.customer-registered {
+    display: grid;
+    gap: 14px;
+}
+
+.customer-detail {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 13px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #f8fbfe;
+    color: var(--blue);
+}
+
+.customer-detail > div {
+    min-width: 0;
+}
+
+.customer-detail small {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.customer-detail strong {
+    display: block;
+    overflow-wrap: anywhere;
+    color: var(--text);
+    font-size: 12px;
+}
+
+.guest-info {
+    margin: 0 0 16px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.customer-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.customer-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+}
+
+.customer-field > span {
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.customer-field input {
+    width: 100%;
+    min-width: 0;
+    min-height: 43px;
+    padding: 11px 12px;
+    border: 1px solid #d6e2eb;
+    border-radius: 9px;
+    outline: none;
+    background: #fff;
+    color: var(--text);
+    font: inherit;
+    font-size: 12px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.customer-field input::placeholder {
+    color: #94a3b8;
+}
+
+.customer-field input:focus {
+    border-color: #a9d9f2;
+    box-shadow: 0 0 0 3px rgba(36, 158, 219, 0.1);
+}
+
+.customer-field small {
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+.customer-note {
+    margin: 14px 0 0;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+/* ENTREGA */
 
 .delivery-section {
     margin-top: 28px;
@@ -1231,9 +1465,7 @@ const hasItems = computed(() => props.items.length > 0);
     background: #fff;
     text-align: left;
     cursor: pointer;
-    transition:
-        border-color 0.2s ease,
-        background 0.2s ease;
+    transition: border-color 0.2s ease, background 0.2s ease;
 }
 
 .delivery-option:hover {
@@ -1365,9 +1597,7 @@ const hasItems = computed(() => props.items.length > 0);
     color: var(--text);
     font: inherit;
     font-size: 12px;
-    transition:
-        border-color 0.2s ease,
-        box-shadow 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .delivery-field input {
@@ -1396,9 +1626,7 @@ const hasItems = computed(() => props.items.length > 0);
     line-height: 1.5;
 }
 
-/* =========================================================
-   BRANCHES
-   ========================================================= */
+/* SUCURSALES */
 
 .branch-list {
     display: grid;
@@ -1414,9 +1642,7 @@ const hasItems = computed(() => props.items.length > 0);
     border-radius: 12px;
     background: #fff;
     cursor: pointer;
-    transition:
-        border-color 0.2s ease,
-        background 0.2s ease;
+    transition: border-color 0.2s ease, background 0.2s ease;
 }
 
 .branch-option:hover {
@@ -1514,9 +1740,7 @@ const hasItems = computed(() => props.items.length > 0);
     background: var(--pink);
 }
 
-/* =========================================================
-   SUMMARY
-   ========================================================= */
+/* RESUMEN */
 
 .cart-summary {
     position: sticky;
@@ -1620,22 +1844,19 @@ const hasItems = computed(() => props.items.length > 0);
     margin-top: 20px;
     border: 0;
     border-radius: 11px;
-    background:
-        linear-gradient(
-            90deg,
-            var(--blue-deep),
-            var(--blue),
-            var(--blue-light),
-            var(--pink)
-        );
+    background: linear-gradient(
+        90deg,
+        var(--blue-deep),
+        var(--blue),
+        var(--blue-light),
+        var(--pink)
+    );
     color: #fff;
     font-size: 12px;
     font-weight: 800;
     cursor: pointer;
     opacity: 1;
-    transition:
-        opacity 0.2s ease,
-        transform 0.2s ease;
+    transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .checkout-button:hover:not(:disabled) {
@@ -1671,9 +1892,7 @@ const hasItems = computed(() => props.items.length > 0);
     color: var(--pink);
 }
 
-/* =========================================================
-   EMPTY
-   ========================================================= */
+/* CARRITO VACÍO */
 
 .empty-cart {
     max-width: 600px;
@@ -1722,9 +1941,7 @@ const hasItems = computed(() => props.items.length > 0);
     font-size: 12px;
     font-weight: 800;
     text-decoration: none;
-    transition:
-        background 0.2s ease,
-        transform 0.2s ease;
+    transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .continue-shopping-button:hover {
@@ -1732,9 +1949,7 @@ const hasItems = computed(() => props.items.length > 0);
     transform: translateY(-2px);
 }
 
-/* =========================================================
-   RESPONSIVE
-   ========================================================= */
+/* RESPONSIVE */
 
 @media (max-width: 900px) {
     .cart-layout {
@@ -1800,20 +2015,22 @@ const hasItems = computed(() => props.items.length > 0);
         padding: 45px 20px;
     }
 
+    .customer-section,
     .delivery-section {
         padding: 17px;
     }
 
-    .delivery-options {
-        grid-template-columns: 1fr;
-    }
-
+    .customer-form-grid,
     .delivery-form-grid {
         grid-template-columns: 1fr;
     }
 
     .field-full {
         grid-column: auto;
+    }
+
+    .delivery-options {
+        grid-template-columns: 1fr;
     }
 
     .delivery-heading h2 {
