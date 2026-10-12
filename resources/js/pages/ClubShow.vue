@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import {
     Building2,
+    ExternalLink,
     Mail,
     MapPin,
     Phone,
@@ -31,6 +32,26 @@ const imageUrl = (
     }
 
     return `/storage/${image}`;
+};
+
+const websiteUrl = (
+    website: string | null | undefined,
+) => {
+    if (!website) {
+        return '';
+    }
+
+    const normalizedWebsite = website.trim();
+
+    if (!normalizedWebsite) {
+        return '';
+    }
+
+    if (/^https?:\/\//i.test(normalizedWebsite)) {
+        return normalizedWebsite;
+    }
+
+    return `https://${normalizedWebsite}`;
 };
 </script>
 
@@ -206,9 +227,48 @@ const imageUrl = (
                             </p>
                         </div>
                     </div>
+
+                    <!-- =====================================================
+                         SITIO WEB DEL CLUB
+                         ===================================================== -->
+
+                    <div
+                        v-if="club.website"
+                        class="club-website-card"
+                    >
+                        <div class="club-website-icon">
+                            <ExternalLink :size="24" />
+                        </div>
+
+                        <div class="club-website-content">
+                            <span>
+                                SITIO WEB OFICIAL
+                            </span>
+
+                            <h3>
+                                Conoce más sobre {{ club.name }}
+                            </h3>
+
+                            <p>
+                                Visita la página web del club para
+                                conocer más sobre sus actividades,
+                                servicios y comunidad.
+                            </p>
+
+                            <a
+                                :href="websiteUrl(club.website)"
+                                class="club-website-button"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Visitar sitio web
+
+                                <ExternalLink :size="17" />
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </section>
-
 
             <!-- =====================================================
                  CTA
@@ -835,6 +895,136 @@ const imageUrl = (
 
 
 /* =========================================================
+   SITIO WEB
+   ========================================================= */
+
+.club-website-card {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 20px;
+
+    margin-top: 20px;
+    padding: 26px;
+
+    border: 1px solid #d8eaf4;
+    border-radius: 20px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #eaf6fc 0%,
+            #fff 58%,
+            #fdf2f8 100%
+        );
+
+    box-shadow:
+        0 12px 32px rgba(23, 43, 77, 0.045);
+}
+
+.club-website-icon {
+    width: 54px;
+    height: 54px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    border-radius: 15px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #249edb,
+            #d94c9a
+        );
+
+    color: #fff;
+
+    box-shadow:
+        0 9px 22px rgba(217, 76, 154, 0.15);
+}
+
+.club-website-content {
+    min-width: 0;
+}
+
+.club-website-content > span {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: #249edb;
+
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+}
+
+.club-website-content h3 {
+    margin: 0 0 8px;
+
+    color: #172b4d;
+
+    font-size: 21px;
+    line-height: 1.3;
+    font-weight: 800;
+}
+
+.club-website-content p {
+    max-width: 700px;
+
+    margin: 0 0 17px;
+
+    color: #64748b;
+
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+.club-website-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 9px;
+
+    padding: 12px 17px;
+
+    border: 1px solid transparent;
+    border-radius: 11px;
+
+    background:
+        linear-gradient(
+            110deg,
+            #1769a8,
+            #249edb 65%,
+            #d94c9a
+        );
+
+    color: #fff;
+
+    font-size: 13px;
+    font-weight: 800;
+
+    text-decoration: none;
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.club-website-button:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 10px 22px rgba(23, 105, 168, 0.2);
+}
+
+
+/* =========================================================
    LOCATION
    ========================================================= */
 
@@ -1352,6 +1542,24 @@ const imageUrl = (
         padding: 21px;
 
         border-radius: 16px;
+    }
+
+    .club-website-card {
+        flex-direction: column;
+
+        gap: 15px;
+
+        padding: 21px;
+
+        border-radius: 16px;
+    }
+
+    .club-website-content h3 {
+        font-size: 19px;
+    }
+
+    .club-website-button {
+        width: 100%;
     }
 
     .club-location-card {
