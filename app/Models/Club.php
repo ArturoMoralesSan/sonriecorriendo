@@ -18,6 +18,7 @@ class Club extends Model
         'responsible',
         'phone',
         'email',
+        'website',
         'city',
         'address',
         'is_active',

@@ -7,7 +7,7 @@ import {
     Save,
     X,
 } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { ref, onBeforeUnmount } from 'vue';
 
 import admin from '@/routes/admin';
 
@@ -20,6 +20,7 @@ interface Club {
     responsible: string | null;
     phone: string | null;
     email: string | null;
+    website: string | null;
     city: string | null;
     address: string | null;
     is_active: boolean;
@@ -37,6 +38,7 @@ const form = useForm({
     responsible: props.club.responsible ?? '',
     phone: props.club.phone ?? '',
     email: props.club.email ?? '',
+    website: props.club.website ?? '',
     city: props.club.city ?? '',
     address: props.club.address ?? '',
     is_active: props.club.is_active ?? true,
@@ -46,12 +48,10 @@ const form = useForm({
 const logoPreview = ref<string | null>(
     props.club.logo
         ? `/storage/${props.club.logo}`
-        : null
+        : null,
 );
 
-const currentLogo = ref<string | null>(
-    props.club.logo
-);
+const currentLogo = ref<string | null>(props.club.logo);
 
 const generateSlug = () => {
     if (!form.name.trim()) {
@@ -97,7 +97,7 @@ const removeLogo = () => {
     currentLogo.value = null;
 
     const input = document.getElementById(
-        'logo'
+        'logo',
     ) as HTMLInputElement | null;
 
     if (input) {
@@ -111,13 +111,16 @@ const submit = () => {
             ...data,
             _method: 'PUT',
         }))
-        .post(
-            admin.clubs.update(props.club.id).url,
-            {
-                forceFormData: true,
-            }
-        );
+        .post(admin.clubs.update(props.club.id).url, {
+            forceFormData: true,
+        });
 };
+
+onBeforeUnmount(() => {
+    if (logoPreview.value?.startsWith('blob:')) {
+        URL.revokeObjectURL(logoPreview.value);
+    }
+});
 
 defineOptions({
     layout: {
@@ -166,11 +169,7 @@ defineOptions({
                     :href="admin.clubs.index().url"
                     class="admin-btn admin-btn-secondary"
                 >
-                    <ArrowLeft
-                        :size="14"
-                        :stroke-width="2"
-                    />
-
+                    <ArrowLeft :size="14" :stroke-width="2" />
                     Regresar
                 </Link>
             </div>
@@ -183,17 +182,12 @@ defineOptions({
                 class="admin-form"
                 @submit.prevent="submit"
             >
-                <!-- =================================================
-                     GENERAL
-                ================================================== -->
+                <!-- GENERAL -->
 
                 <div class="admin-form-section">
                     <div class="admin-form-section-header">
                         <div class="admin-form-section-icon">
-                            <Building2
-                                :size="17"
-                                :stroke-width="2"
-                            />
+                            <Building2 :size="17" :stroke-width="2" />
                         </div>
 
                         <div>
@@ -211,10 +205,7 @@ defineOptions({
                 <!-- NAME -->
 
                 <div class="admin-form-group">
-                    <label
-                        for="name"
-                        class="admin-form-label"
-                    >
+                    <label for="name" class="admin-form-label">
                         Nombre
                     </label>
 
@@ -228,10 +219,7 @@ defineOptions({
                         @blur="generateSlug"
                     />
 
-                    <p
-                        v-if="form.errors.name"
-                        class="admin-form-error"
-                    >
+                    <p v-if="form.errors.name" class="admin-form-error">
                         {{ form.errors.name }}
                     </p>
                 </div>
@@ -239,10 +227,7 @@ defineOptions({
                 <!-- SLUG -->
 
                 <div class="admin-form-group">
-                    <label
-                        for="slug"
-                        class="admin-form-label"
-                    >
+                    <label for="slug" class="admin-form-label">
                         Slug
                     </label>
 
@@ -260,10 +245,7 @@ defineOptions({
                         Se genera automáticamente a partir del nombre.
                     </p>
 
-                    <p
-                        v-if="form.errors.slug"
-                        class="admin-form-error"
-                    >
+                    <p v-if="form.errors.slug" class="admin-form-error">
                         {{ form.errors.slug }}
                     </p>
                 </div>
@@ -271,10 +253,7 @@ defineOptions({
                 <!-- DESCRIPTION -->
 
                 <div class="admin-form-group">
-                    <label
-                        for="description"
-                        class="admin-form-label"
-                    >
+                    <label for="description" class="admin-form-label">
                         Descripción
                     </label>
 
@@ -295,15 +274,10 @@ defineOptions({
                     </p>
                 </div>
 
-                <!-- =================================================
-                     LOGO
-                ================================================== -->
+                <!-- LOGO -->
 
                 <div class="admin-form-group">
-                    <label
-                        for="logo"
-                        class="admin-form-label"
-                    >
+                    <label for="logo" class="admin-form-label">
                         Logo
                     </label>
 
@@ -323,10 +297,7 @@ defineOptions({
                                 title="Quitar logo"
                                 @click="removeLogo"
                             >
-                                <X
-                                    :size="15"
-                                    :stroke-width="2"
-                                />
+                                <X :size="15" :stroke-width="2" />
                             </button>
                         </div>
 
@@ -362,25 +333,17 @@ defineOptions({
                         />
                     </div>
 
-                    <p
-                        v-if="form.errors.logo"
-                        class="admin-form-error"
-                    >
+                    <p v-if="form.errors.logo" class="admin-form-error">
                         {{ form.errors.logo }}
                     </p>
                 </div>
 
-                <!-- =================================================
-                     CONTACT
-                ================================================== -->
+                <!-- CONTACT -->
 
                 <div class="admin-form-section">
                     <div class="admin-form-section-header">
                         <div class="admin-form-section-icon">
-                            <Building2
-                                :size="17"
-                                :stroke-width="2"
-                            />
+                            <Building2 :size="17" :stroke-width="2" />
                         </div>
 
                         <div>
@@ -399,10 +362,7 @@ defineOptions({
                 <!-- RESPONSIBLE -->
 
                 <div class="admin-form-group">
-                    <label
-                        for="responsible"
-                        class="admin-form-label"
-                    >
+                    <label for="responsible" class="admin-form-label">
                         Responsable
                     </label>
 
@@ -426,10 +386,7 @@ defineOptions({
                 <!-- PHONE -->
 
                 <div class="admin-form-group">
-                    <label
-                        for="phone"
-                        class="admin-form-label"
-                    >
+                    <label for="phone" class="admin-form-label">
                         Teléfono
                     </label>
 
@@ -442,10 +399,7 @@ defineOptions({
                         placeholder="Ej. 618 123 4567"
                     />
 
-                    <p
-                        v-if="form.errors.phone"
-                        class="admin-form-error"
-                    >
+                    <p v-if="form.errors.phone" class="admin-form-error">
                         {{ form.errors.phone }}
                     </p>
                 </div>
@@ -453,10 +407,7 @@ defineOptions({
                 <!-- EMAIL -->
 
                 <div class="admin-form-group">
-                    <label
-                        for="email"
-                        class="admin-form-label"
-                    >
+                    <label for="email" class="admin-form-label">
                         Correo electrónico
                     </label>
 
@@ -469,21 +420,47 @@ defineOptions({
                         placeholder="Ej. contacto@club.com"
                     />
 
+                    <p v-if="form.errors.email" class="admin-form-error">
+                        {{ form.errors.email }}
+                    </p>
+                </div>
+
+                <!-- WEBSITE -->
+
+                <div class="admin-form-group">
+                    <label for="website" class="admin-form-label">
+                        Enlace del club
+                        <span class="admin-form-optional">
+                            (opcional)
+                        </span>
+                    </label>
+
+                    <input
+                        id="website"
+                        v-model="form.website"
+                        type="url"
+                        class="admin-form-input"
+                        :class="{ 'has-error': form.errors.website }"
+                        placeholder="https://www.facebook.com/tuclub"
+                    />
+
+                    <p class="admin-form-help">
+                        Agrega la página web oficial o el perfil de Facebook,
+                        Instagram u otra red social del club.
+                    </p>
+
                     <p
-                        v-if="form.errors.email"
+                        v-if="form.errors.website"
                         class="admin-form-error"
                     >
-                        {{ form.errors.email }}
+                        {{ form.errors.website }}
                     </p>
                 </div>
 
                 <!-- CITY -->
 
                 <div class="admin-form-group">
-                    <label
-                        for="city"
-                        class="admin-form-label"
-                    >
+                    <label for="city" class="admin-form-label">
                         Ciudad
                     </label>
 
@@ -496,10 +473,7 @@ defineOptions({
                         placeholder="Ej. Durango"
                     />
 
-                    <p
-                        v-if="form.errors.city"
-                        class="admin-form-error"
-                    >
+                    <p v-if="form.errors.city" class="admin-form-error">
                         {{ form.errors.city }}
                     </p>
                 </div>
@@ -507,10 +481,7 @@ defineOptions({
                 <!-- ADDRESS -->
 
                 <div class="admin-form-group">
-                    <label
-                        for="address"
-                        class="admin-form-label"
-                    >
+                    <label for="address" class="admin-form-label">
                         Dirección
                     </label>
 
@@ -523,17 +494,12 @@ defineOptions({
                         placeholder="Dirección del club..."
                     />
 
-                    <p
-                        v-if="form.errors.address"
-                        class="admin-form-error"
-                    >
+                    <p v-if="form.errors.address" class="admin-form-error">
                         {{ form.errors.address }}
                     </p>
                 </div>
 
-                <!-- =================================================
-                     STATUS
-                ================================================== -->
+                <!-- STATUS -->
 
                 <div class="admin-form-status">
                     <div class="admin-form-status-content">
@@ -570,20 +536,14 @@ defineOptions({
                     {{ form.errors.is_active }}
                 </p>
 
-                <!-- =================================================
-                     ACTIONS
-                ================================================== -->
+                <!-- ACTIONS -->
 
                 <div class="admin-form-actions">
                     <Link
                         :href="admin.clubs.index().url"
                         class="admin-btn admin-btn-secondary"
                     >
-                        <ArrowLeft
-                            :size="14"
-                            :stroke-width="2"
-                        />
-
+                        <ArrowLeft :size="14" :stroke-width="2" />
                         Cancelar
                     </Link>
 
@@ -650,6 +610,12 @@ defineOptions({
     margin: 3px 0 0;
     font-size: 12px;
     color: var(--sc-page-text-secondary);
+}
+
+.admin-form-optional {
+    color: var(--sc-page-text-secondary);
+    font-size: 11px;
+    font-weight: 400;
 }
 
 .club-logo-upload {

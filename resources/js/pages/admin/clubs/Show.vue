@@ -4,9 +4,9 @@ import { Head, Link } from '@inertiajs/vue3';
 import {
     ArrowLeft,
     Building2,
-    CalendarDays,
     CheckCircle2,
     Edit,
+    ExternalLink,
     Mail,
     MapPin,
     Phone,
@@ -28,6 +28,7 @@ interface Club {
     responsible: string | null;
     phone: string | null;
     email: string | null;
+    website: string | null;
     city: string | null;
     address: string | null;
     is_active: boolean;
@@ -55,6 +56,21 @@ const logoUrl = computed(() => {
     }
 
     return `/storage/${logo}`;
+});
+
+const websiteUrl = computed(() => {
+    const website = props.club.website?.trim();
+
+    if (!website) {
+        return null;
+    }
+
+    // Evita mostrar enlaces con protocolos no deseados.
+    if (!/^https?:\/\//i.test(website)) {
+        return `https://${website}`;
+    }
+
+    return website;
 });
 
 const formatDate = (
@@ -341,6 +357,7 @@ defineOptions({
                 </div>
 
                 <div class="admin-contact-list">
+                    <!-- RESPONSABLE -->
                     <div class="admin-contact-item">
                         <div class="admin-contact-icon">
                             <UserRound
@@ -360,6 +377,7 @@ defineOptions({
                         </div>
                     </div>
 
+                    <!-- TELÉFONO -->
                     <div class="admin-contact-item">
                         <div class="admin-contact-icon">
                             <Phone
@@ -390,6 +408,7 @@ defineOptions({
                         </div>
                     </div>
 
+                    <!-- CORREO ELECTRÓNICO -->
                     <div class="admin-contact-item">
                         <div class="admin-contact-icon">
                             <Mail
@@ -409,6 +428,39 @@ defineOptions({
                                 class="admin-contact-value admin-contact-link"
                             >
                                 {{ props.club.email }}
+                            </a>
+
+                            <span
+                                v-else
+                                class="admin-contact-empty"
+                            >
+                                No especificado
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- SITIO WEB -->
+                    <div class="admin-contact-item">
+                        <div class="admin-contact-icon">
+                            <ExternalLink
+                                :size="15"
+                                :stroke-width="2"
+                            />
+                        </div>
+
+                        <div class="admin-contact-content">
+                            <span class="admin-contact-label">
+                                Sitio web del club
+                            </span>
+
+                            <a
+                                v-if="websiteUrl"
+                                :href="websiteUrl"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="admin-contact-value admin-contact-link"
+                            >
+                                {{ props.club.website }}
                             </a>
 
                             <span

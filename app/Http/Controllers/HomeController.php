@@ -69,7 +69,6 @@ class HomeController extends Controller
         $sponsors = Sponsor::query()
             ->where('is_active', true)
             ->orderBy('name')
-            ->limit(12)
             ->get();
 
         $banners = Banner::query()

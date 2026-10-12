@@ -3,9 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import {
     ArrowRight,
     Menu,
-    Search,
     ShoppingCart,
-    Trash2,
     X,
 } from 'lucide-vue-next';
 import {
@@ -52,6 +50,46 @@ const cartButtonRef = ref<HTMLElement | null>(null);
 const cartDropdownRef = ref<HTMLElement | null>(null);
 const cartAnimating = ref(false);
 
+/* =====================================
+        MENÚ ACTIVO SEGÚN LA RUTA
+===================================== */
+
+const currentPath = computed(() => {
+    const path = page.url.split(/[?#]/)[0];
+    const normalizedPath = path.replace(/\/+$/, '');
+
+    return normalizedPath || '/';
+});
+
+const isActive = (path: string): boolean => {
+    const normalizedTarget = path.replace(/\/+$/, '') || '/';
+    const current = currentPath.value;
+
+    if (normalizedTarget === '/') {
+        return current === '/';
+    }
+
+    return (
+        current === normalizedTarget ||
+        current.startsWith(`${normalizedTarget}/`)
+    );
+};
+
+/*
+ * Patrocinadores es una sección de la página de inicio.
+ * Se activa cuando la URL apunta al ancla correspondiente.
+ */
+const isSponsorsActive = computed(() => {
+    return (
+        currentPath.value === '/' &&
+        page.url.split('#')[1] === 'patrocinadores'
+    );
+});
+
+/* =====================================
+        CARRITO
+===================================== */
+
 const cartCount = computed(() => {
     return Number(page.props.cart?.totalItems ?? 0);
 });
@@ -87,6 +125,10 @@ const getImageUrl = (image: string | null): string => {
 
     return `/storage/${image}`;
 };
+
+/* =====================================
+        ANIMACIÓN HACIA EL CARRITO
+===================================== */
 
 const animateToCart = async (imageUrl: string) => {
     if (!imageUrl) {
@@ -200,6 +242,10 @@ const handleCartAnimation = (event: Event) => {
     }, 800);
 };
 
+/* =====================================
+        ABRIR Y CERRAR CARRITO
+===================================== */
+
 const toggleCart = () => {
     cartOpen.value = !cartOpen.value;
 
@@ -228,8 +274,13 @@ const handleDocumentClick = (event: MouseEvent) => {
 const handleEscape = (event: KeyboardEvent) => {
     if (event.key === 'Escape') {
         closeCart();
+        menuOpen.value = false;
     }
 };
+
+/* =====================================
+        OBSERVAR CAMBIOS DEL CARRITO
+===================================== */
 
 watch(cartCount, (newValue, oldValue) => {
     if (newValue !== oldValue) {
@@ -244,6 +295,10 @@ watch(cartCount, (newValue, oldValue) => {
         }, 700);
     }
 });
+
+/* =====================================
+        CICLO DE VIDA
+===================================== */
 
 onMounted(() => {
     window.addEventListener(
@@ -281,6 +336,10 @@ onBeforeUnmount(() => {
     if (animationTimeout) {
         clearTimeout(animationTimeout);
     }
+
+    document
+        .querySelectorAll('.cart-flying-image')
+        .forEach((element) => element.remove());
 });
 </script>
 
@@ -305,59 +364,73 @@ onBeforeUnmount(() => {
             >
                 <Link
                     href="/"
-                    class="landing-nav-link active"
+                    class="landing-nav-link"
+                    :class="{ active: isActive('/') }"
+                    :aria-current="isActive('/') ? 'page' : undefined"
                     @click="menuOpen = false"
                 >
                     Inicio
                 </Link>
 
-                <a
-                    href="#eventos"
+                <Link
+                    href="/carreras"
                     class="landing-nav-link"
+                    :class="{ active: isActive('/carreras') }"
+                    :aria-current="isActive('/carreras') ? 'page' : undefined"
                     @click="menuOpen = false"
                 >
                     Eventos
-                </a>
+                </Link>
 
-                <a
-                    href="#rutas"
+                <Link
+                    href="/rutas"
                     class="landing-nav-link"
+                    :class="{ active: isActive('/rutas') }"
+                    :aria-current="isActive('/rutas') ? 'page' : undefined"
                     @click="menuOpen = false"
                 >
                     Rutas
-                </a>
+                </Link>
 
-                <a
-                    href="#galeria"
+                <Link
+                    href="/galeria"
                     class="landing-nav-link"
+                    :class="{ active: isActive('/galeria') }"
+                    :aria-current="isActive('/galeria') ? 'page' : undefined"
                     @click="menuOpen = false"
                 >
                     Galería
-                </a>
+                </Link>
 
-                <a
-                    href="#tienda"
+                <Link
+                    href="/tienda"
                     class="landing-nav-link"
+                    :class="{ active: isActive('/tienda') }"
+                    :aria-current="isActive('/tienda') ? 'page' : undefined"
                     @click="menuOpen = false"
                 >
                     Tienda
-                </a>
+                </Link>
 
                 <a
-                    href="#patrocinadores"
+                    href="/#patrocinadores"
                     class="landing-nav-link"
+                    :class="{ active: isSponsorsActive }"
+                    :aria-current="isSponsorsActive ? 'location' : undefined"
                     @click="menuOpen = false"
                 >
                     Patrocinadores
                 </a>
 
-                <a
-                    href="#clubes"
+                <Link
+                    href="/clubes"
                     class="landing-nav-link"
+                    :class="{ active: isActive('/clubes') }"
+                    :aria-current="isActive('/clubes') ? 'page' : undefined"
                     @click="menuOpen = false"
                 >
                     Clubes
-                </a>
+                </Link>
 
                 <div class="landing-mobile-auth">
                     <template v-if="page.props.auth.user">
@@ -391,17 +464,6 @@ onBeforeUnmount(() => {
             </nav>
 
             <div class="landing-header-actions">
-                <button
-                    type="button"
-                    class="landing-icon-button"
-                    aria-label="Buscar"
-                >
-                    <Search
-                        :size="21"
-                        :stroke-width="2"
-                    />
-                </button>
-
                 <div class="cart-wrapper">
                     <button
                         ref="cartButtonRef"
@@ -442,9 +504,7 @@ onBeforeUnmount(() => {
                         >
                             <div class="cart-dropdown-header">
                                 <div>
-                                    <strong>
-                                        Tu carrito
-                                    </strong>
+                                    <strong>Tu carrito</strong>
 
                                     <span>
                                         {{ cartCount }}
@@ -485,9 +545,7 @@ onBeforeUnmount(() => {
                                     </div>
 
                                     <div class="cart-item-info">
-                                        <strong>
-                                            {{ item.name }}
-                                        </strong>
+                                        <strong>{{ item.name }}</strong>
 
                                         <span class="cart-item-quantity">
                                             {{ item.quantity }}
@@ -513,9 +571,7 @@ onBeforeUnmount(() => {
                                     />
                                 </div>
 
-                                <strong>
-                                    Tu carrito está vacío
-                                </strong>
+                                <strong>Tu carrito está vacío</strong>
 
                                 <span>
                                     Agrega productos de nuestra tienda.
@@ -535,9 +591,7 @@ onBeforeUnmount(() => {
                                 class="cart-dropdown-footer"
                             >
                                 <div class="cart-subtotal">
-                                    <span>
-                                        Subtotal
-                                    </span>
+                                    <span>Subtotal</span>
 
                                     <strong>
                                         {{ formatPrice(cartSubtotal) }}
@@ -617,27 +671,16 @@ onBeforeUnmount(() => {
 :global(.cart-flying-image) {
     position: fixed;
     z-index: 99999;
-
     display: block;
-
     object-fit: contain;
-
     padding: 8px;
-
     border: 1px solid rgba(255, 255, 255, 0.8);
     border-radius: 14px;
-
     background: #fff;
-
-    box-shadow:
-        0 14px 35px rgba(23, 43, 77, 0.2);
-
+    box-shadow: 0 14px 35px rgba(23, 43, 77, 0.2);
     pointer-events: none;
-
     opacity: 1;
-
     transform: translate3d(0, 0, 0) scale(1);
-
     transition:
         transform 0.68s cubic-bezier(0.22, 0.8, 0.32, 1),
         opacity 0.68s ease;
@@ -651,7 +694,6 @@ onBeforeUnmount(() => {
             0
         )
         scale(0.18);
-
     opacity: 0.35;
 }
 
@@ -682,34 +724,22 @@ onBeforeUnmount(() => {
 
 .cart-badge {
     position: absolute;
-
     top: -4px;
     right: -5px;
-
     min-width: 17px;
     height: 17px;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     padding: 0 4px;
-
     border: 2px solid #fff;
     border-radius: 999px;
-
     background: #d94c9a;
-
     color: #fff;
-
     font-size: 8px;
     line-height: 1;
-
     font-weight: 800;
-
-    box-shadow:
-        0 3px 9px rgba(217, 76, 154, 0.28);
-
+    box-shadow: 0 3px 9px rgba(217, 76, 154, 0.28);
     animation: cart-badge-pop 0.45s ease;
 }
 
@@ -719,42 +749,28 @@ onBeforeUnmount(() => {
 
 .cart-dropdown {
     position: absolute;
-
     top: calc(100% + 14px);
     right: -12px;
-
     z-index: 5000;
-
     width: 390px;
     max-width: calc(100vw - 30px);
-
     overflow: hidden;
-
     border: 1px solid #e1ebf3;
     border-radius: 18px;
-
     background: #fff;
-
-    box-shadow:
-        0 22px 55px rgba(23, 43, 77, 0.16);
+    box-shadow: 0 22px 55px rgba(23, 43, 77, 0.16);
 }
 
 .cart-dropdown::before {
     content: '';
-
     position: absolute;
-
     top: -7px;
     right: 18px;
-
     width: 14px;
     height: 14px;
-
     border-top: 1px solid #e1ebf3;
     border-left: 1px solid #e1ebf3;
-
     background: #fff;
-
     transform: rotate(45deg);
 }
 
@@ -764,15 +780,11 @@ onBeforeUnmount(() => {
 
 .cart-dropdown-header {
     position: relative;
-
     display: flex;
     align-items: center;
     justify-content: space-between;
-
     padding: 17px 18px;
-
     border-bottom: 1px solid #edf2f7;
-
     background: #fff;
 }
 
@@ -784,34 +796,26 @@ onBeforeUnmount(() => {
 
 .cart-dropdown-header strong {
     color: #172b4d;
-
     font-size: 16px;
     font-weight: 800;
 }
 
 .cart-dropdown-header span {
     color: #718096;
-
     font-size: 12px;
 }
 
 .cart-close-button {
     width: 30px;
     height: 30px;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     border: 0;
     border-radius: 9px;
-
     background: #f8fafc;
-
     color: #64748b;
-
     cursor: pointer;
-
     transition:
         background 0.2s ease,
         color 0.2s ease;
@@ -828,7 +832,6 @@ onBeforeUnmount(() => {
 
 .cart-dropdown-items {
     max-height: 310px;
-
     overflow-y: auto;
 }
 
@@ -844,18 +847,12 @@ onBeforeUnmount(() => {
 .cart-dropdown-item {
     display: flex;
     align-items: center;
-
     gap: 11px;
-
     padding: 12px 16px;
-
     border-bottom: 1px solid #f0f4f8;
-
     color: inherit;
     text-decoration: none;
-
-    transition:
-        background 0.2s ease;
+    transition: background 0.2s ease;
 }
 
 .cart-dropdown-item:hover {
@@ -865,60 +862,45 @@ onBeforeUnmount(() => {
 .cart-item-image {
     width: 54px;
     height: 54px;
-
     flex: 0 0 54px;
-
     overflow: hidden;
-
     border: 1px solid #e4edf4;
     border-radius: 11px;
-
     background: #f8fafc;
 }
 
 .cart-item-image img {
     width: 100%;
     height: 100%;
-
     display: block;
-
     object-fit: cover;
 }
 
 .cart-item-info {
     min-width: 0;
-
     flex: 1;
-
     display: flex;
     flex-direction: column;
-
     gap: 4px;
 }
 
 .cart-item-info strong {
     overflow: hidden;
-
     color: #172b4d;
-
     font-size: 12px;
     font-weight: 700;
-
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .cart-item-quantity {
     color: #718096;
-
     font-size: 11px;
 }
 
 .cart-item-subtotal {
     flex-shrink: 0;
-
     color: #1769a8;
-
     font-size: 12px;
     font-weight: 800;
 }
@@ -931,55 +913,41 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     flex-direction: column;
-
     padding: 30px 20px 28px;
-
     text-align: center;
 }
 
 .cart-empty-icon {
     width: 52px;
     height: 52px;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     margin-bottom: 12px;
-
     border-radius: 15px;
-
     background: #eaf6fc;
-
     color: #249edb;
 }
 
 .cart-empty strong {
     margin-bottom: 5px;
-
     color: #172b4d;
-
     font-size: 14px;
     font-weight: 800;
 }
 
 .cart-empty span {
     max-width: 240px;
-
     color: #718096;
-
     font-size: 12px;
     line-height: 1.5;
 }
 
 .cart-empty-link {
     margin-top: 15px;
-
     color: #1769a8;
-
     font-size: 12px;
     font-weight: 800;
-
     text-decoration: none;
 }
 
@@ -993,9 +961,7 @@ onBeforeUnmount(() => {
 
 .cart-dropdown-footer {
     padding: 15px 16px 16px;
-
     border-top: 1px solid #edf2f7;
-
     background: #fbfcfd;
 }
 
@@ -1003,28 +969,23 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-
     margin-bottom: 12px;
 }
 
 .cart-subtotal span {
     color: #64748b;
-
     font-size: 12px;
 }
 
 .cart-subtotal strong {
     color: #172b4d;
-
     font-size: 17px;
     font-weight: 800;
 }
 
 .cart-subtotal small {
     margin-left: 3px;
-
     color: #718096;
-
     font-size: 9px;
     font-weight: 700;
 }
@@ -1032,32 +993,22 @@ onBeforeUnmount(() => {
 .cart-full-button {
     width: 100%;
     min-height: 42px;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     gap: 8px;
-
     border-radius: 11px;
-
     background: linear-gradient(
         90deg,
         #1769a8 0%,
         #249edb 58%,
         #d94c9a 100%
     );
-
     color: #fff;
-
     font-size: 12px;
     font-weight: 800;
-
     text-decoration: none;
-
-    box-shadow:
-        0 8px 18px rgba(36, 158, 219, 0.2);
-
+    box-shadow: 0 8px 18px rgba(36, 158, 219, 0.2);
     transition:
         transform 0.2s ease,
         box-shadow 0.2s ease;
@@ -1065,9 +1016,7 @@ onBeforeUnmount(() => {
 
 .cart-full-button:hover {
     transform: translateY(-1px);
-
-    box-shadow:
-        0 11px 24px rgba(36, 158, 219, 0.28);
+    box-shadow: 0 11px 24px rgba(36, 158, 219, 0.28);
 }
 
 /* =========================================================
@@ -1084,10 +1033,7 @@ onBeforeUnmount(() => {
 .cart-dropdown-enter-from,
 .cart-dropdown-leave-to {
     opacity: 0;
-
-    transform:
-        translateY(-7px)
-        scale(0.98);
+    transform: translateY(-7px) scale(0.98);
 }
 
 /* =========================================================
@@ -1166,10 +1112,8 @@ onBeforeUnmount(() => {
 @media (max-width: 768px) {
     .cart-dropdown {
         position: fixed;
-
         top: 76px;
         right: 15px;
-
         width: min(390px, calc(100vw - 30px));
     }
 
@@ -1182,9 +1126,7 @@ onBeforeUnmount(() => {
     .cart-dropdown {
         top: 70px;
         right: 10px;
-
         width: calc(100vw - 20px);
-
         border-radius: 16px;
     }
 
@@ -1195,7 +1137,6 @@ onBeforeUnmount(() => {
     .cart-item-image {
         width: 48px;
         height: 48px;
-
         flex-basis: 48px;
     }
 }

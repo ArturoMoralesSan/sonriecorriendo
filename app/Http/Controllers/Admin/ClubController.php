@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Club;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -27,6 +28,7 @@ class ClubController extends Controller
                         ->orWhere('slug', 'like', "%{$search}%")
                         ->orWhere('responsible', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('website', 'like', "%{$search}%")
                         ->orWhere('city', 'like', "%{$search}%");
                 });
             })
@@ -92,6 +94,12 @@ class ClubController extends Controller
                 'email',
                 'max:255',
             ],
+            'website' => [
+                'nullable',
+                'string',
+                'max:255',
+                'url:http,https',
+            ],
             'city' => [
                 'nullable',
                 'string',
@@ -102,6 +110,7 @@ class ClubController extends Controller
                 'string',
             ],
             'is_active' => [
+                'sometimes',
                 'boolean',
             ],
         ]);
@@ -113,9 +122,7 @@ class ClubController extends Controller
         */
 
         if (empty($validated['slug'])) {
-            $validated['slug'] = Str::slug(
-                $validated['name']
-            );
+            $validated['slug'] = Str::slug($validated['name']);
         }
 
         /*
@@ -125,12 +132,10 @@ class ClubController extends Controller
         */
 
         if ($request->hasFile('logo')) {
-            $directory = storage_path(
-                'app/public/clubs'
-            );
+            $directory = storage_path('app/public/clubs');
 
             if (! is_dir($directory)) {
-                mkdir(
+                File::makeDirectory(
                     $directory,
                     0755,
                     true
@@ -139,18 +144,13 @@ class ClubController extends Controller
 
             $logo = $request->file('logo');
 
-            $filename =
-                uniqid().
-                '.'.
-                $logo->getClientOriginalExtension();
+            $filename = Str::uuid()
+                .'.'
+                .$logo->getClientOriginalExtension();
 
-            $logo->move(
-                $directory,
-                $filename
-            );
+            $logo->move($directory, $filename);
 
-            $validated['logo'] =
-                "clubs/{$filename}";
+            $validated['logo'] = "clubs/{$filename}";
         }
 
         /*
@@ -166,8 +166,7 @@ class ClubController extends Controller
             'message' => 'Club creado correctamente.',
         ]);
 
-        return redirect()
-            ->route('admin.clubs.index');
+        return redirect()->route('admin.clubs.index');
     }
 
     /**
@@ -234,6 +233,12 @@ class ClubController extends Controller
                 'email',
                 'max:255',
             ],
+            'website' => [
+                'nullable',
+                'string',
+                'max:255',
+                'url:http,https',
+            ],
             'city' => [
                 'nullable',
                 'string',
@@ -244,6 +249,7 @@ class ClubController extends Controller
                 'string',
             ],
             'is_active' => [
+                'sometimes',
                 'boolean',
             ],
             'remove_logo' => [
@@ -259,9 +265,7 @@ class ClubController extends Controller
         */
 
         if (empty($validated['slug'])) {
-            $validated['slug'] = Str::slug(
-                $validated['name']
-            );
+            $validated['slug'] = Str::slug($validated['name']);
         }
 
         /*
@@ -314,12 +318,10 @@ class ClubController extends Controller
             |--------------------------------------------------------------------------
             */
 
-            $directory = storage_path(
-                'app/public/clubs'
-            );
+            $directory = storage_path('app/public/clubs');
 
             if (! is_dir($directory)) {
-                mkdir(
+                File::makeDirectory(
                     $directory,
                     0755,
                     true
@@ -334,18 +336,13 @@ class ClubController extends Controller
 
             $logo = $request->file('logo');
 
-            $filename =
-                uniqid().
-                '.'.
-                $logo->getClientOriginalExtension();
+            $filename = Str::uuid()
+                .'.'
+                .$logo->getClientOriginalExtension();
 
-            $logo->move(
-                $directory,
-                $filename
-            );
+            $logo->move($directory, $filename);
 
-            $validated['logo'] =
-                "clubs/{$filename}";
+            $validated['logo'] = "clubs/{$filename}";
         } else {
             /*
             |--------------------------------------------------------------------------
@@ -377,8 +374,7 @@ class ClubController extends Controller
             'message' => 'Club actualizado correctamente.',
         ]);
 
-        return redirect()
-            ->route('admin.clubs.index');
+        return redirect()->route('admin.clubs.index');
     }
 
     /**
@@ -416,7 +412,6 @@ class ClubController extends Controller
             'message' => 'Club eliminado correctamente.',
         ]);
 
-        return redirect()
-            ->route('admin.clubs.index');
+        return redirect()->route('admin.clubs.index');
     }
 }

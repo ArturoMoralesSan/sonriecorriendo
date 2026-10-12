@@ -7,7 +7,7 @@ import {
     Save,
     X,
 } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { ref, onBeforeUnmount } from 'vue';
 
 import admin from '@/routes/admin';
 
@@ -19,6 +19,7 @@ const form = useForm({
     responsible: '',
     phone: '',
     email: '',
+    website: '',
     city: '',
     address: '',
     is_active: true,
@@ -67,7 +68,7 @@ const removeLogo = () => {
     logoPreview.value = null;
 
     const input = document.getElementById(
-        'logo'
+        'logo',
     ) as HTMLInputElement | null;
 
     if (input) {
@@ -80,6 +81,12 @@ const submit = () => {
         forceFormData: true,
     });
 };
+
+onBeforeUnmount(() => {
+    if (logoPreview.value) {
+        URL.revokeObjectURL(logoPreview.value);
+    }
+});
 
 defineOptions({
     layout: {
@@ -144,9 +151,7 @@ defineOptions({
                 class="admin-form"
                 @submit.prevent="submit"
             >
-                <!-- =================================================
-                     GENERAL
-                ================================================== -->
+                <!-- GENERAL -->
 
                 <div class="admin-form-section">
                     <div class="admin-form-section-header">
@@ -256,9 +261,7 @@ defineOptions({
                     </p>
                 </div>
 
-                <!-- =================================================
-                     LOGO
-                ================================================== -->
+                <!-- LOGO -->
 
                 <div class="admin-form-group">
                     <label
@@ -331,9 +334,7 @@ defineOptions({
                     </p>
                 </div>
 
-                <!-- =================================================
-                     CONTACT
-                ================================================== -->
+                <!-- CONTACT -->
 
                 <div class="admin-form-section">
                     <div class="admin-form-section-header">
@@ -438,6 +439,41 @@ defineOptions({
                     </p>
                 </div>
 
+                <!-- WEBSITE -->
+
+                <div class="admin-form-group">
+                    <label
+                        for="website"
+                        class="admin-form-label"
+                    >
+                        Enlace del club
+                        <span class="admin-form-optional">
+                            (opcional)
+                        </span>
+                    </label>
+
+                    <input
+                        id="website"
+                        v-model="form.website"
+                        type="url"
+                        class="admin-form-input"
+                        :class="{ 'has-error': form.errors.website }"
+                        placeholder="https://www.facebook.com/tuclub"
+                    />
+
+                    <p class="admin-form-help">
+                        Agrega la página web o el perfil de Facebook,
+                        Instagram u otra red social del club.
+                    </p>
+
+                    <p
+                        v-if="form.errors.website"
+                        class="admin-form-error"
+                    >
+                        {{ form.errors.website }}
+                    </p>
+                </div>
+
                 <!-- CITY -->
 
                 <div class="admin-form-group">
@@ -492,9 +528,7 @@ defineOptions({
                     </p>
                 </div>
 
-                <!-- =================================================
-                     STATUS
-                ================================================== -->
+                <!-- STATUS -->
 
                 <div class="admin-form-status">
                     <div class="admin-form-status-content">
@@ -531,9 +565,7 @@ defineOptions({
                     {{ form.errors.is_active }}
                 </p>
 
-                <!-- =================================================
-                     ACTIONS
-                ================================================== -->
+                <!-- ACTIONS -->
 
                 <div class="admin-form-actions">
                     <Link
@@ -611,6 +643,12 @@ defineOptions({
     margin: 3px 0 0;
     font-size: 12px;
     color: var(--sc-page-text-secondary);
+}
+
+.admin-form-optional {
+    color: var(--sc-page-text-secondary);
+    font-size: 11px;
+    font-weight: 400;
 }
 
 .club-logo-upload {
