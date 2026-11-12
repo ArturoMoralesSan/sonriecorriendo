@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\StoreRaceRequest;
 use App\Http\Requests\Admin\UpdateRaceRequest;
 use App\Models\Race;
 use App\Models\RaceKitImage;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -33,26 +34,10 @@ class RaceController extends Controller
             ->when($search, function ($query, $search) {
                 $query->where(function ($query) use ($search) {
                     $query
-                        ->where(
-                            'name',
-                            'like',
-                            "%{$search}%"
-                        )
-                        ->orWhere(
-                            'location',
-                            'like',
-                            "%{$search}%"
-                        )
-                        ->orWhere(
-                            'city',
-                            'like',
-                            "%{$search}%"
-                        )
-                        ->orWhere(
-                            'state',
-                            'like',
-                            "%{$search}%"
-                        );
+                        ->where('name', 'like', "%{$search}%")
+                        ->orWhere('location', 'like', "%{$search}%")
+                        ->orWhere('city', 'like', "%{$search}%")
+                        ->orWhere('state', 'like', "%{$search}%");
                 });
             })
             ->latest('event_date')
@@ -87,30 +72,18 @@ class RaceController extends Controller
 
         unset($data['distances']);
 
-        /**
-         * --------------------------------------------------------------------------
+        /*
          * Banner
-         * --------------------------------------------------------------------------
          */
         if ($request->hasFile('banner')) {
             $banner = $request->file('banner');
 
             if ($banner && $banner->isValid()) {
-                /**
-                 * ----------------------------------------------------------------------
-                 * Generar nombre único.
-                 * ----------------------------------------------------------------------
-                 */
                 $filename =
                     uniqid().
                     '.'.
                     $banner->getClientOriginalExtension();
 
-                /**
-                 * ----------------------------------------------------------------------
-                 * Asegurar que exista el directorio.
-                 * ----------------------------------------------------------------------
-                 */
                 $directory = storage_path(
                     'app/public/races/banners'
                 );
@@ -123,30 +96,18 @@ class RaceController extends Controller
                     );
                 }
 
-                /**
-                 * ----------------------------------------------------------------------
-                 * Guardar físicamente.
-                 * ----------------------------------------------------------------------
-                 */
                 $banner->move(
                     $directory,
                     $filename
                 );
 
-                /**
-                 * ----------------------------------------------------------------------
-                 * Guardar ruta en BD.
-                 * ----------------------------------------------------------------------
-                 */
                 $data['banner'] =
                     'races/banners/'.$filename;
             }
         }
 
-        /**
-         * --------------------------------------------------------------------------
+        /*
          * Carrera + configuración
-         * --------------------------------------------------------------------------
          */
         $race = DB::transaction(function () use (
             $data,
@@ -162,11 +123,6 @@ class RaceController extends Controller
                 );
             }
 
-            /**
-             * ----------------------------------------------------------------------
-             * Galería del kit
-             * ----------------------------------------------------------------------
-             */
             $this->storeKitImages(
                 $race,
                 $request
@@ -175,11 +131,6 @@ class RaceController extends Controller
             return $race;
         });
 
-        /**
-         * --------------------------------------------------------------------------
-         * Toast
-         * --------------------------------------------------------------------------
-         */
         Inertia::flash('toast', [
             'type' => 'success',
             'message' => 'La carrera se creó correctamente.',
@@ -224,8 +175,44 @@ class RaceController extends Controller
             'kitImages',
         ]);
 
+        /*
+         * Convertir la carrera a un arreglo para controlar
+         * el formato de las fechas que recibe Vue.
+         */
+        $raceData = $race->toArray();
+
+        /*
+         * Fechas de inscripción.
+         */
+        $raceData['registration_opens_at'] =
+            $this->formatDateTimeForForm(
+                $race->registration_opens_at
+            );
+
+        $raceData['registration_closes_at'] =
+            $this->formatDateTimeForForm(
+                $race->registration_closes_at
+            );
+
+        /*
+         * Fechas de los periodos de precios.
+         */
+        foreach ($race->distances as $distanceIndex => $distance) {
+            foreach ($distance->prices as $priceIndex => $price) {
+                $raceData['distances'][$distanceIndex]['prices'][$priceIndex]['starts_at'] =
+                    $this->formatDateTimeForForm(
+                        $price->starts_at
+                    );
+
+                $raceData['distances'][$distanceIndex]['prices'][$priceIndex]['ends_at'] =
+                    $this->formatDateTimeForForm(
+                        $price->ends_at
+                    );
+            }
+        }
+
         return Inertia::render('admin/races/Edit', [
-            'race' => $race,
+            'race' => $raceData,
         ]);
     }
 
@@ -242,29 +229,18 @@ class RaceController extends Controller
 
         unset($data['distances']);
 
-        /**
-         * --------------------------------------------------------------------------
+        /*
          * Banner
-         * --------------------------------------------------------------------------
          */
         if ($request->hasFile('banner')) {
             $banner = $request->file('banner');
 
             if ($banner && $banner->isValid()) {
-                /**
-                 * ----------------------------------------------------------------------
-                 * Eliminar banner anterior.
-                 * ----------------------------------------------------------------------
-                 */
                 if ($race->banner) {
                     Storage::disk('public')->delete(
                         $race->banner
                     );
 
-                    /**
-                     * Por si el archivo fue guardado directamente
-                     * en storage/app/public.
-                     */
                     $oldBanner = storage_path(
                         'app/public/'.$race->banner
                     );
@@ -274,21 +250,11 @@ class RaceController extends Controller
                     }
                 }
 
-                /**
-                 * ----------------------------------------------------------------------
-                 * Generar nombre único.
-                 * ----------------------------------------------------------------------
-                 */
                 $filename =
                     uniqid().
                     '.'.
                     $banner->getClientOriginalExtension();
 
-                /**
-                 * ----------------------------------------------------------------------
-                 * Asegurar que exista el directorio.
-                 * ----------------------------------------------------------------------
-                 */
                 $directory = storage_path(
                     'app/public/races/banners'
                 );
@@ -301,36 +267,20 @@ class RaceController extends Controller
                     );
                 }
 
-                /**
-                 * ----------------------------------------------------------------------
-                 * Guardar físicamente.
-                 * ----------------------------------------------------------------------
-                 */
                 $banner->move(
                     $directory,
                     $filename
                 );
 
-                /**
-                 * ----------------------------------------------------------------------
-                 * Guardar nueva ruta en BD.
-                 * ----------------------------------------------------------------------
-                 */
                 $data['banner'] =
                     'races/banners/'.$filename;
             }
         } else {
-            /**
-             * Si no se envió un nuevo banner,
-             * conservar el existente.
-             */
             unset($data['banner']);
         }
 
-        /**
-         * --------------------------------------------------------------------------
+        /*
          * Carrera + configuración
-         * --------------------------------------------------------------------------
          */
         DB::transaction(function () use (
             $race,
@@ -345,22 +295,12 @@ class RaceController extends Controller
                 $distances
             );
 
-            /**
-             * ----------------------------------------------------------------------
-             * Galería del kit
-             * ----------------------------------------------------------------------
-             */
             $this->updateKitImages(
                 $race,
                 $request
             );
         });
 
-        /**
-         * --------------------------------------------------------------------------
-         * Toast
-         * --------------------------------------------------------------------------
-         */
         Inertia::flash('toast', [
             'type' => 'success',
             'message' => 'La carrera se actualizó correctamente.',
@@ -378,10 +318,8 @@ class RaceController extends Controller
     public function destroy(
         Race $race
     ): RedirectResponse {
-        /**
-         * --------------------------------------------------------------------------
+        /*
          * Eliminar banner.
-         * --------------------------------------------------------------------------
          */
         if ($race->banner) {
             Storage::disk('public')->delete(
@@ -397,10 +335,8 @@ class RaceController extends Controller
             }
         }
 
-        /**
-         * --------------------------------------------------------------------------
+        /*
          * Eliminar imágenes del kit.
-         * --------------------------------------------------------------------------
          */
         $kitImages = $race->kitImages()->get();
 
@@ -422,11 +358,6 @@ class RaceController extends Controller
 
         $race->delete();
 
-        /**
-         * --------------------------------------------------------------------------
-         * Toast
-         * --------------------------------------------------------------------------
-         */
         Inertia::flash('toast', [
             'type' => 'success',
             'message' => 'La carrera se eliminó correctamente.',
@@ -435,6 +366,27 @@ class RaceController extends Controller
         return to_route(
             'admin.races.index'
         );
+    }
+
+    /**
+     * Format a date for datetime-local inputs.
+     */
+    private function formatDateTimeForForm($value): ?string
+    {
+        if (! $value) {
+            return null;
+        }
+
+        $date = $value instanceof Carbon
+            ? $value->copy()
+            : Carbon::parse(
+                $value,
+                config('app.timezone')
+            );
+
+        return $date
+            ->setTimezone(config('app.timezone'))
+            ->format('Y-m-d\TH:i:s');
     }
 
     /**
@@ -511,11 +463,6 @@ class RaceController extends Controller
                 $distanceData['categories']
             );
 
-            /**
-             * ----------------------------------------------------------------------
-             * Distancia existente.
-             * ----------------------------------------------------------------------
-             */
             if (
                 $distanceId &&
                 $existingDistances->has($distanceId)
@@ -528,11 +475,6 @@ class RaceController extends Controller
                     $distanceData
                 );
             } else {
-                /**
-                 * ------------------------------------------------------------------
-                 * Nueva distancia.
-                 * ------------------------------------------------------------------
-                 */
                 $distance = $race->distances()->create(
                     $distanceData
                 );
@@ -540,43 +482,22 @@ class RaceController extends Controller
 
             $receivedDistanceIds[] = $distance->id;
 
-            /**
-             * ----------------------------------------------------------------------
-             * Precios.
-             * ----------------------------------------------------------------------
-             */
             $this->updatePrices(
                 $distance,
                 $prices
             );
 
-            /**
-             * ----------------------------------------------------------------------
-             * Inclusiones.
-             * ----------------------------------------------------------------------
-             */
             $this->updateInclusions(
                 $distance,
                 $inclusions
             );
 
-            /**
-             * ----------------------------------------------------------------------
-             * Categorías.
-             * ----------------------------------------------------------------------
-             */
             $this->updateCategories(
                 $distance,
                 $categories
             );
         }
 
-        /**
-         * --------------------------------------------------------------------------
-         * Eliminar distancias que ya no vienen
-         * en el formulario.
-         * --------------------------------------------------------------------------
-         */
         $distancesToDelete = $existingDistances
             ->keys()
             ->diff($receivedDistanceIds);
@@ -820,10 +741,8 @@ class RaceController extends Controller
         foreach ($kitImages as $index => $kitImageData) {
             $imageId = $kitImageData['id'] ?? null;
 
-            /**
-             * ----------------------------------------------------------------------
+            /*
              * Imagen existente.
-             * ----------------------------------------------------------------------
              */
             if (
                 $imageId &&
@@ -850,10 +769,8 @@ class RaceController extends Controller
                 continue;
             }
 
-            /**
-             * ----------------------------------------------------------------------
+            /*
              * Nueva imagen.
-             * ----------------------------------------------------------------------
              */
             $file = $request->file(
                 "kit_images.{$index}.file"
@@ -886,10 +803,8 @@ class RaceController extends Controller
             $receivedImageIds[] = $kitImage->id;
         }
 
-        /**
-         * --------------------------------------------------------------------------
+        /*
          * Eliminar imágenes que ya no existen en el formulario.
-         * --------------------------------------------------------------------------
          */
         $imagesToDelete = $existingImages
             ->keys()

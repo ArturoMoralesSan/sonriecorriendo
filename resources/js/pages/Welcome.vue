@@ -5,7 +5,6 @@ import LandingBenefits from '@/components/landing/LandingBenefits.vue';
 import LandingClubs from '@/components/landing/LandingClubs.vue';
 import LandingCta from '@/components/landing/LandingCta.vue';
 import LandingEvents from '@/components/landing/LandingEvents.vue';
-import LandingExperience from '@/components/landing/LandingExperience.vue';
 import LandingFooter from '@/components/landing/LandingFooter.vue';
 import LandingGallery from '@/components/landing/LandingGallery.vue';
 import LandingHeader from '@/components/landing/LandingHeader.vue';
