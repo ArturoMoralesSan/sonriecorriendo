@@ -14,6 +14,7 @@ class RacePrice extends Model
         'race_distance_id',
         'name',
         'price',
+        'registration_url',
         'starts_at',
         'ends_at',
         'capacity',

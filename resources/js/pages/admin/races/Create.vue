@@ -31,6 +31,7 @@ type TabKey =
 interface PriceForm {
     name: string;
     price: string;
+    registration_url: string;
     starts_at: string;
     ends_at: string;
     capacity: string;
@@ -88,6 +89,7 @@ const bannerPreview = ref<string | null>(null);
 const createPrice = (): PriceForm => ({
     name: '',
     price: '',
+    registration_url: '',
     starts_at: '',
     ends_at: '',
     capacity: '',

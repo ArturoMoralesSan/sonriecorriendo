@@ -186,6 +186,12 @@ class StoreRaceRequest extends FormRequest
                 'min:0',
             ],
 
+            'distances.*.prices.*.registration_url' => [
+                'nullable',
+                'url',
+                'max:2048',
+            ],
+
             'distances.*.prices.*.starts_at' => [
                 'nullable',
                 'date',

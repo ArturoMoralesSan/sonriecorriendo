@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\BannerController;
+use App\Http\Controllers\Admin\BranchController;
 use App\Http\Controllers\Admin\ClubController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PaymentMethodController;
@@ -7,22 +9,22 @@ use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\RaceChecklistController;
 use App\Http\Controllers\Admin\RaceController;
+use App\Http\Controllers\Admin\RaceDiscountController;
 use App\Http\Controllers\Admin\RaceExpenseController;
 use App\Http\Controllers\Admin\RaceGalleryController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\RouteController;
 use App\Http\Controllers\Admin\SaleController as AdminSaleController;
 use App\Http\Controllers\Admin\SponsorController;
 use App\Http\Controllers\Admin\SponsorPaymentController;
 use App\Http\Controllers\Admin\SponsorRaceController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\CartController;
-use App\Http\Controllers\HomeController;
-use App\Http\Controllers\SaleController;
-use App\Http\Controllers\MercadoPagoController;
-use App\Http\Controllers\Admin\BannerController;
-use App\Http\Controllers\Admin\RouteController;
 use App\Http\Controllers\Customer\OrderController;
-use App\Http\Controllers\Admin\BranchController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\MercadoPagoController;
+use App\Http\Controllers\RaceDiscountCheckController;
+use App\Http\Controllers\SaleController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -45,6 +47,17 @@ Route::get('/carreras', [HomeController::class, 'races'])
 
 Route::get('/carreras/{slug}', [HomeController::class, 'race'])
     ->name('races.show');
+
+Route::post('/carreras/{slug}/descuento', RaceDiscountCheckController::class)
+    ->middleware('throttle:10,1')
+    ->name('races.discount.check');
+
+Route::get('/descuentos', [RaceDiscountCheckController::class, 'page'])
+    ->name('discounts.page');
+
+Route::post('/descuentos', [RaceDiscountCheckController::class, 'search'])
+    ->middleware('throttle:10,1')
+    ->name('discounts.search');
 
 /*
 |--------------------------------------------------------------------------
@@ -81,9 +94,6 @@ Route::get('/clubes', [HomeController::class, 'clubs'])
 
 Route::get('/clubes/{slug}', [HomeController::class, 'club'])
     ->name('clubs.show');
-
-
-
 
 Route::get('/rutas', [HomeController::class, 'routes'])
     ->name('routes.index');
@@ -123,13 +133,10 @@ Route::post('/carrito/finalizar', [SaleController::class, 'checkout'])
 Route::get('/ventas/{sale}', [SaleController::class, 'show'])
     ->name('sales.show');
 
-
-
 Route::post(
     '/mercadopago/webhook',
     [MercadoPagoController::class, 'webhook']
 )->name('mercadopago.webhook');
-
 
 Route::get('/pedidos', [OrderController::class, 'index'])
     ->middleware([
@@ -137,13 +144,13 @@ Route::get('/pedidos', [OrderController::class, 'index'])
         'permission:orders.view',
     ])
     ->name('customer.orders.index');
-    
+
 Route::get('/pedidos/{sale}', [OrderController::class, 'show'])
-    ->middleware([
-        'auth',
-        'permission:orders.view',
-    ])
-    ->name('customer.orders.show');
+        ->middleware([
+            'auth',
+            'permission:orders.view',
+        ])
+        ->name('customer.orders.show');
 /*
 |--------------------------------------------------------------------------
 | Admin
@@ -398,6 +405,40 @@ Route::middleware(['auth', 'verified'])
 
         /*
         |--------------------------------------------------------------------------
+        | Descuentos por participación pasada (folio + nombre)
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            'races/{race}/discounts',
+            [RaceDiscountController::class, 'index']
+        )
+            ->name('races.discounts.index')
+            ->middleware('permission:races.view');
+
+        Route::put(
+            'races/{race}/discounts/url',
+            [RaceDiscountController::class, 'updateUrl']
+        )
+            ->name('races.discounts.url')
+            ->middleware('permission:races.edit');
+
+        Route::post(
+            'races/{race}/discounts/import',
+            [RaceDiscountController::class, 'import']
+        )
+            ->name('races.discounts.import')
+            ->middleware('permission:races.edit');
+
+        Route::delete(
+            'races/{race}/discounts',
+            [RaceDiscountController::class, 'destroy']
+        )
+            ->name('races.discounts.destroy')
+            ->middleware('permission:races.edit');
+
+        /*
+        |--------------------------------------------------------------------------
         | Galería de carreras
         |--------------------------------------------------------------------------
         */
@@ -494,8 +535,7 @@ Route::middleware(['auth', 'verified'])
                 'update' => 'permission:banners.edit',
                 'destroy' => 'permission:banners.delete',
             ]);
-        
-       
+
         Route::resource('routes', RouteController::class)
             ->middleware([
                 'index' => 'permission:routes.view',
@@ -518,6 +558,5 @@ Route::middleware(['auth', 'verified'])
                 'update' => 'permission:branches.edit',
             ]);
     });
-        
 
 require __DIR__.'/settings.php';

@@ -2,6 +2,7 @@
 import { Head, Link } from '@inertiajs/vue3';
 import {
     ArrowLeft,
+    BadgePercent,
     CalendarDays,
     ClipboardList,
     Clock3,
@@ -573,6 +574,23 @@ defineOptions({
                     />
 
                     Gastos
+                </Link>
+
+                <Link
+                    :href="
+                        admin.races.discounts.index({
+                            race: race.id,
+                        }).url
+                    "
+                    class="admin-btn admin-btn-secondary"
+                    title="Descuentos por participación pasada"
+                >
+                    <BadgePercent
+                        :size="14"
+                        :stroke-width="2"
+                    />
+
+                    Descuentos
                 </Link>
 
                 <Link

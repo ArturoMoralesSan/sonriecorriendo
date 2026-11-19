@@ -9,6 +9,7 @@ import {
 interface PriceForm {
     name: string;
     price: string;
+    registration_url: string;
     starts_at: string;
     ends_at: string;
     capacity: string;
@@ -813,6 +814,58 @@ const categoryFieldClass = (
                                                     distanceIndex,
                                                     priceIndex,
                                                     'capacity',
+                                                )
+                                            }}
+                                        </p>
+                                    </div>
+
+                                    <div
+                                        class="distances-step__field distances-step__field--full"
+                                    >
+                                        <label
+                                            class="distances-step__label"
+                                        >
+                                            Enlace de inscripción
+                                        </label>
+
+                                        <input
+                                            v-model="
+                                                price.registration_url
+                                            "
+                                            type="url"
+                                            :class="
+                                                priceFieldClass(
+                                                    distanceIndex,
+                                                    priceIndex,
+                                                    'registration_url',
+                                                )
+                                            "
+                                            placeholder="https://..."
+                                        />
+
+                                        <p
+                                            class="distances-step__hint"
+                                        >
+                                            Si el precio está activo y
+                                            vigente, se mostrará el botón
+                                            «Inscribirme» con este enlace.
+                                        </p>
+
+                                        <p
+                                            v-if="
+                                                priceError(
+                                                    distanceIndex,
+                                                    priceIndex,
+                                                    'registration_url',
+                                                )
+                                            "
+                                            class="distances-step__error"
+                                        >
+                                            {{
+                                                priceError(
+                                                    distanceIndex,
+                                                    priceIndex,
+                                                    'registration_url',
                                                 )
                                             }}
                                         </p>
@@ -1751,6 +1804,13 @@ const categoryFieldClass = (
 
 .distances-step__label span {
     color: #d95c4f;
+}
+
+.distances-step__hint {
+    margin: 6px 0 0;
+    color: #8a8a8a;
+    font-size: 11px;
+    line-height: 1.4;
 }
 
 .distances-step__error {

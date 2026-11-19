@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import {
+    BadgePercent,
     CalendarDays,
     Camera,
     Check,
@@ -24,10 +25,28 @@ import {
 
 import LandingFooter from '@/components/landing/LandingFooter.vue';
 import LandingHeader from '@/components/landing/LandingHeader.vue';
+import RaceDiscountCheck from '@/components/landing/RaceDiscountCheck.vue';
+import { formatDiscountAmount } from '@/lib/discountAmount';
 
-const { race } = defineProps<{
+const {
+    race,
+    hasDiscount = false,
+    discountAmount = null,
+} = defineProps<{
     race: any;
+    hasDiscount?: boolean;
+    discountAmount?: number | null;
 }>();
+
+const discountAmountLabel = computed(() =>
+    formatDiscountAmount(discountAmount),
+);
+
+const scrollToDiscount = () => {
+    document
+        .getElementById('descuento')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
 
 /*
 |--------------------------------------------------------------------------
@@ -184,6 +203,45 @@ const getDistanceTitle = (
     return 'Distancia';
 };
 
+/*
+ * Un precio está vigente si está dentro de su rango de fechas
+ * (el backend ya filtra solo los precios activos).
+ */
+const isPriceCurrent = (price: any): boolean => {
+    const now = Date.now();
+
+    if (
+        price?.starts_at &&
+        new Date(price.starts_at).getTime() > now
+    ) {
+        return false;
+    }
+
+    if (
+        price?.ends_at &&
+        new Date(price.ends_at).getTime() < now
+    ) {
+        return false;
+    }
+
+    return true;
+};
+
+/*
+ * Enlace de inscripción del primer precio vigente que tenga enlace.
+ */
+const getRegistrationUrl = (
+    distance: any,
+): string | null => {
+    const price = (distance?.prices ?? []).find(
+        (price: any) =>
+            price?.registration_url &&
+            isPriceCurrent(price),
+    );
+
+    return price?.registration_url ?? null;
+};
+
 const getPriceLabel = (
     price: any,
 ): string => {
@@ -241,6 +299,23 @@ const statusLabel = (
 
     return labels[status] ?? status;
 };
+
+/*
+ * Candado de inscripción: los botones de "Inscribirme" y el
+ * "¿Ya has participado?" solo se muestran cuando la carrera tiene
+ * inscripciones abiertas o alguna preventa ya está vigente.
+ */
+const isRegistrationOpen = computed(
+    () =>
+        race?.status === 'registration_open' ||
+        (race?.distances ?? []).some((distance: any) =>
+            (distance?.prices ?? []).some(
+                (price: any) =>
+                    getPriceLabel(price) === 'Preventa' &&
+                    isPriceCurrent(price),
+            ),
+        ),
+);
 
 /*
 |--------------------------------------------------------------------------
@@ -520,16 +595,19 @@ const handleLightboxKeydown = (
     if (selectedGalleryIndex.value !== null) {
         if (event.key === 'Escape') {
             closeGalleryImage();
+
             return;
         }
 
         if (event.key === 'ArrowLeft') {
             previousGalleryImage();
+
             return;
         }
 
         if (event.key === 'ArrowRight') {
             nextGalleryImage();
+
             return;
         }
 
@@ -542,11 +620,13 @@ const handleLightboxKeydown = (
     if (selectedKitIndex.value !== null) {
         if (event.key === 'Escape') {
             closeKitImage();
+
             return;
         }
 
         if (event.key === 'ArrowLeft') {
             previousKitImage();
+
             return;
         }
 
@@ -622,6 +702,22 @@ onBeforeUnmount(() => {
                             <h1>
                                 {{ race.name }}
                             </h1>
+
+                            <a
+                                v-if="hasDiscount && isRegistrationOpen"
+                                href="#descuento"
+                                class="race-hero-discount"
+                                @click.prevent="scrollToDiscount"
+                            >
+                                <BadgePercent :size="18" />
+
+                                <span>
+                                    ¿Ya has participado?
+                        
+                                </span>
+
+                                <ChevronRight :size="16" />
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -845,6 +941,20 @@ onBeforeUnmount(() => {
                             </span>
                         </button>
                     </div>
+                </div>
+            </section>
+
+            <!-- DESCUENTO POR FOLIO + NOMBRE -->
+            <section
+                v-if="hasDiscount && isRegistrationOpen"
+                id="descuento"
+                class="race-section race-section-light race-discount-section"
+            >
+                <div class="race-container">
+                    <RaceDiscountCheck
+                        :slug="race.slug"
+                        :amount="discountAmount"
+                    />
                 </div>
             </section>
 
@@ -1089,10 +1199,18 @@ onBeforeUnmount(() => {
 
                             <a
                                 v-if="
-                                    race.status ===
-                                    'registration_open'
+                                    isRegistrationOpen &&
+                                    getRegistrationUrl(
+                                        distance,
+                                    )
                                 "
-                                href="#"
+                                :href="
+                                    getRegistrationUrl(
+                                        distance,
+                                    ) ?? undefined
+                                "
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 class="distance-button"
                             >
                                 <Ticket :size="18" />
@@ -1958,6 +2076,53 @@ onBeforeUnmount(() => {
     text-shadow: 0 7px 30px rgba(9, 45, 76, 0.2);
 }
 
+
+.race-hero-discount {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+
+    max-width: 100%;
+    margin-top: 24px;
+    padding: 11px 16px;
+
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 999px;
+
+    background: rgba(255, 255, 255, 0.16);
+
+    box-shadow: 0 8px 25px rgba(7, 35, 65, 0.14);
+
+    backdrop-filter: blur(12px);
+
+    color: #fff;
+
+    font-size: 14px;
+    line-height: 1.35;
+    text-decoration: none;
+
+    transition:
+        background-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.race-hero-discount:hover {
+    background: rgba(255, 255, 255, 0.26);
+
+    transform: translateY(-1px);
+}
+
+.race-hero-discount strong {
+    font-weight: 800;
+}
+
+.race-hero-discount svg {
+    flex-shrink: 0;
+}
+
+.race-discount-section {
+    scroll-margin-top: 90px;
+}
 
 /* =========================================================
    SUMMARY

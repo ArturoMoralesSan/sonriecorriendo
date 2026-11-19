@@ -33,6 +33,7 @@ interface PriceForm {
     id?: number;
     name: string;
     price: string;
+    registration_url: string;
     starts_at: string;
     ends_at: string;
     capacity: string;
@@ -259,6 +260,7 @@ const normalizeKitImages = (
 const createPrice = (): PriceForm => ({
     name: '',
     price: '',
+    registration_url: '',
     starts_at: '',
     ends_at: '',
     capacity: '',
@@ -339,6 +341,9 @@ const normalizeDistances = (
                                   '',
                               price:
                                   price.price ??
+                                  '',
+                              registration_url:
+                                  price.registration_url ??
                                   '',
                               starts_at:
                                   normalizeDateTimeLocal(

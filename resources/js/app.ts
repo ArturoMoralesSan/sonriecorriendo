@@ -31,6 +31,7 @@ createInertiaApp({
             case name === 'ClubShow':
             case name === 'Routes':
             case name === 'RouteShow':
+            case name === 'Discounts':
                 return null;
 
             // ==========================================

@@ -31,6 +31,15 @@ class Race extends Model
         'terms_and_conditions',
         'notes',
         'results_url',
+        'discount_registration_url',
+        'discount_amount',
+    ];
+
+    /**
+     * El enlace de descuento solo se entrega tras validar folio y nombre.
+     */
+    protected $hidden = [
+        'discount_registration_url',
     ];
 
     protected function casts(): array
@@ -39,6 +48,7 @@ class Race extends Model
             'event_date' => 'date',
             'registration_opens_at' => 'datetime',
             'registration_closes_at' => 'datetime',
+            'discount_amount' => 'float',
         ];
     }
 
@@ -47,6 +57,11 @@ class Race extends Model
     | Relationships
     |--------------------------------------------------------------------------
     */
+
+    public function discountParticipants(): HasMany
+    {
+        return $this->hasMany(RaceDiscountParticipant::class);
+    }
 
     public function distances(): HasMany
     {

@@ -206,8 +206,15 @@ class HomeController extends Controller
             ])
             ->firstOrFail();
 
+        $hasDiscount = $race->discountParticipants()->exists()
+            && filled($race->discount_registration_url);
+
         return Inertia::render('RaceShow', [
             'race' => $race,
+            'hasDiscount' => $hasDiscount,
+            'discountAmount' => $hasDiscount
+                ? $race->discount_amount
+                : null,
         ]);
     }
 
