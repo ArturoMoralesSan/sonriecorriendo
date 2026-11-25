@@ -31,8 +31,106 @@ interface Race {
     event_date: string;
     location: string | null;
     banner: string | null;
+    status?: string;
+    registration_opens_at?: string | null;
+    registration_closes_at?: string | null;
     distances?: RaceDistance[];
 }
+
+/*
+ * Fecha (YYYY-MM-DD) de hoy en horario de Ciudad de México.
+ */
+const todayKey = (): string =>
+    new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Mexico_City',
+    }).format(new Date());
+
+const isPast = (event: Race): boolean => {
+    if (!event.event_date) {
+        return false;
+    }
+
+    return String(event.event_date).slice(0, 10) < todayKey();
+};
+
+const isPriceCurrent = (price: RacePrice): boolean => {
+    const now = Date.now();
+
+    if (price.starts_at && new Date(price.starts_at).getTime() > now) {
+        return false;
+    }
+
+    if (price.ends_at && new Date(price.ends_at).getTime() < now) {
+        return false;
+    }
+
+    return true;
+};
+
+const isPresale = (price: RacePrice): boolean =>
+    String(price.name || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/[\s-]/g, '')
+        .includes('preventa');
+
+/*
+ * Solo se puede inscribir si el evento no ha pasado, no está cerrado
+ * y ya llegó la fecha de inscripción (estatus abierto, fecha de
+ * apertura alcanzada o una preventa vigente).
+ */
+const canRegister = (event: Race): boolean => {
+    if (isPast(event)) {
+        return false;
+    }
+
+    if (
+        event.status === 'registration_closed' ||
+        event.status === 'finished' ||
+        event.status === 'cancelled'
+    ) {
+        return false;
+    }
+
+    const now = Date.now();
+
+    if (
+        event.registration_closes_at &&
+        new Date(event.registration_closes_at).getTime() < now
+    ) {
+        return false;
+    }
+
+    if (event.status === 'registration_open') {
+        return true;
+    }
+
+    if (
+        event.registration_opens_at &&
+        new Date(event.registration_opens_at).getTime() <= now
+    ) {
+        return true;
+    }
+
+    return (event.distances ?? []).some((distance) =>
+        (distance.prices ?? []).some(
+            (price) => price.is_active && isPresale(price) && isPriceCurrent(price),
+        ),
+    );
+};
+
+const getStatusLabel = (event: Race): string => {
+    if (isPast(event) || event.status === 'finished') {
+        return 'Evento realizado';
+    }
+
+    if (event.status === 'registration_closed') {
+        return 'Inscripciones cerradas';
+    }
+
+    return 'Próximamente';
+};
 
 const props = defineProps<{
     events: Race[];
@@ -227,6 +325,7 @@ const getImageUrl = (banner: string | null): string => {
                             </div>
 
                             <a
+                                v-if="canRegister(event)"
                                 :href="`/carreras/${event.slug}`"
                                 class="landing-event-button"
                             >
@@ -236,6 +335,14 @@ const getImageUrl = (banner: string | null): string => {
                                     :size="16"
                                     :stroke-width="2.2"
                                 />
+                            </a>
+
+                            <a
+                                v-else
+                                :href="`/carreras/${event.slug}`"
+                                class="landing-event-button landing-event-button--muted"
+                            >
+                                {{ getStatusLabel(event) }}
                             </a>
                         </div>
                     </div>

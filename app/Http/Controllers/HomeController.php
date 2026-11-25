@@ -30,10 +30,14 @@ class HomeController extends Controller
             ->whereIn('status', [
                 'published',
                 'registration_open',
+                'registration_closed',
+                'finished',
             ])
-            ->whereDate('event_date', '>=', $today)
-            ->orderBy('event_date')
-            ->limit(4)
+            // Próximos primero (del más cercano al más lejano),
+            // después los ya realizados (del más reciente al más antiguo).
+            ->orderByRaw('CASE WHEN event_date >= ? THEN 0 ELSE 1 END', [$today->toDateString()])
+            ->orderByRaw('CASE WHEN event_date >= ? THEN event_date END ASC', [$today->toDateString()])
+            ->orderByDesc('event_date')
             ->get();
 
         $clubs = Club::query()

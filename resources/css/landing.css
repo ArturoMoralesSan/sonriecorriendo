@@ -3585,3 +3585,8 @@
         min-height: 120px;
     }
 }
+/* Botón de evento sin inscripción (próximamente / realizado / cerrado) */
+.landing-event-button--muted {
+    opacity: 0.75;
+    background: rgba(0, 0, 0, 0.18);
+}
