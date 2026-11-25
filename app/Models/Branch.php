@@ -21,22 +21,49 @@ class Branch extends Model
         'city',
         'state',
         'references',
+        'latitude',
+        'longitude',
         'phone',
         'opening_time',
         'closing_time',
         'is_active',
     ];
 
+    protected $appends = [
+        'directions_url',
+    ];
+
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'latitude' => 'float',
+            'longitude' => 'float',
         ];
     }
 
     public function deliveryAddresses(): HasMany
     {
         return $this->hasMany(DeliveryAddress::class);
+    }
+
+    public function hasCoordinates(): bool
+    {
+        return $this->latitude !== null && $this->longitude !== null;
+    }
+
+    /**
+     * Enlace de "Cómo llegar" en Google Maps (no requiere API key).
+     * Usa coordenadas si existen; si no, la dirección completa.
+     */
+    public function getDirectionsUrlAttribute(): string
+    {
+        $destination = $this->hasCoordinates()
+            ? $this->latitude . ',' . $this->longitude
+            : $this->full_address;
+
+        return 'https://www.google.com/maps/dir/?api=1&destination='
+            . rawurlencode($destination);
     }
 
     public function getFullAddressAttribute(): string

@@ -30,6 +30,8 @@ class CartController extends Controller
                 'city',
                 'state',
                 'references',
+                'latitude',
+                'longitude',
                 'phone',
                 'opening_time',
                 'closing_time',
@@ -41,6 +43,9 @@ class CartController extends Controller
                 'phone' => $branch->phone,
                 'opening_time' => $branch->opening_time,
                 'closing_time' => $branch->closing_time,
+                'latitude' => $branch->latitude,
+                'longitude' => $branch->longitude,
+                'directions_url' => $branch->directions_url,
             ])
             ->values();
 

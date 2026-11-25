@@ -463,6 +463,11 @@
 
                               @php
                                 $branch = $delivery->branch;
+
+                                $directionsUrl = $branch?->directions_url
+                                  ?? ($delivery->branch_address
+                                    ? 'https://www.google.com/maps/dir/?api=1&destination=' . rawurlencode($delivery->branch_address)
+                                    : null);
                               @endphp
 
                               <tr>
@@ -531,6 +536,34 @@
                                     </div>
                                   </td>
                                 </tr>
+                              @endif
+
+                              @if ($directionsUrl)
+                                <tr>
+                                  <td align="left" style="font-size:0px;padding:16px 25px 4px;word-break:break-word;">
+                                    <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:separate;line-height:100%;">
+                                      <tbody>
+                                        <tr>
+                                          <td align="center" bgcolor="#1769a8" role="presentation" style="border:none;border-radius:999px;background:#1769a8;" valign="middle">
+                                            <a href="{{ $directionsUrl }}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#1769a8;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;line-height:120%;margin:0;text-decoration:none;text-transform:none;padding:12px 24px;border-radius:999px;">
+                                              &#128205; Cómo llegar
+                                            </a>
+                                          </td>
+                                        </tr>
+                                      </tbody>
+                                    </table>
+                                  </td>
+                                </tr>
+
+                                @if ($branch?->hasCoordinates())
+                                  <tr>
+                                    <td align="left" style="font-size:0px;padding:6px 25px 0;word-break:break-word;">
+                                      <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#8a97a8;">
+                                        <a href="https://www.openstreetmap.org/?mlat={{ $branch->latitude }}&amp;mlon={{ $branch->longitude }}#map=17/{{ $branch->latitude }}/{{ $branch->longitude }}" target="_blank" rel="noopener noreferrer" style="color:#1769a8;text-decoration:underline;">Ver ubicación en el mapa</a>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                @endif
                               @endif
 
                             @elseif (isset($delivery) && $delivery && $delivery->delivery_method === \App\Models\DeliveryAddress::METHOD_HOME)

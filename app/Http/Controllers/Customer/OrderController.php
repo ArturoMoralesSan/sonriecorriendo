@@ -146,6 +146,9 @@ class OrderController extends Controller
                     'state' => $branch->state,
                     'phone' => $branch->phone,
                     'full_address' => $branch->full_address,
+                    'latitude' => $branch->latitude,
+                    'longitude' => $branch->longitude,
+                    'directions_url' => $branch->directions_url,
                 ] : null,
             ];
         }

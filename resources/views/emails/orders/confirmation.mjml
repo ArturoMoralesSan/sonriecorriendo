@@ -308,6 +308,27 @@
                         </mj-text>
                     @endif
 
+                    @php
+                        $directionsUrl = $delivery->branch?->directions_url
+                            ?? ($delivery->branch_address
+                                ? 'https://www.google.com/maps/dir/?api=1&destination=' . rawurlencode($delivery->branch_address)
+                                : null);
+                    @endphp
+
+                    @if ($directionsUrl)
+                        <mj-button
+                            href="{{ $directionsUrl }}"
+                            align="left"
+                            background-color="#1769a8"
+                            color="#ffffff"
+                            border-radius="999px"
+                            font-weight="bold"
+                            padding-top="16px"
+                        >
+                            &#128205; Cómo llegar
+                        </mj-button>
+                    @endif
+
                 @elseif ($deliveryIsHome)
                     <mj-text color="#172b4d" font-weight="bold" padding-bottom="8px">
                         Entrega a domicilio

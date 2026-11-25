@@ -11,6 +11,7 @@ import {
     Truck,
     UserRound,
     Mail,
+    Navigation,
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import Swal from 'sweetalert2';
@@ -36,6 +37,9 @@ interface Branch {
     phone?: string | null;
     opening_time?: string | null;
     closing_time?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    directions_url?: string | null;
 }
 
 interface AuthUser {
@@ -860,6 +864,18 @@ const hasItems = computed(() => props.items.length > 0);
                                                     a
                                                     {{ branch.closing_time }}
                                                 </span>
+
+                                                <a
+                                                    v-if="branch.directions_url"
+                                                    :href="branch.directions_url"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    class="branch-directions"
+                                                    @click.stop
+                                                >
+                                                    <Navigation :size="13" />
+                                                    Cómo llegar
+                                                </a>
                                             </span>
 
                                             <span class="delivery-radio">
@@ -1695,6 +1711,24 @@ const hasItems = computed(() => props.items.length > 0);
     margin-top: 5px;
     color: var(--muted);
     font-size: 10px;
+}
+
+.branch-directions {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 8px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: #e8f4fb;
+    color: #1769a8;
+    font-size: 11px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.branch-directions:hover {
+    background: #d4ebf8;
 }
 
 .no-branches {

@@ -9,6 +9,7 @@ import {
     CreditCard,
     FileText,
     MapPin,
+    Navigation,
     Package,
     ShoppingBag,
     Store,
@@ -46,6 +47,9 @@ interface Branch {
     state: string | null;
     phone: string | null;
     full_address?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    directions_url?: string | null;
 }
 
 interface DeliveryAddress {
@@ -515,6 +519,23 @@ const getDeliverySummary = (address: DeliveryAddress): string => {
                                     <strong>Teléfono:</strong>
                                     {{ order.delivery_address.branch.phone }}
                                 </p>
+
+                                <a
+                                    v-if="
+                                        order.delivery_address.branch
+                                            ?.directions_url
+                                    "
+                                    :href="
+                                        order.delivery_address.branch
+                                            .directions_url
+                                    "
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="delivery-directions"
+                                >
+                                    <Navigation :size="15" />
+                                    Cómo llegar
+                                </a>
 
                                 <p
                                     v-if="
@@ -1140,6 +1161,25 @@ const getDeliverySummary = (address: DeliveryAddress): string => {
 
 .delivery-phone strong {
     color: #334155;
+}
+
+.delivery-directions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: #1769a8;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background 0.2s ease;
+}
+
+.delivery-directions:hover {
+    background: #12558c;
 }
 
 .delivery-references {

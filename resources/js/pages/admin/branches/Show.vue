@@ -10,11 +10,13 @@ import {
     Edit,
     MapPin,
     MapPinned,
+    Navigation,
     Phone,
     ShoppingBag,
     XCircle,
 } from 'lucide-vue-next';
 
+import BranchMapPicker from '@/components/admin/BranchMapPicker.vue';
 import admin from '@/routes/admin';
 
 interface Branch {
@@ -33,6 +35,9 @@ interface Branch {
     opening_time: string | null;
     closing_time: string | null;
     opening_hours: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    directions_url: string;
     is_active: boolean;
     delivery_addresses_count?: number;
     created_at?: string | null;
@@ -567,6 +572,40 @@ defineOptions({
                     </span>
                 </div>
             </div>
+
+            <div class="admin-location-map">
+                <BranchMapPicker
+                    v-if="
+                        props.branch.latitude !== null
+                        && props.branch.longitude !== null
+                    "
+                    :latitude="props.branch.latitude"
+                    :longitude="props.branch.longitude"
+                    readonly
+                    height="280px"
+                />
+
+                <p
+                    v-else
+                    class="admin-contact-empty"
+                >
+                    Esta sucursal aún no tiene ubicación en el mapa. Edítala
+                    para marcarla.
+                </p>
+
+                <a
+                    :href="props.branch.directions_url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="admin-btn admin-btn-primary admin-location-directions"
+                >
+                    <Navigation
+                        :size="14"
+                        :stroke-width="2"
+                    />
+                    Cómo llegar
+                </a>
+            </div>
         </section>
 
         <!-- RESUMEN DE RECOLECCIÓN -->
@@ -1049,6 +1088,18 @@ defineOptions({
     font-size: 12px;
     line-height: 1.55;
     overflow-wrap: anywhere;
+}
+
+.admin-location-map {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.admin-location-directions {
+    align-self: flex-start;
+    text-decoration: none;
 }
 
 .admin-location-references {

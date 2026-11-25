@@ -52,6 +52,8 @@ class BranchController extends Controller
             'city' => ['required', 'string', 'max:255'],
             'state' => ['required', 'string', 'max:255'],
             'references' => ['nullable', 'string', 'max:5000'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude'],
             'phone' => ['nullable', 'string', 'max:30'],
             'opening_time' => ['nullable', 'date_format:H:i'],
             'closing_time' => ['nullable', 'date_format:H:i', 'after:opening_time'],
@@ -66,6 +68,8 @@ class BranchController extends Controller
             'city.required' => 'La ciudad es obligatoria.',
             'state.required' => 'El estado es obligatorio.',
             'closing_time.after' => 'La hora de cierre debe ser posterior a la apertura.',
+            'latitude.between' => 'La latitud seleccionada no es válida.',
+            'longitude.between' => 'La longitud seleccionada no es válida.',
         ]);
 
         $validated['slug'] = $this->generateUniqueSlug($validated['name']);
@@ -108,6 +112,8 @@ class BranchController extends Controller
             'city' => ['required', 'string', 'max:255'],
             'state' => ['required', 'string', 'max:255'],
             'references' => ['nullable', 'string', 'max:5000'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude'],
             'phone' => ['nullable', 'string', 'max:30'],
             'opening_time' => ['nullable', 'date_format:H:i'],
             'closing_time' => ['nullable', 'date_format:H:i', 'after:opening_time'],
@@ -122,6 +128,8 @@ class BranchController extends Controller
             'city.required' => 'La ciudad es obligatoria.',
             'state.required' => 'El estado es obligatorio.',
             'closing_time.after' => 'La hora de cierre debe ser posterior a la apertura.',
+            'latitude.between' => 'La latitud seleccionada no es válida.',
+            'longitude.between' => 'La longitud seleccionada no es válida.',
         ]);
 
         if ($branch->name !== $validated['name']) {

@@ -6,6 +6,9 @@ import {
     Save,
 } from 'lucide-vue-next';
 
+import { computed } from 'vue';
+
+import BranchMapPicker from '@/components/admin/BranchMapPicker.vue';
 import admin from '@/routes/admin';
 
 const form = useForm({
@@ -22,8 +25,23 @@ const form = useForm({
     opening_time: '',
     closing_time: '',
     opening_hours: '',
+    latitude: null as number | null,
+    longitude: null as number | null,
     is_active: true,
 });
+
+const mapSearchAddress = computed(() =>
+    [
+        [form.street, form.exterior_number].filter(Boolean).join(' '),
+        form.neighborhood,
+        form.postal_code,
+        form.city,
+        form.state,
+        'México',
+    ]
+        .filter((part) => String(part ?? '').trim() !== '')
+        .join(', '),
+);
 
 const submit = (): void => {
     form.post(admin.branches.store().url);
@@ -446,6 +464,37 @@ defineOptions({
                             {{ form.errors.references }}
                         </p>
                     </div>
+                </div>
+
+                <!-- UBICACIÓN EN EL MAPA -->
+
+                <div class="admin-form-section">
+                    <div class="admin-form-section-header">
+                        <div>
+                            <h2 class="admin-form-section-title">
+                                Ubicación en el mapa
+                            </h2>
+
+                            <p class="admin-form-section-description">
+                                Marca el punto exacto de la sucursal. Se usará
+                                para el botón "Cómo llegar" y en el correo de
+                                confirmación del pedido.
+                            </p>
+                        </div>
+                    </div>
+
+                    <BranchMapPicker
+                        v-model:latitude="form.latitude"
+                        v-model:longitude="form.longitude"
+                        :address="mapSearchAddress"
+                    />
+
+                    <p
+                        v-if="form.errors.latitude || form.errors.longitude"
+                        class="admin-form-error"
+                    >
+                        {{ form.errors.latitude || form.errors.longitude }}
+                    </p>
                 </div>
 
                 <!-- HORARIO -->

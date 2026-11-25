@@ -25,6 +25,7 @@ import {
 
 import LandingFooter from '@/components/landing/LandingFooter.vue';
 import LandingHeader from '@/components/landing/LandingHeader.vue';
+import RaceCountdown from '@/components/landing/RaceCountdown.vue';
 import RaceDiscountCheck from '@/components/landing/RaceDiscountCheck.vue';
 import { formatDiscountAmount } from '@/lib/discountAmount';
 
@@ -702,6 +703,14 @@ onBeforeUnmount(() => {
                             <h1>
                                 {{ race.name }}
                             </h1>
+
+                            <RaceCountdown
+                                :event-date="race.event_date"
+                                :start-time="race.start_time"
+                                :end-time="race.end_time"
+                                :status="race.status"
+                                :results-url="race.results_url"
+                            />
 
                             <a
                                 v-if="hasDiscount && isRegistrationOpen"
@@ -2027,8 +2036,8 @@ onBeforeUnmount(() => {
 }
 
 .race-hero-content {
-    max-width: 880px;
-
+    /* Sin max-width: el h1 ya limita su ancho (850px) y así la
+       cuenta regresiva se centra respecto a toda la página. */
     padding: 78px 0 88px;
 }
 
