@@ -14,7 +14,8 @@ class OrderConfirmationMail extends Mailable
     use Queueable, SerializesModels;
 
     public function __construct(
-        public Sale $sale
+        public Sale $sale,
+        public bool $forAdmin = false
     ) {
         $this->sale->loadMissing([
             'customer',
@@ -25,6 +26,14 @@ class OrderConfirmationMail extends Mailable
 
     public function envelope(): Envelope
     {
+        if ($this->forAdmin) {
+            return new Envelope(
+                subject: 'Nueva venta realizada '
+                    . $this->sale->folio
+                    . ' | Sonríe Corriendo',
+            );
+        }
+
         return new Envelope(
             subject: 'Confirmación de tu pedido '
                 . $this->sale->folio

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\OrderConfirmationMail;
 use App\Models\PaymentMethod;
 use App\Models\Sale;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -524,6 +525,45 @@ class MercadoPagoController extends Controller
                             'folio' => $sale->folio,
                             'email' => $sale->customer_email,
                             'message' => $mailException->getMessage(),
+                        ]
+                    );
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | Notificar a los SuperAdmin
+                |--------------------------------------------------------------------------
+                */
+
+                try {
+                    $adminEmails = User::role('SuperAdmin')
+                        ->whereNotNull('email')
+                        ->pluck('email')
+                        ->unique()
+                        ->values()
+                        ->all();
+
+                    if (! empty($adminEmails)) {
+                        Mail::to($adminEmails)->send(
+                            new OrderConfirmationMail($sale, forAdmin: true)
+                        );
+
+                        Log::info(
+                            'Correo de nueva venta enviado a SuperAdmin.',
+                            [
+                                'sale_id' => $sale->id,
+                                'folio' => $sale->folio,
+                                'emails' => $adminEmails,
+                            ]
+                        );
+                    }
+                } catch (Throwable $adminMailException) {
+                    Log::error(
+                        'No se pudo enviar el correo de nueva venta a SuperAdmin.',
+                        [
+                            'sale_id' => $sale->id,
+                            'folio' => $sale->folio,
+                            'message' => $adminMailException->getMessage(),
                         ]
                     );
                 }

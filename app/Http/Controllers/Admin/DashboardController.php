@@ -14,6 +14,11 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
+    /**
+     * Estados que cuentan como venta realizada (web y taquilla).
+     */
+    private const SOLD_STATUSES = ['paid', 'completed'];
+
     public function index(Request $request): Response
     {
         /*
@@ -120,7 +125,7 @@ class DashboardController extends Controller
             */
 
             $completedOrders = (clone $currentOrdersQuery)
-                ->where('status', 'completed')
+                ->whereIn('status', self::SOLD_STATUSES)
                 ->count();
 
             /*
@@ -150,7 +155,7 @@ class DashboardController extends Controller
                 ) {
                     $query
                         ->where('customer_id', $customer->id)
-                        ->where('status', 'completed')
+                        ->whereIn('status', self::SOLD_STATUSES)
                         ->whereBetween('sold_at', [
                             $startDate,
                             $endDate,
@@ -172,7 +177,7 @@ class DashboardController extends Controller
 
             $currentRevenue = (float) (
                 (clone $currentOrdersQuery)
-                    ->where('status', 'completed')
+                    ->whereIn('status', self::SOLD_STATUSES)
                     ->sum('total')
             );
 
@@ -190,7 +195,7 @@ class DashboardController extends Controller
                 ) {
                     $query
                         ->where('customer_id', $customer->id)
-                        ->where('status', 'completed')
+                        ->whereIn('status', self::SOLD_STATUSES)
                         ->whereBetween('sold_at', [
                             $previousStartDate,
                             $previousEndDate,
@@ -200,7 +205,7 @@ class DashboardController extends Controller
 
             $previousRevenue = (float) (
                 (clone $previousOrdersQuery)
-                    ->where('status', 'completed')
+                    ->whereIn('status', self::SOLD_STATUSES)
                     ->sum('total')
             );
 
@@ -374,14 +379,14 @@ class DashboardController extends Controller
         */
 
         $currentSalesQuery = Sale::query()
-            ->where('status', 'completed')
+            ->whereIn('status', self::SOLD_STATUSES)
             ->whereBetween('sold_at', [
                 $startDate,
                 $endDate,
             ]);
 
         $previousSalesQuery = Sale::query()
-            ->where('status', 'completed')
+            ->whereIn('status', self::SOLD_STATUSES)
             ->whereBetween('sold_at', [
                 $previousStartDate,
                 $previousEndDate,
@@ -417,7 +422,7 @@ class DashboardController extends Controller
                 $endDate
             ) {
                 $query
-                    ->where('status', 'completed')
+                    ->whereIn('status', self::SOLD_STATUSES)
                     ->whereBetween('sold_at', [
                         $startDate,
                         $endDate,
@@ -431,7 +436,7 @@ class DashboardController extends Controller
                 $previousEndDate
             ) {
                 $query
-                    ->where('status', 'completed')
+                    ->whereIn('status', self::SOLD_STATUSES)
                     ->whereBetween('sold_at', [
                         $previousStartDate,
                         $previousEndDate,
@@ -475,7 +480,7 @@ class DashboardController extends Controller
             ->selectRaw('DATE(sold_at) as sale_date')
             ->selectRaw('SUM(total) as revenue')
             ->selectRaw('COUNT(*) as orders')
-            ->where('status', 'completed')
+            ->whereIn('status', self::SOLD_STATUSES)
             ->whereBetween('sold_at', [
                 $startDate,
                 $endDate,
@@ -522,7 +527,7 @@ class DashboardController extends Controller
                 $endDate
             ) {
                 $query
-                    ->where('status', 'completed')
+                    ->whereIn('status', self::SOLD_STATUSES)
                     ->whereBetween('sold_at', [
                         $startDate,
                         $endDate,
@@ -571,7 +576,7 @@ class DashboardController extends Controller
             ->selectRaw(
                 'SUM(sale_payments.amount) as amount'
             )
-            ->where('sales.status', 'completed')
+            ->whereIn('sales.status', self::SOLD_STATUSES)
             ->whereBetween('sales.sold_at', [
                 $startDate,
                 $endDate,
@@ -649,7 +654,7 @@ class DashboardController extends Controller
                 'customer:id,name,email',
                 'items.product:id,name',
             ])
-            ->where('status', 'completed')
+            ->whereIn('status', self::SOLD_STATUSES)
             ->whereBetween('sold_at', [
                 $startDate,
                 $endDate,
